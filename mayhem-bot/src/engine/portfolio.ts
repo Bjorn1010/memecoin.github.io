@@ -130,7 +130,10 @@ export class PaperPortfolio {
     const costBasis = pos.avgEntryPriceSol * tokenAmount;
     const pnl = netProceeds - costBasis - opts.priorityFeeSol;
 
-    this.solBalance += netProceeds - opts.priorityFeeSol;
+    // On a large enough dust position, netProceeds can be smaller than the flat priority
+    // fee (a real wallet would still just pay the fee out of whatever's left) — clamp so
+    // the paper balance never goes negative and the equity/PnL display stays sane.
+    this.solBalance = Math.max(0, this.solBalance + netProceeds - opts.priorityFeeSol);
     this.realizedPnlSol += pnl;
     this.totalFeesSol += feeSol + opts.priorityFeeSol;
 
