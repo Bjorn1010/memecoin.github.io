@@ -42,6 +42,13 @@ export class StrategyRunner {
     if (event.kind !== "buy") return trades;
     if (holdsPosition) return trades; // already in this coin, let exits manage it
     if (this.config.minMayhemBuySol != null && event.solAmount < this.config.minMayhemBuySol) return trades;
+    if (
+      this.config.minPoolLiquiditySol != null &&
+      event.solReservesUi != null &&
+      event.solReservesUi < this.config.minPoolLiquiditySol
+    ) {
+      return trades; // pool too thin — AMM slippage would eat the trade alive
+    }
     if (!this.portfolio.canOpen(this.config.maxConcurrentPositions)) return trades;
 
     const t = this.portfolio.buy({

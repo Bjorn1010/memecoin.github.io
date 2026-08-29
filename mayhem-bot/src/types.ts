@@ -81,6 +81,7 @@ export interface StrategyConfig {
   maxHoldSeconds: number | null;
   sellOnMayhemFullExit: boolean;
   minMayhemBuySol: number | null; // ignore mayhem buys smaller than this
+  minPoolLiquiditySol: number | null; // ignore entries into pools shallower than this (SOL-side reserves) — thin pools mean brutal AMM slippage
   maxConcurrentPositions: number;
   priorityFeeSol: number; // flat simulated priority/tip fee paid per trade, each side
 }
