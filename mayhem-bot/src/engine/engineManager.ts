@@ -1,12 +1,19 @@
 import { EventEmitter } from "node:events";
 import { MayhemMonitor } from "../solana/mayhemMonitor.js";
 import { getCurrentQuote } from "../solana/priceFeed.js";
+import { BondingCurveWatcher, type BondingCurveUpdate } from "../solana/bondingCurveWatcher.js";
 import { StrategyRunner } from "./strategyRunner.js";
 import { defaultStrategies } from "./presets.js";
 import { insertMayhemEvent, insertSnapshot, insertTrade, upsertStrategyConfig } from "../db/db.js";
 import type { PoolReserves } from "./portfolio.js";
 import type { MayhemEvent, StrategyConfig, Trade } from "../types.js";
 
+// Now a slow safety net, not the primary exit-latency path: real-time price updates come
+// from bondingCurveWatcher's onAccountChange push (see there for why the fixed-interval
+// version alone let stop-loss/trailing-stop fills blow through their nominal threshold).
+// This loop still matters for maxHoldSeconds (a time-based exit, not price-driven — a quiet
+// mint sees no account-change events at all) and for migrated tokens (DexScreener fallback,
+// no bonding-curve account to subscribe to).
 const PRICE_TICK_MS = 2_500;
 const SNAPSHOT_MS = 5_000;
 
@@ -20,6 +27,8 @@ export declare interface EngineManager {
 
 export class EngineManager extends EventEmitter {
   private monitor: MayhemMonitor;
+  private watcher = new BondingCurveWatcher();
+  private watchedMints = new Set<string>();
   private runners = new Map<string, StrategyRunner>();
   private priceCache = new Map<string, number>();
   private reservesCache = new Map<string, PoolReserves>();
@@ -36,6 +45,7 @@ export class EngineManager extends EventEmitter {
       this.walletStatuses.set(s.wallet, s);
       this.emit("monitor_status", s);
     });
+    this.watcher.on("update", (u) => this.handleBondingCurveUpdate(u));
 
     // presets.ts is the source of truth: nothing exposes an API to edit a strategy's config
     // at runtime, so a persisted row is never anything but a stale copy of a past boot's
@@ -75,6 +85,7 @@ export class EngineManager extends EventEmitter {
     this.runners.set(id, fresh);
     insertSnapshot(fresh.portfolio.snapshot(this.priceCache));
     this.emit("snapshot");
+    this.syncWatchedMints();
     return true;
   }
 
@@ -99,11 +110,37 @@ export class EngineManager extends EventEmitter {
     if (!this.running) return;
     this.running = false;
     this.monitor.stop();
+    this.watcher.stopAll();
+    this.watchedMints.clear();
     if (this.tickTimer) clearInterval(this.tickTimer);
     if (this.snapshotTimer) clearInterval(this.snapshotTimer);
     this.tickTimer = null;
     this.snapshotTimer = null;
     this.emit("bot_status", { running: false });
+  }
+
+  /** Keeps the live account-change subscriptions in sync with what's actually open across
+   * every strategy — one subscription per mint regardless of how many strategies hold it,
+   * torn down the moment the last one closes it. Called after anything that can open or
+   * close a position (a Mayhem event, a tick-driven exit, a price-update-driven exit, a
+   * manual reset). */
+  private syncWatchedMints() {
+    const openMints = new Set<string>();
+    for (const runner of this.runners.values()) {
+      for (const mint of runner.portfolio.positions.keys()) openMints.add(mint);
+    }
+    for (const mint of openMints) {
+      if (!this.watchedMints.has(mint)) {
+        this.watcher.watch(mint);
+        this.watchedMints.add(mint);
+      }
+    }
+    for (const mint of this.watchedMints) {
+      if (!openMints.has(mint)) {
+        this.watcher.unwatch(mint);
+        this.watchedMints.delete(mint);
+      }
+    }
   }
 
   private handleMayhemEvent(event: MayhemEvent) {
@@ -124,8 +161,28 @@ export class EngineManager extends EventEmitter {
         this.emit("trade", t);
       }
     }
+    this.syncWatchedMints();
   }
 
+  /** Fires the instant a watched mint's bonding-curve account changes on-chain — this is
+   * the low-latency path that actually catches a stop-loss/trailing-stop/take-profit
+   * crossing close to when it happens, instead of waiting for the next priceTick(). */
+  private handleBondingCurveUpdate(u: BondingCurveUpdate) {
+    this.priceCache.set(u.mint, u.priceSol);
+    this.reservesCache.set(u.mint, { solReservesUi: u.solReservesUi, tokenReservesUi: u.tokenReservesUi });
+
+    for (const runner of this.runners.values()) {
+      const trades = runner.tick(this.priceCache, this.reservesCache);
+      for (const t of trades) {
+        insertTrade(t);
+        this.emit("trade", t);
+      }
+    }
+    this.syncWatchedMints();
+  }
+
+  /** Slow fallback sweep — see the PRICE_TICK_MS comment above for why this still runs
+   * alongside the event-driven watcher instead of being replaced by it. */
   private async priceTick() {
     const mints = new Set<string>();
     for (const runner of this.runners.values()) {
@@ -155,6 +212,7 @@ export class EngineManager extends EventEmitter {
         this.emit("trade", t);
       }
     }
+    this.syncWatchedMints();
   }
 
   private snapshotAll() {
