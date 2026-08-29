@@ -54,11 +54,6 @@ export function upsertStrategyConfig(cfg: StrategyConfig) {
   ).run(cfg.id, JSON.stringify(cfg));
 }
 
-export function loadStrategyConfigs(): StrategyConfig[] {
-  const rows = db.prepare(`SELECT config_json FROM strategies`).all() as { config_json: string }[];
-  return rows.map((r) => JSON.parse(r.config_json) as StrategyConfig);
-}
-
 export function recentTrades(strategyId: string, limit = 200): Trade[] {
   const rows = db
     .prepare(
@@ -89,7 +84,7 @@ export function recentMayhemEvents(limit = 100): MayhemEvent[] {
     .prepare(
       `SELECT id, wallet, kind, mint, signature, slot, block_time as blockTime, sol_amount as solAmount,
               token_amount as tokenAmount, price_sol as priceSol, wallet_token_balance_after as walletTokenBalanceAfter,
-              detected_at_ms as detectedAtMs
+              detected_at_ms as detectedAtMs, sol_reserves_ui as solReservesUi, token_reserves_ui as tokenReservesUi
        FROM mayhem_events ORDER BY detected_at_ms DESC LIMIT ?`,
     )
     .all(limit) as unknown as MayhemEvent[];

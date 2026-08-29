@@ -3,7 +3,7 @@ import { MayhemMonitor } from "../solana/mayhemMonitor.js";
 import { getCurrentQuote } from "../solana/priceFeed.js";
 import { StrategyRunner } from "./strategyRunner.js";
 import { defaultStrategies } from "./presets.js";
-import { insertMayhemEvent, insertSnapshot, insertTrade, loadStrategyConfigs, upsertStrategyConfig } from "../db/db.js";
+import { insertMayhemEvent, insertSnapshot, insertTrade, upsertStrategyConfig } from "../db/db.js";
 import type { PoolReserves } from "./portfolio.js";
 import type { MayhemEvent, StrategyConfig, Trade } from "../types.js";
 
@@ -37,9 +37,11 @@ export class EngineManager extends EventEmitter {
       this.emit("monitor_status", s);
     });
 
-    const persisted = loadStrategyConfigs();
-    const configs = persisted.length > 0 ? persisted : defaultStrategies;
-    for (const cfg of configs) {
+    // presets.ts is the source of truth: nothing exposes an API to edit a strategy's config
+    // at runtime, so a persisted row is never anything but a stale copy of a past boot's
+    // defaults. Always load fresh from presets.ts and overwrite the persisted mirror,
+    // so an edit to presets.ts actually takes effect on the next restart.
+    for (const cfg of defaultStrategies) {
       this.runners.set(cfg.id, new StrategyRunner(cfg));
       upsertStrategyConfig(cfg);
     }
