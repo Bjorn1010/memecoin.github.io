@@ -34,6 +34,24 @@ import type { StrategyConfig } from "../types.js";
  *    (~16 SOL), so it barely filtered anything. Raised to 40 SOL, meaningfully above that
  *    median, to actually test whether avoiding the thinnest pools (where a single trade can
  *    move price 20-50%) helps, at the cost of far fewer qualifying entries.
+ *
+ * IMPORTANT — a "+1300%" post-migration result was measured and then found to be an
+ * artifact, not alpha. Its entry had been booked at a price read off a bonding curve caught
+ * mid-drain at migration (SOL side nearly empty => absurdly low price), then marked against
+ * the real DexScreener price: a fabricated ~180x in 11 seconds on an already-migrated (i.e.
+ * deep-liquidity) token, which is not physically possible. Entries now wait for a real
+ * post-migration market price (see EngineManager.resolveMigrationEntries), and priceFeed no
+ * longer falls back to a completed curve's price at all. Treat any pre-fix post-migration
+ * number in the DB as invalid.
+ *
+ * With that corrected, nothing here is known to be profitable yet. The set below is
+ * deliberately lean: the three clearly-dead immediate-copy strategies (copy-all,
+ * big-buys-only, fast-exit — all down 88%+) are removed, `liquid-only` stays purely as a
+ * control so post-migration's numbers can be compared against something, and the
+ * post-migration family varies exactly ONE axis per variant (trail width, stop width,
+ * position size) so a difference in outcome points at a specific cause. All variants share
+ * the same live event stream and the same starting bankroll, so they are directly
+ * comparable.
  */
 const BASE = {
   startingBalanceSol: 2,
@@ -50,43 +68,10 @@ const BASE = {
 
 export const defaultStrategies: StrategyConfig[] = [
   {
-    id: "copy-all",
-    name: "Copie tout",
-    description: "Copie chaque achat de Mayhem sans filtre. SL -12% / trailing stop -25% armé à partir de +50%.",
-    kind: "generic",
-    enabled: true,
-    ...BASE,
-    maxHoldSeconds: null,
-    minMayhemBuySol: null,
-    maxConcurrentPositions: 8,
-  },
-  {
-    id: "big-buys-only",
-    name: "Grosses convictions",
-    description: "N'entre que si Mayhem met plus de 0.05 SOL. SL -12% / trailing stop -25% armé à partir de +50%.",
-    kind: "generic",
-    enabled: true,
-    ...BASE,
-    maxHoldSeconds: null,
-    minMayhemBuySol: 0.05,
-    maxConcurrentPositions: 6,
-  },
-  {
-    id: "fast-exit",
-    name: "Sortie rapide",
-    description: "Comme Copie tout, mais force la sortie après 3 min max. SL -12% / trailing stop -25% armé à partir de +50%.",
-    kind: "generic",
-    enabled: true,
-    ...BASE,
-    maxHoldSeconds: 180,
-    minMayhemBuySol: null,
-    maxConcurrentPositions: 8,
-  },
-  {
     id: "liquid-only",
-    name: "Pools liquides seulement",
+    name: "Pools liquides (témoin)",
     description:
-      "N'entre que si le pool a au moins 40 SOL de réserves au moment du trade (bien au-dessus de la médiane ~16 SOL de Mayhem). SL -12% / trailing stop -25% armé à partir de +50%.",
+      "Seule stratégie à copie immédiate encore active, gardée comme TÉMOIN de comparaison. N'entre que si le pool a au moins 40 SOL de réserves (bien au-dessus de la médiane ~16 SOL de Mayhem). SL -12% / trailing stop -25% armé à partir de +50%.",
     kind: "generic",
     enabled: true,
     ...BASE,
@@ -97,9 +82,9 @@ export const defaultStrategies: StrategyConfig[] = [
   },
   {
     id: "post-migration",
-    name: "Après migration seulement",
+    name: "Après migration (référence)",
     description:
-      "N'achète jamais sur la bonding curve : surveille les mints que Mayhem achète et n'entre qu'une fois le token migré vers un vrai pool AMM (liquidité bien plus profonde que les ~16 SOL médians que Mayhem snipe). SL -12% / trailing stop -25% armé à partir de +50%. La plupart des tokens ne migrent jamais — attends-toi à beaucoup moins de trades que les 4 autres stratégies.",
+      "N'achète jamais sur la bonding curve : surveille les mints achetés par Mayhem et n'entre qu'une fois le token migré vers un vrai pool AMM, au prix de marché réel. SL -12% / trailing stop -25% armé à partir de +50%. Peu de trades : la plupart des tokens ne migrent jamais.",
     kind: "generic",
     enabled: true,
     ...BASE,
@@ -107,5 +92,47 @@ export const defaultStrategies: StrategyConfig[] = [
     maxHoldSeconds: null,
     minMayhemBuySol: null,
     maxConcurrentPositions: 8,
+  },
+  {
+    id: "post-migration-wide-trail",
+    name: "Après migration, trail large",
+    description:
+      "Identique à la référence, sauf le trailing stop élargi à -45%. Teste si un trail à -25% coupe les vrais gagnants pendant un repli normal, vu que tout l'edge vient de la queue de distribution (+100% et plus).",
+    kind: "generic",
+    enabled: true,
+    ...BASE,
+    waitForMigration: true,
+    trailingStopPct: 0.45,
+    maxHoldSeconds: null,
+    minMayhemBuySol: null,
+    maxConcurrentPositions: 8,
+  },
+  {
+    id: "post-migration-loose-stop",
+    name: "Après migration, stop large",
+    description:
+      "Identique à la référence, sauf le stop-loss élargi à -30%. Teste l'hypothèse inverse : un stop à -12% nous éjecte peut-être de tokens qui plongent puis explosent, avant qu'ils aient la chance de devenir des gagnants.",
+    kind: "generic",
+    enabled: true,
+    ...BASE,
+    waitForMigration: true,
+    stopLossPct: 0.3,
+    maxHoldSeconds: null,
+    minMayhemBuySol: null,
+    maxConcurrentPositions: 8,
+  },
+  {
+    id: "post-migration-small-size",
+    name: "Après migration, petite taille",
+    description:
+      "Identique à la référence, sauf la taille de position réduite à 0.05 SOL (au lieu de 0.15). Sur une distribution en loterie, des mises plus petites permettent de survivre à plus de perdants et donc d'avoir plus de tickets pour la queue de distribution.",
+    kind: "generic",
+    enabled: true,
+    ...BASE,
+    waitForMigration: true,
+    positionSizeSol: 0.05,
+    maxHoldSeconds: null,
+    minMayhemBuySol: null,
+    maxConcurrentPositions: 20,
   },
 ];

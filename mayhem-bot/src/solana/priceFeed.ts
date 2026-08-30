@@ -23,7 +23,13 @@ export async function getCurrentQuote(mint: string): Promise<PriceQuote | null> 
   const dex = await getDexscreenerPrice(mint);
   if (dex) return { priceSol: dex }; // migrated — deeper liquidity, no reserves to model slippage from
 
-  return curve ? { priceSol: curve.priceSol } : null;
+  // Deliberately NOT falling back to a completed curve's price: once a curve completes its
+  // SOL side has been drained into the new AMM pool, so the price derived from it is
+  // meaningless (typically near zero) rather than merely stale. Returning it here is what
+  // let a draining-curve price be booked as a real entry and manufacture a fake ~180x win.
+  // No price is strictly better than a fabricated one — callers already handle null.
+  if (curve && !curve.complete) return { priceSol: curve.priceSol };
+  return null;
 }
 
 export async function getCurrentPriceSol(mint: string): Promise<number | null> {

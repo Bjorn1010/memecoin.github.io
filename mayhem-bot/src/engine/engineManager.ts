@@ -25,6 +25,10 @@ const SNAPSHOT_MS = 5_000;
 // would grow without bound.
 const PENDING_MIGRATION_TTL_MS = 10 * 60 * 1000;
 const MAX_PENDING_MIGRATION_WATCHES = 40;
+// How long to keep trying to get a real post-migration market price for a mint whose curve
+// just completed. DexScreener needs a few seconds to index a fresh pool; past this we give
+// up on the entry rather than enter on a price we can't trust.
+const MIGRATION_PRICE_TTL_MS = 90 * 1000;
 
 interface PendingMigration {
   entryEventId: string;
@@ -45,6 +49,7 @@ export class EngineManager extends EventEmitter {
   private watcher = new BondingCurveWatcher();
   private watchedMints = new Set<string>();
   private pendingMigration = new Map<string, PendingMigration>();
+  private awaitingMigrationPrice = new Map<string, PendingMigration>();
   private runners = new Map<string, StrategyRunner>();
   private priceCache = new Map<string, number>();
   private reservesCache = new Map<string, PoolReserves>();
@@ -129,6 +134,7 @@ export class EngineManager extends EventEmitter {
     this.watcher.stopAll();
     this.watchedMints.clear();
     this.pendingMigration.clear();
+    this.awaitingMigrationPrice.clear();
     if (this.tickTimer) clearInterval(this.tickTimer);
     if (this.snapshotTimer) clearInterval(this.snapshotTimer);
     this.tickTimer = null;
@@ -228,15 +234,18 @@ export class EngineManager extends EventEmitter {
    * where a waitForMigration strategy actually enters, the moment its watched candidate's
    * curve reports complete. */
   private handleBondingCurveUpdate(u: BondingCurveUpdate) {
-    this.priceCache.set(u.mint, u.priceSol);
-    // Once complete, the bonding-curve reserves are a snapshot of a pool that no longer
-    // trades — the mint's real liquidity is now on a separate AMM pool we have no reserves
-    // for. Drop any cached reserves rather than let a stale/transitional curve-completion
-    // reading get fed into simulateSell() as if it still described the live market (this
-    // produced a nonsensical -40% "slippage" on the first post-migration exit).
+    // A completed curve describes a pool that no longer trades: its SOL side has been
+    // drained into the new AMM pool, so both its reserves AND the price derived from them
+    // are garbage — often a near-zero price from an all-but-empty SOL side. Feeding that
+    // into priceCache poisons every downstream consumer (it manufactured a fake ~180x
+    // "win" by booking an entry at a draining-curve price and marking it against the real
+    // DexScreener price). Drop both cache entries and let priceTick repopulate the price
+    // from the real post-migration market instead.
     if (u.complete) {
+      this.priceCache.delete(u.mint);
       this.reservesCache.delete(u.mint);
     } else {
+      this.priceCache.set(u.mint, u.priceSol);
       this.reservesCache.set(u.mint, { solReservesUi: u.solReservesUi, tokenReservesUi: u.tokenReservesUi });
     }
 
@@ -250,9 +259,38 @@ export class EngineManager extends EventEmitter {
 
     const pending = this.pendingMigration.get(u.mint);
     if (u.complete && pending) {
+      // Don't enter here: the only price available at this instant is the dead curve's.
+      // Hand off to priceTick, which resolves a real market price before entering.
       this.pendingMigration.delete(u.mint);
+      this.awaitingMigrationPrice.set(u.mint, { ...pending, firstSeenAt: Date.now() });
+    }
+    this.syncWatchedMints();
+  }
+
+  /** Second half of a waitForMigration entry: once a candidate's curve has completed, we
+   * need a price from the mint's NEW market (DexScreener) before we can enter — the curve
+   * price at completion is meaningless. Retried each priceTick until a sane price shows up
+   * or the mint is given up on, since DexScreener typically takes a few seconds to index a
+   * freshly migrated pool. */
+  private async resolveMigrationEntries() {
+    if (this.awaitingMigrationPrice.size === 0) return;
+    const now = Date.now();
+
+    for (const [mint, pending] of [...this.awaitingMigrationPrice]) {
+      if (now - pending.firstSeenAt > MIGRATION_PRICE_TTL_MS) {
+        this.awaitingMigrationPrice.delete(mint);
+        continue;
+      }
+
+      const quote = await getCurrentQuote(mint);
+      // A migrated mint has no bonding-curve reserves any more; a quote that still carries
+      // them is the dead curve being read again, not the new pool — keep waiting.
+      if (!quote || !(quote.priceSol > 0) || quote.solReservesUi != null) continue;
+
+      this.awaitingMigrationPrice.delete(mint);
+      this.priceCache.set(mint, quote.priceSol);
       for (const runner of this.runners.values()) {
-        const t = runner.enterAfterMigration(u.mint, u.priceSol, pending.entryEventId, pending.mayhemBuySolAmount);
+        const t = runner.enterAfterMigration(mint, quote.priceSol, pending.entryEventId, pending.mayhemBuySolAmount);
         if (t) {
           insertTrade(t);
           this.emit("trade", t);
@@ -268,6 +306,7 @@ export class EngineManager extends EventEmitter {
    * open position right now. */
   private async priceTick() {
     this.sweepPendingMigrations();
+    await this.resolveMigrationEntries();
 
     const mints = new Set<string>();
     for (const runner of this.runners.values()) {
