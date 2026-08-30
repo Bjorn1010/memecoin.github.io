@@ -103,6 +103,12 @@ export class StrategyRunner {
       this.portfolio.markPrice(pos.mint, price);
       const changePct = (price - pos.avgEntryPriceSol) / pos.avgEntryPriceSol;
       const drawdownFromPeakPct = (price - pos.peakPriceSol) / pos.peakPriceSol;
+      // Armed off the peak ever reached, not the current price — a one-way ratchet. A
+      // position that pumped to +200% and has since fallen back to +40% has already proven
+      // itself a tail winner; it must stay eligible for the trailing stop even though its
+      // current gain has dropped back under trailingArmPct, or a big pullback-then-crash
+      // would ride all the way down to stop_loss instead of locking in the gain it had.
+      const peakGainPct = (pos.peakPriceSol - pos.avgEntryPriceSol) / pos.avgEntryPriceSol;
       const heldSeconds = (Date.now() - pos.openedAt) / 1000;
 
       let reason: string | null = null;
@@ -113,7 +119,7 @@ export class StrategyRunner {
       } else if (
         this.config.trailingStopPct != null &&
         drawdownFromPeakPct <= -this.config.trailingStopPct &&
-        changePct > 0
+        peakGainPct >= (this.config.trailingArmPct ?? 0)
       ) {
         reason = "trailing_stop";
       } else if (this.config.maxHoldSeconds != null && heldSeconds >= this.config.maxHoldSeconds) {
