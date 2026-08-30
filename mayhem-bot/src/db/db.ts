@@ -48,6 +48,15 @@ export function insertSnapshot(s: PortfolioSnapshot) {
   ).run(asParams(s));
 }
 
+export function markMintMigrated(mint: string) {
+  db.prepare(`INSERT OR IGNORE INTO migrated_mints (mint, detected_at) VALUES (?, ?)`).run(mint, Date.now());
+}
+
+export function loadMigratedMints(): string[] {
+  const rows = db.prepare(`SELECT mint FROM migrated_mints`).all() as { mint: string }[];
+  return rows.map((r) => r.mint);
+}
+
 export function savePortfolioState(strategyId: string, state: PortfolioState) {
   db.prepare(
     `INSERT INTO portfolio_state (strategy_id, state_json, updated_at) VALUES (?, ?, ?)

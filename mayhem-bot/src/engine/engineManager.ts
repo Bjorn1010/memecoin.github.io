@@ -9,7 +9,9 @@ import {
   insertMayhemEvent,
   insertSnapshot,
   insertTrade,
+  loadMigratedMints,
   loadPortfolioState,
+  markMintMigrated,
   savePortfolioState,
   upsertStrategyConfig,
 } from "../db/db.js";
@@ -58,6 +60,7 @@ export class EngineManager extends EventEmitter {
   private watchedMints = new Set<string>();
   private pendingMigration = new Map<string, PendingMigration>();
   private awaitingMigrationPrice = new Map<string, PendingMigration>();
+  private migratedMints = new Set<string>(loadMigratedMints());
   private runners = new Map<string, StrategyRunner>();
   private priceCache = new Map<string, number>();
   private reservesCache = new Map<string, PoolReserves>();
@@ -230,12 +233,22 @@ export class EngineManager extends EventEmitter {
   private handleMayhemEvent(event: MayhemEvent) {
     insertMayhemEvent(event);
     this.emit("mayhem_event", event);
-    this.priceCache.set(event.mint, event.priceSol);
-    if (event.solReservesUi != null && event.tokenReservesUi != null) {
-      this.reservesCache.set(event.mint, {
-        solReservesUi: event.solReservesUi,
-        tokenReservesUi: event.tokenReservesUi,
-      });
+
+    // A migrated mint's bonding curve keeps emitting pump.fun trade events, but it no longer
+    // sets the price — the real market is the new AMM pool. Writing those curve numbers back
+    // into the caches is what undid the migration cleanup in handleBondingCurveUpdate and let
+    // sells simulate against a dead pool: it booked one exit 22x above any price ever seen
+    // on-chain, and labelled another "stop_loss" on a +176% move (the exit threshold was
+    // checked against the cached price while the fill price came from those stale reserves).
+    // For these mints only priceTick's DexScreener quote is trustworthy.
+    if (!this.migratedMints.has(event.mint)) {
+      this.priceCache.set(event.mint, event.priceSol);
+      if (event.solReservesUi != null && event.tokenReservesUi != null) {
+        this.reservesCache.set(event.mint, {
+          solReservesUi: event.solReservesUi,
+          tokenReservesUi: event.tokenReservesUi,
+        });
+      }
     }
 
     for (const runner of this.runners.values()) {
@@ -266,6 +279,10 @@ export class EngineManager extends EventEmitter {
     // DexScreener price). Drop both cache entries and let priceTick repopulate the price
     // from the real post-migration market instead.
     if (u.complete) {
+      if (!this.migratedMints.has(u.mint)) {
+        this.migratedMints.add(u.mint);
+        markMintMigrated(u.mint);
+      }
       this.priceCache.delete(u.mint);
       this.reservesCache.delete(u.mint);
     } else {
