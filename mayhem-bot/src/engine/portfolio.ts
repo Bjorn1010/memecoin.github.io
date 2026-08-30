@@ -55,7 +55,11 @@ export class PaperPortfolio {
     const fill = opts.poolReserves
       ? simulateBuy(notionalAfterFee, opts.poolReserves.solReservesUi, opts.poolReserves.tokenReservesUi)
       : { avgPriceSol: opts.priceSol, slippagePct: 0 };
-    if (fill.avgPriceSol <= 0) return null;
+    // `<= 0` alone misses NaN (a 0/0 spot price from zeroed reserves, say) — every
+    // comparison against NaN is false in JS, so a NaN fill would otherwise slip through
+    // and corrupt tokenAmount/avgEntryPriceSol for the rest of this position's life.
+    // Unlike an exit, skipping a bad entry is always safe, so just reject it here.
+    if (!(fill.avgPriceSol > 0)) return null;
 
     const tokenAmount = notionalAfterFee / fill.avgPriceSol;
     const totalCost = spend; // fee is already baked into what left the wallet
@@ -119,10 +123,20 @@ export class PaperPortfolio {
     const fraction = opts.fraction ?? 1;
     const tokenAmount = pos.tokenAmount * fraction;
 
-    const fill = opts.poolReserves
+    let fill = opts.poolReserves
       ? simulateSell(tokenAmount, opts.poolReserves.solReservesUi, opts.poolReserves.tokenReservesUi)
       : { avgPriceSol: opts.priceSol, slippagePct: 0 };
-    if (fill.avgPriceSol <= 0) return null;
+    // An exit signal (stop-loss/take-profit/trailing-stop) must always execute somehow — a
+    // reserves-based fill that comes out non-positive or NaN (stale/inconsistent reserves,
+    // a 0/0 spot price, reserves reported far smaller than the position being closed) is a
+    // bad SIMULATION, not a reason to silently drop the exit and leave the position open
+    // forever. Fall back to the flat spot price with no modeled slippage instead. Note
+    // `fill.avgPriceSol <= 0` alone would miss NaN, since every `<=`/`>=` comparison
+    // against NaN is false in JS.
+    if (!(fill.avgPriceSol > 0) && opts.priceSol > 0) {
+      fill = { avgPriceSol: opts.priceSol, slippagePct: 0 };
+    }
+    if (!(fill.avgPriceSol > 0)) return null;
 
     const grossProceeds = tokenAmount * fill.avgPriceSol;
     const feeSol = grossProceeds * PLATFORM_FEE_PCT;
