@@ -84,4 +84,8 @@ export interface StrategyConfig {
   minPoolLiquiditySol: number | null; // ignore entries into pools shallower than this (SOL-side reserves) — thin pools mean brutal AMM slippage
   maxConcurrentPositions: number;
   priorityFeeSol: number; // flat simulated priority/tip fee paid per trade, each side
+  /** Don't copy the buy on the bonding curve at all — watch the mint and only enter once
+   * it migrates off pump.fun onto a real AMM pool, trading whatever deeper liquidity that
+   * pool has instead of the ~16 SOL median reserves Mayhem snipes into pre-migration. */
+  waitForMigration: boolean;
 }

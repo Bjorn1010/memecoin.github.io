@@ -35,6 +35,7 @@ const BASE = {
   sellOnMayhemFullExit: true,
   priorityFeeSol: 0.003,
   minPoolLiquiditySol: null,
+  waitForMigration: false,
 } as const;
 
 export const defaultStrategies: StrategyConfig[] = [
@@ -82,6 +83,19 @@ export const defaultStrategies: StrategyConfig[] = [
     maxHoldSeconds: null,
     minMayhemBuySol: null,
     minPoolLiquiditySol: 10,
+    maxConcurrentPositions: 8,
+  },
+  {
+    id: "post-migration",
+    name: "Après migration seulement",
+    description:
+      "N'achète jamais sur la bonding curve : surveille les mints que Mayhem achète et n'entre qu'une fois le token migré vers un vrai pool AMM (liquidité bien plus profonde que les ~16 SOL médians que Mayhem snipe). SL -12% / trailing stop -25%. La plupart des tokens ne migrent jamais — attends-toi à beaucoup moins de trades que les 4 autres stratégies.",
+    kind: "generic",
+    enabled: true,
+    ...BASE,
+    waitForMigration: true,
+    maxHoldSeconds: null,
+    minMayhemBuySol: null,
     maxConcurrentPositions: 8,
   },
 ];

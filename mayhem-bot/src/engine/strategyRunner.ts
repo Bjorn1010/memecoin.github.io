@@ -42,6 +42,9 @@ export class StrategyRunner {
     if (event.kind !== "buy") return trades;
     if (holdsPosition) return trades; // already in this coin, let exits manage it
     if (this.config.minMayhemBuySol != null && event.solAmount < this.config.minMayhemBuySol) return trades;
+    // waitForMigration strategies never buy on the bonding curve itself — EngineManager
+    // watches the mint instead and calls enterAfterMigration() once it's off the curve.
+    if (this.config.waitForMigration) return trades;
     if (
       this.config.minPoolLiquiditySol != null &&
       event.solReservesUi != null &&
@@ -63,6 +66,29 @@ export class StrategyRunner {
     });
     if (t) trades.push(t);
     return trades;
+  }
+
+  /** Entry path for waitForMigration strategies: called once a mint Mayhem bought
+   * pre-migration has just come off the bonding curve. No bonding-curve reserves exist for
+   * the new AMM pool (DexScreener gives us spot price only), so this fill has no simulated
+   * slippage — a known, disclosed simplification, not a claim that post-migration fills are
+   * actually free. */
+  enterAfterMigration(mint: string, priceSol: number, entryEventId: string, mayhemBuySolAmount: number): Trade | null {
+    if (!this.config.enabled) return null;
+    if (!this.config.waitForMigration) return null;
+    if (this.portfolio.positions.has(mint)) return null;
+    if (this.config.minMayhemBuySol != null && mayhemBuySolAmount < this.config.minMayhemBuySol) return null;
+    if (!this.portfolio.canOpen(this.config.maxConcurrentPositions)) return null;
+
+    return this.portfolio.buy({
+      mint,
+      priceSol,
+      solAmount: this.config.positionSizeSol,
+      reason: "copy_mayhem_buy_post_migration",
+      latencyMs: 0,
+      entryEventId,
+      priorityFeeSol: this.config.priorityFeeSol,
+    });
   }
 
   /** Periodic price-driven exit check (take-profit / stop-loss / max hold). */

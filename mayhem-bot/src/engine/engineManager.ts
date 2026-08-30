@@ -17,6 +17,21 @@ import type { MayhemEvent, StrategyConfig, Trade } from "../types.js";
 const PRICE_TICK_MS = 2_500;
 const SNAPSHOT_MS = 5_000;
 
+// waitForMigration strategies (see presets.ts) watch a mint's bonding curve after Mayhem
+// buys into it, waiting for the migration flag instead of entering right away. Most
+// pump.fun launches never reach the ~85 SOL migration threshold at all, so a candidate
+// that hasn't migrated within PENDING_MIGRATION_TTL_MS is given up on and unwatched —
+// otherwise, at Mayhem's buy rate, the pending set (and its account-change subscriptions)
+// would grow without bound.
+const PENDING_MIGRATION_TTL_MS = 10 * 60 * 1000;
+const MAX_PENDING_MIGRATION_WATCHES = 25;
+
+interface PendingMigration {
+  entryEventId: string;
+  mayhemBuySolAmount: number;
+  firstSeenAt: number;
+}
+
 export declare interface EngineManager {
   on(event: "mayhem_event", listener: (e: MayhemEvent) => void): this;
   on(event: "trade", listener: (t: Trade) => void): this;
@@ -29,6 +44,7 @@ export class EngineManager extends EventEmitter {
   private monitor: MayhemMonitor;
   private watcher = new BondingCurveWatcher();
   private watchedMints = new Set<string>();
+  private pendingMigration = new Map<string, PendingMigration>();
   private runners = new Map<string, StrategyRunner>();
   private priceCache = new Map<string, number>();
   private reservesCache = new Map<string, PoolReserves>();
@@ -112,6 +128,7 @@ export class EngineManager extends EventEmitter {
     this.monitor.stop();
     this.watcher.stopAll();
     this.watchedMints.clear();
+    this.pendingMigration.clear();
     if (this.tickTimer) clearInterval(this.tickTimer);
     if (this.snapshotTimer) clearInterval(this.snapshotTimer);
     this.tickTimer = null;
@@ -120,27 +137,58 @@ export class EngineManager extends EventEmitter {
   }
 
   /** Keeps the live account-change subscriptions in sync with what's actually open across
-   * every strategy — one subscription per mint regardless of how many strategies hold it,
-   * torn down the moment the last one closes it. Called after anything that can open or
-   * close a position (a Mayhem event, a tick-driven exit, a price-update-driven exit, a
-   * manual reset). */
+   * every strategy, plus whatever waitForMigration is still waiting to see migrate — one
+   * subscription per mint no matter how many strategies/watchers care about it, torn down
+   * the moment nothing does anymore. Called after anything that can open or close a
+   * position or add/remove a pending migration candidate. */
   private syncWatchedMints() {
-    const openMints = new Set<string>();
+    const wantedMints = new Set<string>(this.pendingMigration.keys());
     for (const runner of this.runners.values()) {
-      for (const mint of runner.portfolio.positions.keys()) openMints.add(mint);
+      for (const mint of runner.portfolio.positions.keys()) wantedMints.add(mint);
     }
-    for (const mint of openMints) {
+    for (const mint of wantedMints) {
       if (!this.watchedMints.has(mint)) {
         this.watcher.watch(mint);
         this.watchedMints.add(mint);
       }
     }
     for (const mint of this.watchedMints) {
-      if (!openMints.has(mint)) {
+      if (!wantedMints.has(mint)) {
         this.watcher.unwatch(mint);
         this.watchedMints.delete(mint);
       }
     }
+  }
+
+  /** Registers a mint Mayhem just bought as a migration candidate for waitForMigration
+   * strategies, bounded by MAX_PENDING_MIGRATION_WATCHES since most pump.fun launches
+   * never migrate and Mayhem buys often enough that an unbounded watchlist would pile up
+   * account-change subscriptions indefinitely. */
+  private trackMigrationCandidate(event: MayhemEvent) {
+    if (this.pendingMigration.has(event.mint)) return;
+    if ([...this.runners.values()].some((r) => r.portfolio.positions.has(event.mint))) return;
+    if (this.pendingMigration.size >= MAX_PENDING_MIGRATION_WATCHES) return;
+    this.pendingMigration.set(event.mint, {
+      entryEventId: event.id,
+      mayhemBuySolAmount: event.solAmount,
+      firstSeenAt: Date.now(),
+    });
+    this.syncWatchedMints();
+  }
+
+  /** Drops any migration candidate that's been waiting longer than PENDING_MIGRATION_TTL_MS
+   * without migrating — most never do. */
+  private sweepPendingMigrations() {
+    if (this.pendingMigration.size === 0) return;
+    const now = Date.now();
+    let changed = false;
+    for (const [mint, pending] of this.pendingMigration) {
+      if (now - pending.firstSeenAt > PENDING_MIGRATION_TTL_MS) {
+        this.pendingMigration.delete(mint);
+        changed = true;
+      }
+    }
+    if (changed) this.syncWatchedMints();
   }
 
   private handleMayhemEvent(event: MayhemEvent) {
@@ -161,12 +209,18 @@ export class EngineManager extends EventEmitter {
         this.emit("trade", t);
       }
     }
+
+    if (event.kind === "buy" && [...this.runners.values()].some((r) => r.config.waitForMigration)) {
+      this.trackMigrationCandidate(event);
+    }
     this.syncWatchedMints();
   }
 
   /** Fires the instant a watched mint's bonding-curve account changes on-chain — this is
    * the low-latency path that actually catches a stop-loss/trailing-stop/take-profit
-   * crossing close to when it happens, instead of waiting for the next priceTick(). */
+   * crossing close to when it happens, instead of waiting for the next priceTick(). Also
+   * where a waitForMigration strategy actually enters, the moment its watched candidate's
+   * curve reports complete. */
   private handleBondingCurveUpdate(u: BondingCurveUpdate) {
     this.priceCache.set(u.mint, u.priceSol);
     this.reservesCache.set(u.mint, { solReservesUi: u.solReservesUi, tokenReservesUi: u.tokenReservesUi });
@@ -178,12 +232,28 @@ export class EngineManager extends EventEmitter {
         this.emit("trade", t);
       }
     }
+
+    const pending = this.pendingMigration.get(u.mint);
+    if (u.complete && pending) {
+      this.pendingMigration.delete(u.mint);
+      for (const runner of this.runners.values()) {
+        const t = runner.enterAfterMigration(u.mint, u.priceSol, pending.entryEventId, pending.mayhemBuySolAmount);
+        if (t) {
+          insertTrade(t);
+          this.emit("trade", t);
+        }
+      }
+    }
     this.syncWatchedMints();
   }
 
   /** Slow fallback sweep — see the PRICE_TICK_MS comment above for why this still runs
-   * alongside the event-driven watcher instead of being replaced by it. */
+   * alongside the event-driven watcher instead of being replaced by it. Also where
+   * abandoned migration candidates get swept out, independent of whether anything has an
+   * open position right now. */
   private async priceTick() {
+    this.sweepPendingMigrations();
+
     const mints = new Set<string>();
     for (const runner of this.runners.values()) {
       for (const mint of runner.portfolio.positions.keys()) mints.add(mint);
