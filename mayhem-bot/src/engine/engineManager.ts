@@ -4,7 +4,15 @@ import { getCurrentQuote } from "../solana/priceFeed.js";
 import { BondingCurveWatcher, type BondingCurveUpdate } from "../solana/bondingCurveWatcher.js";
 import { StrategyRunner } from "./strategyRunner.js";
 import { defaultStrategies } from "./presets.js";
-import { insertMayhemEvent, insertSnapshot, insertTrade, upsertStrategyConfig } from "../db/db.js";
+import {
+  clearPortfolioState,
+  insertMayhemEvent,
+  insertSnapshot,
+  insertTrade,
+  loadPortfolioState,
+  savePortfolioState,
+  upsertStrategyConfig,
+} from "../db/db.js";
 import type { PoolReserves } from "./portfolio.js";
 import type { MayhemEvent, StrategyConfig, Trade } from "../types.js";
 
@@ -73,7 +81,20 @@ export class EngineManager extends EventEmitter {
     // defaults. Always load fresh from presets.ts and overwrite the persisted mirror,
     // so an edit to presets.ts actually takes effect on the next restart.
     for (const cfg of defaultStrategies) {
-      this.runners.set(cfg.id, new StrategyRunner(cfg));
+      const runner = new StrategyRunner(cfg);
+      // Resume the live portfolio across restarts. This environment recycles the container
+      // whenever the session goes idle, and portfolios live in memory, so without this every
+      // restart silently rewound each strategy to its starting bankroll — making a
+      // multi-hour track record impossible to build no matter how long the bot ran.
+      const saved = loadPortfolioState(cfg.id);
+      if (saved) {
+        runner.portfolio.restore(saved);
+        console.log(
+          `[engine] ${cfg.id} repris: solde=${runner.portfolio.solBalance.toFixed(4)} SOL, ` +
+            `realise=${runner.portfolio.realizedPnlSol.toFixed(4)} SOL, ${runner.portfolio.positions.size} position(s)`,
+        );
+      }
+      this.runners.set(cfg.id, runner);
       upsertStrategyConfig(cfg);
     }
   }
@@ -104,6 +125,9 @@ export class EngineManager extends EventEmitter {
     if (!existing) return false;
     const fresh = new StrategyRunner(existing.config);
     this.runners.set(id, fresh);
+    // Drop the persisted state too, or the next restart would resurrect the very portfolio
+    // this reset was meant to wipe.
+    clearPortfolioState(id);
     insertSnapshot(fresh.portfolio.snapshot(this.priceCache));
     this.emit("snapshot");
     this.syncWatchedMints();
@@ -343,6 +367,9 @@ export class EngineManager extends EventEmitter {
     for (const runner of this.runners.values()) {
       const snap = runner.portfolio.snapshot(this.priceCache);
       insertSnapshot(snap);
+      // Persisted on the same cadence as snapshots so an unannounced container recycle
+      // loses at most SNAPSHOT_MS of progress instead of the whole run.
+      savePortfolioState(runner.config.id, runner.portfolio.serialize());
     }
     this.emit("snapshot");
   }

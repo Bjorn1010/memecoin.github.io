@@ -47,6 +47,16 @@ CREATE TABLE IF NOT EXISTS strategies (
   config_json TEXT NOT NULL
 );
 
+-- Live portfolio state (balance, realized PnL, fees, open positions) per strategy, so a
+-- restart resumes where it left off instead of silently resetting every strategy back to
+-- its starting bankroll. This environment recycles the container whenever the session goes
+-- idle, so without this the bot can never build up a track record longer than one sitting.
+CREATE TABLE IF NOT EXISTS portfolio_state (
+  strategy_id TEXT PRIMARY KEY,
+  state_json TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_trades_strategy ON trades(strategy_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_snapshots_strategy ON portfolio_snapshots(strategy_id, timestamp);
 CREATE INDEX IF NOT EXISTS idx_events_mint ON mayhem_events(mint);

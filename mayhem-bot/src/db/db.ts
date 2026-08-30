@@ -3,6 +3,7 @@ import { dirname } from "node:path";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { config } from "../config.js";
 import type { MayhemEvent, PortfolioSnapshot, StrategyConfig, Trade } from "../types.js";
+import type { PortfolioState } from "../engine/portfolio.js";
 
 // node:sqlite wants plain Record<string, SQLInputValue> objects; our domain types are
 // structurally identical (numbers/strings only) but not indexable, so we bridge the type here.
@@ -45,6 +46,31 @@ export function insertSnapshot(s: PortfolioSnapshot) {
     `INSERT INTO portfolio_snapshots (strategy_id, timestamp, sol_balance, unrealized_pnl_sol, realized_pnl_sol, equity_sol, sol_deployed, total_fees_sol)
      VALUES (@strategyId, @timestamp, @solBalance, @unrealizedPnlSol, @realizedPnlSol, @equitySol, @solDeployed, @totalFeesSol)`,
   ).run(asParams(s));
+}
+
+export function savePortfolioState(strategyId: string, state: PortfolioState) {
+  db.prepare(
+    `INSERT INTO portfolio_state (strategy_id, state_json, updated_at) VALUES (?, ?, ?)
+     ON CONFLICT(strategy_id) DO UPDATE SET state_json = excluded.state_json, updated_at = excluded.updated_at`,
+  ).run(strategyId, JSON.stringify(state), Date.now());
+}
+
+/** Returns the saved live state for a strategy, or null when there's nothing to resume
+ * (first ever run, or a row too corrupt to parse — either way, start fresh). */
+export function loadPortfolioState(strategyId: string): PortfolioState | null {
+  const row = db.prepare(`SELECT state_json FROM portfolio_state WHERE strategy_id = ?`).get(strategyId) as
+    | { state_json: string }
+    | undefined;
+  if (!row) return null;
+  try {
+    return JSON.parse(row.state_json) as PortfolioState;
+  } catch {
+    return null;
+  }
+}
+
+export function clearPortfolioState(strategyId: string) {
+  db.prepare(`DELETE FROM portfolio_state WHERE strategy_id = ?`).run(strategyId);
 }
 
 export function upsertStrategyConfig(cfg: StrategyConfig) {

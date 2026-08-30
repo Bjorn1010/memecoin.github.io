@@ -8,6 +8,13 @@ export interface PoolReserves {
   tokenReservesUi: number;
 }
 
+export interface PortfolioState {
+  solBalance: number;
+  realizedPnlSol: number;
+  totalFeesSol: number;
+  positions: Position[];
+}
+
 /**
  * A fully virtual (paper) trading account for one strategy. No wallet, no real funds —
  * but every fill goes through the same cost model a real Padre trade would: the platform's
@@ -31,6 +38,31 @@ export class PaperPortfolio {
 
   canOpen(maxConcurrentPositions: number): boolean {
     return this.positions.size < maxConcurrentPositions;
+  }
+
+  /** Everything needed to resume this portfolio after a restart. `trades` is deliberately
+   * left out: it's an in-memory convenience log, and the trades table is the real record. */
+  serialize(): PortfolioState {
+    return {
+      solBalance: this.solBalance,
+      realizedPnlSol: this.realizedPnlSol,
+      totalFeesSol: this.totalFeesSol,
+      positions: [...this.positions.values()],
+    };
+  }
+
+  /** Rehydrates a portfolio saved by serialize(). Anything missing or non-finite falls back
+   * to the fresh-start value, so a truncated or older state row degrades to "start over"
+   * rather than resuming with NaN balances that would corrupt every later trade. */
+  restore(state: PortfolioState) {
+    if (Number.isFinite(state.solBalance)) this.solBalance = state.solBalance;
+    if (Number.isFinite(state.realizedPnlSol)) this.realizedPnlSol = state.realizedPnlSol;
+    if (Number.isFinite(state.totalFeesSol)) this.totalFeesSol = state.totalFeesSol;
+    this.positions.clear();
+    for (const pos of state.positions ?? []) {
+      if (!pos?.mint || !Number.isFinite(pos.tokenAmount) || !(pos.avgEntryPriceSol > 0)) continue;
+      this.positions.set(pos.mint, pos);
+    }
   }
 
   buy(opts: {
