@@ -12,6 +12,7 @@ import {
   loadMigratedMints,
   loadPortfolioState,
   markMintMigrated,
+  pruneOldData,
   savePortfolioState,
   upsertStrategyConfig,
 } from "../db/db.js";
@@ -26,6 +27,9 @@ import type { MayhemEvent, StrategyConfig, Trade } from "../types.js";
 // no bonding-curve account to subscribe to).
 const PRICE_TICK_MS = 2_500;
 const SNAPSHOT_MS = 5_000;
+// Rolling retention for raw events/snapshots — see pruneOldData for why this is capped.
+const DATA_RETENTION_MS = 2 * 60 * 60 * 1000;
+const PRUNE_INTERVAL_MS = 10 * 60 * 1000;
 
 // waitForMigration strategies (see presets.ts) watch a mint's bonding curve after Mayhem
 // buys into it, waiting for the migration flag instead of entering right away. Most
@@ -77,6 +81,7 @@ export class EngineManager extends EventEmitter {
   private reservesCache = new Map<string, PoolReserves>();
   private tickTimer: NodeJS.Timeout | null = null;
   private snapshotTimer: NodeJS.Timeout | null = null;
+  private pruneTimer: NodeJS.Timeout | null = null;
   private walletStatuses = new Map<string, { wallet: string; state: string; detail?: string }>();
   private running = false;
 
@@ -161,6 +166,8 @@ export class EngineManager extends EventEmitter {
 
     this.tickTimer = setInterval(() => void this.priceTick(), PRICE_TICK_MS);
     this.snapshotTimer = setInterval(() => this.snapshotAll(), SNAPSHOT_MS);
+    pruneOldData(DATA_RETENTION_MS);
+    this.pruneTimer = setInterval(() => pruneOldData(DATA_RETENTION_MS), PRUNE_INTERVAL_MS);
     this.emit("bot_status", { running: true });
   }
 
@@ -175,8 +182,10 @@ export class EngineManager extends EventEmitter {
     this.awaitingMigrationPrice.clear();
     if (this.tickTimer) clearInterval(this.tickTimer);
     if (this.snapshotTimer) clearInterval(this.snapshotTimer);
+    if (this.pruneTimer) clearInterval(this.pruneTimer);
     this.tickTimer = null;
     this.snapshotTimer = null;
+    this.pruneTimer = null;
     this.emit("bot_status", { running: false });
   }
 

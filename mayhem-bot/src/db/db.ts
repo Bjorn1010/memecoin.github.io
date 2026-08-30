@@ -48,6 +48,28 @@ export function insertSnapshot(s: PortfolioSnapshot) {
   ).run(asParams(s));
 }
 
+/**
+ * Trims the raw firehose tables to a rolling window and reclaims the freed pages.
+ *
+ * mayhem_events grows at roughly 30k rows/hour (~5-10 Mayhem trades a second), which pushed
+ * the committed DB past GitHub's 50MB advisory limit within a few hours and would hit the
+ * hard 100MB cap — at which point pushes fail outright and the run history stops being
+ * saved at all. Events are pure raw input: they are only needed live, to sanity-check a
+ * fresh trade's fill price against the prices actually seen on-chain around it, so a couple
+ * of hours is ample. What must survive is the small stuff — trades, portfolio_state,
+ * migrated_mints — which together are a rounding error on the file size.
+ */
+export function pruneOldData(maxAgeMs: number) {
+  const cutoff = Date.now() - maxAgeMs;
+  const events = db.prepare(`DELETE FROM mayhem_events WHERE detected_at_ms < ?`).run(cutoff);
+  const snaps = db.prepare(`DELETE FROM portfolio_snapshots WHERE timestamp < ?`).run(cutoff);
+  const removed = Number(events.changes ?? 0) + Number(snaps.changes ?? 0);
+  // VACUUM only when something substantial was freed: it rewrites the whole file, so running
+  // it on every sweep would be wasted IO for no size win.
+  if (removed > 10_000) db.exec("VACUUM");
+  return removed;
+}
+
 export function markMintMigrated(mint: string) {
   db.prepare(`INSERT OR IGNORE INTO migrated_mints (mint, detected_at) VALUES (?, ?)`).run(mint, Date.now());
 }
