@@ -37,8 +37,14 @@ const PRUNE_INTERVAL_MS = 10 * 60 * 1000;
 // that hasn't migrated within PENDING_MIGRATION_TTL_MS is given up on and unwatched —
 // otherwise, at Mayhem's buy rate, the pending set (and its account-change subscriptions)
 // would grow without bound.
-const PENDING_MIGRATION_TTL_MS = 10 * 60 * 1000;
-const MAX_PENDING_MIGRATION_WATCHES = 40;
+// Sized from measured candidate supply: at the 35 SOL depth floor, ~3.5 distinct mints a
+// minute qualify. A 10-minute TTL against 40 slots therefore ran right at capacity, and any
+// mint that took longer than 10 minutes to migrate was dropped before it could — which is
+// most of them, since a launch can sit near the threshold for a while. 25 minutes of watch
+// time needs ~90 concurrent slots at that arrival rate, so 120 leaves headroom without being
+// unbounded. Watch for WS subscription errors if this is raised much further.
+const PENDING_MIGRATION_TTL_MS = 25 * 60 * 1000;
+const MAX_PENDING_MIGRATION_WATCHES = 120;
 // How long to keep trying to get a real post-migration market price for a mint whose curve
 // just completed. DexScreener needs a few seconds to index a fresh pool; past this we give
 // up on the entry rather than enter on a price we can't trust.
