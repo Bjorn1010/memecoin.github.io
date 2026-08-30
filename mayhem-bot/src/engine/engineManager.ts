@@ -24,7 +24,7 @@ const SNAPSHOT_MS = 5_000;
 // otherwise, at Mayhem's buy rate, the pending set (and its account-change subscriptions)
 // would grow without bound.
 const PENDING_MIGRATION_TTL_MS = 10 * 60 * 1000;
-const MAX_PENDING_MIGRATION_WATCHES = 25;
+const MAX_PENDING_MIGRATION_WATCHES = 40;
 
 interface PendingMigration {
   entryEventId: string;
@@ -163,11 +163,17 @@ export class EngineManager extends EventEmitter {
   /** Registers a mint Mayhem just bought as a migration candidate for waitForMigration
    * strategies, bounded by MAX_PENDING_MIGRATION_WATCHES since most pump.fun launches
    * never migrate and Mayhem buys often enough that an unbounded watchlist would pile up
-   * account-change subscriptions indefinitely. */
+   * account-change subscriptions indefinitely. At capacity, evicts the oldest candidate
+   * instead of just refusing new ones — Mayhem buys at roughly 5-10/s, so a first-come,
+   * never-rotated batch of watches would camp on whichever mints happened to fill the
+   * list first instead of sampling the wider stream of buys over the run. */
   private trackMigrationCandidate(event: MayhemEvent) {
     if (this.pendingMigration.has(event.mint)) return;
     if ([...this.runners.values()].some((r) => r.portfolio.positions.has(event.mint))) return;
-    if (this.pendingMigration.size >= MAX_PENDING_MIGRATION_WATCHES) return;
+    if (this.pendingMigration.size >= MAX_PENDING_MIGRATION_WATCHES) {
+      const oldestMint = this.pendingMigration.keys().next().value;
+      if (oldestMint) this.pendingMigration.delete(oldestMint);
+    }
     this.pendingMigration.set(event.mint, {
       entryEventId: event.id,
       mayhemBuySolAmount: event.solAmount,
@@ -223,7 +229,16 @@ export class EngineManager extends EventEmitter {
    * curve reports complete. */
   private handleBondingCurveUpdate(u: BondingCurveUpdate) {
     this.priceCache.set(u.mint, u.priceSol);
-    this.reservesCache.set(u.mint, { solReservesUi: u.solReservesUi, tokenReservesUi: u.tokenReservesUi });
+    // Once complete, the bonding-curve reserves are a snapshot of a pool that no longer
+    // trades — the mint's real liquidity is now on a separate AMM pool we have no reserves
+    // for. Drop any cached reserves rather than let a stale/transitional curve-completion
+    // reading get fed into simulateSell() as if it still described the live market (this
+    // produced a nonsensical -40% "slippage" on the first post-migration exit).
+    if (u.complete) {
+      this.reservesCache.delete(u.mint);
+    } else {
+      this.reservesCache.set(u.mint, { solReservesUi: u.solReservesUi, tokenReservesUi: u.tokenReservesUi });
+    }
 
     for (const runner of this.runners.values()) {
       const trades = runner.tick(this.priceCache, this.reservesCache);
