@@ -40,10 +40,21 @@ const MAX_PENDING_MIGRATION_WATCHES = 40;
 // up on the entry rather than enter on a price we can't trust.
 const MIGRATION_PRICE_TTL_MS = 90 * 1000;
 
+// Only mints already within reach of the migration threshold are worth a watch slot. Of the
+// ~51k observed Mayhem buys, the median pool holds 11 SOL and p90 is 64 SOL, while the mints
+// that actually migrated were last seen between 23 and 75 SOL. Watching from 35 SOL up keeps
+// essentially all realistic migrators while discarding ~85% of candidates, so a slot lasts
+// long enough to still be watching when migration happens. Before this, slots were handed
+// out first-come to a stream of ~5-10 distinct mints/second and evicted within seconds,
+// which sampled an arbitrary sliver and produced roughly one post-migration entry per
+// 10-15 minutes — far too few to judge the strategy on.
+const MIN_MIGRATION_CANDIDATE_RESERVES_SOL = 35;
+
 interface PendingMigration {
   entryEventId: string;
   mayhemBuySolAmount: number;
   firstSeenAt: number;
+  solReservesUi: number;
 }
 
 export declare interface EngineManager {
@@ -196,21 +207,38 @@ export class EngineManager extends EventEmitter {
   /** Registers a mint Mayhem just bought as a migration candidate for waitForMigration
    * strategies, bounded by MAX_PENDING_MIGRATION_WATCHES since most pump.fun launches
    * never migrate and Mayhem buys often enough that an unbounded watchlist would pile up
-   * account-change subscriptions indefinitely. At capacity, evicts the oldest candidate
-   * instead of just refusing new ones — Mayhem buys at roughly 5-10/s, so a first-come,
-   * never-rotated batch of watches would camp on whichever mints happened to fill the
-   * list first instead of sampling the wider stream of buys over the run. */
+   * account-change subscriptions indefinitely. Slots are rationed by how close a pool
+   * actually is to migrating (see MIN_MIGRATION_CANDIDATE_RESERVES_SOL): candidates below
+   * the floor are ignored outright, and at capacity the shallowest pool being watched is
+   * dropped for a deeper newcomer, so watches concentrate on the mints most likely to
+   * migrate while we're still looking. */
   private trackMigrationCandidate(event: MayhemEvent) {
     if (this.pendingMigration.has(event.mint)) return;
+    if (this.migratedMints.has(event.mint)) return;
     if ([...this.runners.values()].some((r) => r.portfolio.positions.has(event.mint))) return;
+
+    const reserves = event.solReservesUi;
+    if (reserves == null || reserves < MIN_MIGRATION_CANDIDATE_RESERVES_SOL) return;
+
     if (this.pendingMigration.size >= MAX_PENDING_MIGRATION_WATCHES) {
-      const oldestMint = this.pendingMigration.keys().next().value;
-      if (oldestMint) this.pendingMigration.delete(oldestMint);
+      let shallowestMint: string | null = null;
+      let shallowest = Infinity;
+      for (const [mint, p] of this.pendingMigration) {
+        if (p.solReservesUi < shallowest) {
+          shallowest = p.solReservesUi;
+          shallowestMint = mint;
+        }
+      }
+      // Everything already queued is a better bet than this one — leave the queue alone.
+      if (shallowestMint == null || shallowest >= reserves) return;
+      this.pendingMigration.delete(shallowestMint);
     }
+
     this.pendingMigration.set(event.mint, {
       entryEventId: event.id,
       mayhemBuySolAmount: event.solAmount,
       firstSeenAt: Date.now(),
+      solReservesUi: reserves,
     });
     this.syncWatchedMints();
   }
