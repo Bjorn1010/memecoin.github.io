@@ -119,10 +119,23 @@ export const ConfigSchema = z.object({
   leg1ToleranceBps: bpsSchema.default(0),
   /** How long an in-flight opportunity holds its lock before being released. */
   opportunityLockTimeoutMs: positiveInt.default(30_000),
+  /**
+   * Address lookup table. Not optional in practice for mixed-venue cycles: a
+   * PumpSwap+Raydium transaction measures 1281 bytes against a 1232-byte limit
+   * without one. `npm run setup` creates it and prints the address.
+   */
+  lookupTableAddress: z.string().optional(),
 
   // --- storage and safety ---------------------------------------------------
   dataDir: z.string().default("./data"),
   walletKeypairPath: z.string().optional(),
+  /**
+   * Public key only, no secret. Paper mode simulates against this account's
+   * real balances so the compute-unit measurement and the quote-versus-
+   * simulation divergence are real numbers. A simulation run against an
+   * account that holds nothing fails at leg 1 every time and measures nothing.
+   */
+  walletPublicKey: z.string().optional(),
   /** Must be literally "true" for --live to start. */
   liveTrading: z.coerce.boolean().default(false),
   /** Second, independent confirmation for --live (§27). */
@@ -175,8 +188,10 @@ const ENV_KEYS: Record<keyof Config, string> = {
   landRateMinSamples: "LAND_RATE_MIN_SAMPLES",
   leg1ToleranceBps: "LEG1_TOLERANCE_BPS",
   opportunityLockTimeoutMs: "OPPORTUNITY_LOCK_TIMEOUT_MS",
+  lookupTableAddress: "LOOKUP_TABLE_ADDRESS",
   dataDir: "DATA_DIR",
   walletKeypairPath: "WALLET_KEYPAIR_PATH",
+  walletPublicKey: "WALLET_PUBLIC_KEY",
   liveTrading: "LIVE_TRADING",
   liveConfirmation: "LIVE_CONFIRMATION",
 };

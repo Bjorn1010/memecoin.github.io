@@ -57,6 +57,7 @@ import { Ledger, type AttemptRecord } from "./obs/ledger.js";
 import { decodeTokenAccount } from "./feed/decoder/token2022.js";
 import type { Metrics } from "./obs/metrics.js";
 import { buildArbitrageCycle, walletTokenAccount } from "./exec/transactionBuilder.js";
+import { loadLookupTable } from "./exec/lookupTable.js";
 import { computeUnitLimitFrom, isSlippageFailure, simulateCycle } from "./exec/simulator.js";
 import type { TxSender } from "./exec/TxSender.js";
 import { WatchlistSelector } from "./screener/selector.js";
@@ -111,6 +112,7 @@ export class ArbEngine {
   private readonly registrations = new Map<string, PoolRegistration>();
 
   private cluster: ClusterFeeParams | null = null;
+  private lookupTables: import("@solana/web3.js").AddressLookupTableAccount[] = [];
   private epoch = 0n;
   private blockTimeSeconds = Math.floor(Date.now() / 1000);
   private dailyRealisedPnl = 0n;
@@ -186,6 +188,7 @@ export class ArbEngine {
     this.blockTimeSeconds = await rpc.getBlockTimeSeconds(RpcPriority.P0_Critical);
     this.cluster = await this.readClusterFeeParams();
 
+    await this.loadLookupTables();
     if (this.deps.sender) await this.deps.sender.prepare();
     if (this.deps.wallet) await this.refreshWallet();
 
@@ -209,6 +212,7 @@ export class ArbEngine {
       console.warn(`[feed] error: ${e.message}`);
     });
 
+    this.warnIfSimulationIsBlind();
     await feed.start();
     // The shared config accounts must be watched: pump's fee tiers live in one
     // of them, and a fee change we did not see would make every quote wrong.
@@ -444,6 +448,81 @@ export class ArbEngine {
     }
   }
 
+  /**
+   * Who the transaction is built for.
+   *
+   * Live signs with the wallet. Paper uses WALLET_PUBLIC_KEY when set, so the
+   * simulation runs against real balances and its numbers mean something —
+   * simulating from an account that holds no WSOL fails at leg 1 every time and
+   * measures nothing. With neither, we fall back to a placeholder and say so.
+   */
+  private simulationPayer(): PublicKey {
+    if (this.deps.wallet) return this.deps.wallet.publicKey;
+    const configured = this.deps.config.walletPublicKey;
+    if (configured) {
+      try {
+        return new PublicKey(configured);
+      } catch {
+        // Reported once at startup by warnIfSimulationIsBlind.
+      }
+    }
+    return PLACEHOLDER_PAYER;
+  }
+
+  /** Say plainly when paper mode cannot produce a meaningful simulation. */
+  private warnIfSimulationIsBlind(): void {
+    if (this.deps.config.mode !== "paper") return;
+    if (this.deps.wallet) return;
+    const configured = this.deps.config.walletPublicKey;
+    let usable = false;
+    if (configured) {
+      try {
+        new PublicKey(configured);
+        usable = true;
+      } catch {
+        console.warn(`[paper] WALLET_PUBLIC_KEY is not a valid public key: ${configured}`);
+      }
+    }
+    if (!usable) {
+      console.warn(
+        "[paper] no WALLET_PUBLIC_KEY set: simulations will fail for lack of balance, so " +
+          "compute-unit and quote-divergence numbers will be missing. Set it to a funded " +
+          "wallet's PUBLIC key (no secret is needed) to make paper mode measure anything.",
+      );
+    }
+  }
+
+  /**
+   * Load the address lookup table, and say clearly what its absence costs.
+   * Without one, mixed-venue cycles simply cannot be built — they exceed the
+   * transaction size limit — so the bot would silently trade a fraction of the
+   * opportunities it found.
+   */
+  private async loadLookupTables(): Promise<void> {
+    const address = this.deps.config.lookupTableAddress;
+    if (!address) {
+      if (this.deps.config.mode === "live" || this.deps.config.mode === "paper") {
+        console.warn(
+          "[alt] no LOOKUP_TABLE_ADDRESS configured. PumpSwap+Raydium cycles measure ~1281 bytes " +
+            "against a 1232-byte limit and will be REFUSED at build time; only same-venue cycles " +
+            "will trade. Run `npm run setup` to create one.",
+        );
+      }
+      return;
+    }
+    try {
+      const table = await loadLookupTable(this.deps.rpc.connection, address);
+      if (!table) {
+        console.warn(`[alt] no lookup table found at ${address}; mixed-venue cycles will be refused`);
+        return;
+      }
+      this.lookupTables = [table];
+      console.log(`[alt] loaded ${table.state.addresses.length} addresses from ${address}`);
+    } catch (e) {
+      console.warn(`[alt] could not load ${address}: ${describe(e)}`);
+    }
+  }
+
   private freshnessPolicy(): FreshnessPolicy {
     return {
       maxStateAgeMs: this.deps.config.maxStateAgeMs,
@@ -462,9 +541,13 @@ export class ArbEngine {
   }
 
   private availableCapital(): bigint {
-    const balance = this.walletState.baseTokenLamports;
     const cap = this.deps.config.maxTradeSize;
-    if (balance <= 0n) return cap; // observe/paper: not capital constrained
+    // Observe and paper hold no capital, so the cap is the only constraint that
+    // means anything. Live is bounded by what the wallet actually holds — a
+    // zero balance there must size to zero, not to the cap, or every cycle is
+    // sized against money we do not have and rejected one stage later.
+    if (this.deps.config.mode !== "live") return cap;
+    const balance = this.walletState.baseTokenLamports;
     return balance < cap ? balance : cap;
   }
 
@@ -562,6 +645,15 @@ export class ArbEngine {
         minExpectedValueLamports: config.minExpectedValue,
       });
 
+      // The screener scores on net profit; recordActivity only saw the gross
+      // figure, which would rank an expensive pool as if its fees were free.
+      this.bumpActivity(sized.buyPoolId, (act) => {
+        act.netProfits.push(profit.netProfitIfLanded);
+        if (act.netProfits.length > 500) act.netProfits.shift();
+        act.netProfitTotal += profit.netProfitIfLanded;
+        if (profit.netProfitIfLanded > 0n) act.netProfitableCount++;
+      });
+
       if (!profit.shouldTrade) {
         this.reject(sized, profit.reason as RejectReason, detectedAt, freshness, {
           expectedNet: profit.netProfitIfLanded,
@@ -618,7 +710,7 @@ export class ArbEngine {
       }
 
       // --- build ------------------------------------------------------------
-      const payer = this.deps.wallet?.publicKey ?? PLACEHOLDER_PAYER;
+      const payer = this.simulationPayer();
       const mints = this.store.mintMap();
       let built;
       try {
@@ -632,7 +724,13 @@ export class ArbEngine {
             payer,
             baseTokenAccount: walletTokenAccount(mints, sized.baseMint, payer),
             intermediateTokenAccount: walletTokenAccount(mints, sized.intermediateMint, payer),
-            minProfitLamports: config.minProfit,
+            // The on-chain assertion is denominated in WSOL, but the base
+            // fee, priority fee and tip are paid in native SOL, which the
+            // assertion cannot see. Folding them into the bound means a landed
+            // transaction is profitable NET, not merely gross — otherwise a
+            // MIN_PROFIT set below the cost of a transaction would let the
+            // chain happily confirm a losing trade.
+            minProfitLamports: costs.onSuccess + config.minProfit,
             computeUnitLimit: provisionalCuLimit,
             computeUnitPriceMicroLamports: cuPrice,
             ...(tip.tipLamports > 0n && sender?.tipAccount()
@@ -640,6 +738,7 @@ export class ArbEngine {
               : {}),
             createIntermediateAta: true,
             recentBlockhash: blockhash,
+            lookupTables: this.lookupTables,
           }),
           lastValidBlockHeight,
         };
@@ -816,7 +915,10 @@ export class ArbEngine {
       if (outcome === "success") {
         const before = this.walletState.baseTokenLamports;
         await this.refreshWallet();
-        realised = this.walletState.baseTokenLamports - before - a.costs.tip;
+        // The WSOL delta is the gross profit; base fee, priority fee and tip
+        // all came out of native SOL and must all be subtracted. Subtracting
+        // only the tip would overstate realised PnL by the fees on every trade.
+        realised = this.walletState.baseTokenLamports - before - a.costs.onSuccess;
         metrics.realisedNetPnl += realised;
         this.addDailyPnl(realised);
         metrics.addPoolPnl(a.sized.buyPoolId, realised);
@@ -824,7 +926,7 @@ export class ArbEngine {
         metrics.outcome(realised > 0n ? "landed-profitable" : "landed-unprofitable");
         metrics.tipsPaid += a.costs.tip;
         metrics.feesPaid += a.costs.baseFee + a.costs.priorityFee;
-        await this.checkResidual(a.sized.intermediateMint);
+        await this.checkResidual(a.sized.intermediateMint, a.sellPool);
       } else if (outcome === "reverted") {
         metrics.outcome("landed-unprofitable");
         metrics.feesPaid += a.costs.onRevert;
@@ -874,7 +976,7 @@ export class ArbEngine {
    * After a supposedly residue-free cycle, any leftover intermediate balance
    * means our model of the transaction is wrong. It is never explained away.
    */
-  private async checkResidual(mint: string): Promise<void> {
+  private async checkResidual(mint: string, sellPool: PoolSnapshot): Promise<void> {
     const wallet = this.deps.wallet;
     if (!wallet) return;
     const mints = this.store.mintMap();
@@ -882,17 +984,46 @@ export class ArbEngine {
     const account = walletTokenAccount(mints, mint, wallet.publicKey);
     const info = await this.deps.rpc.getAccount(account.toBase58(), RpcPriority.P0_Critical);
     if (!info) return;
+
+    let residualTokens: bigint;
     try {
-      const decoded = decodeTokenAccount(info.data);
-      if (decoded.amount === 0n) return;
-      // Value it conservatively at zero-impact price using the last quote's
-      // reserves would need a quote; the raw amount is enough to alarm on.
-      const verdict = this.deps.killSwitch.onResidualBalance(decoded.amount, Date.now());
-      if (verdict !== "ok") {
-        console.warn(`[residual] ${decoded.amount} of ${mint} left after a cycle (${verdict})`);
+      residualTokens = decodeTokenAccount(info.data).amount;
+    } catch {
+      return; // an unreadable account is handled by the next refresh
+    }
+    if (residualTokens === 0n) return;
+
+    // Value the residue in BASE lamports before comparing it to a lamport
+    // threshold. Comparing a raw token amount against a lamport limit is a
+    // units error: a six-decimal token would trip the alarm on dust worth
+    // nothing, and an eighteen-decimal one would never trip it at all.
+    let residualValue = 0n;
+    try {
+      const quoter = this.quoters.get(sellPool.family);
+      if (quoter) {
+        residualValue = quoter.quote(
+          sellPool,
+          residualTokens,
+          { inputMint: mint, outputMint: WSOL_MINT },
+          {
+            mints,
+            currentSlot: this.deps.feed.currentSlot(),
+            blockTimeSeconds: this.blockTimeSeconds,
+          },
+        ).amountOut;
       }
     } catch {
-      /* an unreadable account is handled by the next refresh */
+      // If the residue cannot be priced we cannot say it is small, so treat it
+      // as material rather than as zero.
+      residualValue = this.riskLimits.maxTokenExposureLamports + 1n;
+    }
+
+    this.walletState.tokenExposureLamports = residualValue;
+    const verdict = this.deps.killSwitch.onResidualBalance(residualValue, Date.now());
+    if (verdict !== "ok") {
+      console.warn(
+        `[residual] ${residualTokens} of ${mint} (~${residualValue} lamports) left after a supposedly residue-free cycle (${verdict})`,
+      );
     }
   }
 
@@ -981,10 +1112,8 @@ export class ArbEngine {
   private recordActivity(sized: SizedCycle, ageMs: number): void {
     this.bumpActivity(sized.buyPoolId, (a) => {
       a.opportunityCount++;
-      a.netProfitTotal += sized.grossProfit;
-      a.netProfits.push(sized.grossProfit);
-      if (a.netProfits.length > 500) a.netProfits.shift();
-      if (sized.grossProfit > 0n) a.netProfitableCount++;
+      // Net profit is recorded later, once the cost model has run: scoring on
+      // gross would rank an expensive pool as if its fees were free.
       if (sized.legs[0].reserveIn > a.usableDepth) a.usableDepth = sized.legs[0].reserveIn;
     });
     this.deps.metrics.stateAgeSlots.record(sized.slot > 0 ? this.deps.feed.currentSlot() - sized.slot : 0);

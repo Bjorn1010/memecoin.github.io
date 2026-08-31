@@ -282,13 +282,17 @@ export class WsAccountFeed extends BaseMarketDataFeed {
 
   private startTimers(): void {
     this.clearTimers();
+    // Start the stall clock at connection time. Leaving it at zero meant a
+    // socket that connected and then delivered nothing at all was never
+    // detected as stalled: the check compared "now" against "now".
+    if (this.counters.lastUpdateAt === 0) this.counters.lastUpdateAt = Date.now();
     this.pingTimer = setInterval(() => {
       if (this.isOpen()) this.ws?.ping();
     }, this.config.pingIntervalMs);
     this.pingTimer.unref?.();
 
     this.stallTimer = setInterval(() => {
-      const since = Date.now() - (this.counters.lastUpdateAt || Date.now());
+      const since = Date.now() - this.counters.lastUpdateAt;
       if (since > this.config.stallTimeoutMs) {
         this.emitStatus({ kind: "stalled", sinceMs: since });
         // A socket that is open but silent is worse than a closed one: it looks

@@ -242,6 +242,28 @@ export function pumpBuyIx(
   });
 }
 
+/**
+ * `init_user_volume_accumulator()` — creates the per-wallet PDA that PumpSwap's
+ * `buy` requires. One-time setup; `npm run setup` issues it.
+ *
+ * Accounts: payer [w][s] | user | user_volume_accumulator [w] | system_program
+ *           | event_authority | program
+ */
+export function pumpInitUserVolumeAccumulatorIx(payer: PublicKey, user: PublicKey): TransactionInstruction {
+  return new TransactionInstruction({
+    programId: PUMP_AMM_PROGRAM,
+    keys: [
+      meta(payer, true, true),
+      meta(user, false, false),
+      meta(pumpUserVolumeAccumulator(user), false, true),
+      meta(SYSTEM_PROGRAM, false, false),
+      meta(pumpEventAuthority(), false, false),
+      meta(PUMP_AMM_PROGRAM, false, false),
+    ],
+    data: Buffer.from([94, 6, 202, 115, 255, 96, 232, 183]),
+  });
+}
+
 // --- SPL helpers -----------------------------------------------------------
 
 /** `AssociatedTokenAccountInstruction::CreateIdempotent` is opcode 1. */
