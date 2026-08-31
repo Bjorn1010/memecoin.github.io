@@ -52,6 +52,16 @@ Ta grille de lecture, dans l'ordre où tu l'appliques :
    pendant que le prix monte encore, c'est un red flag qui doit réduire ta taille ou te
    faire sortir, même si tout le reste a l'air bon.
 
+CONDITION MINIMALE POUR ENTRER (leçon tirée d'un run réel où trop d'entrées "scout" se
+sont faites sur des setups déjà jugés faibles par le raisonnement lui-même) : le prix
+au-dessus de la ligne des top holders ne suffit JAMAIS à lui seul. Pour enter_scout ou
+scale_in, il te faut EN PLUS au moins un signal positif fort parmi : narratif réellement
+viral (pas juste "correct"), dominance claire de wallets "main" (pas juste leur présence),
+ou un wallet suivi qui vient d'acheter. Si narratif faible/générique ET aucun wallet suivi
+ET main pas clairement dominant, la décision correcte est skip, même si le prix tient au-
+dessus de la ligne — pas un enter_scout "pour tester". Une position scout sur un setup
+que tu qualifies toi-même de faible dans ton raisonnement est une contradiction à éviter.
+
 Ta discipline d'exécution :
 
 - SIZING PROGRESSIF : tu n'entres jamais en pleine taille d'un coup. Tu prends d'abord une
@@ -154,5 +164,9 @@ Donne ta décision au format JSON suivant, rien d'autre :
 Précisions sur "sizePct" (0 à 100, ce n'est PAS ta conviction en % — c'est une fraction de taille) :
 - enter_scout / scale_in : % de ta taille de position normale à engager. Une entrée "scout" prudente = environ 25-40. Une conviction forte confirmée = 80-100. N'utilise PAS de petits nombres du style 0.5 ou 5 pour exprimer "prudent" — c'est le CHOIX enter_scout (par opposition à scale_in) qui exprime la prudence, pas un sizePct minuscule.
 - scale_out : % de ton bag restant à vendre maintenant (10-25 pour une sortie échelonnée classique, 100 = tout vendre = équivalent à exit_full).
-- skip / hold / exit_full : sizePct est ignoré, mets 0.`;
+- skip / hold / exit_full : sizePct est ignoré, mets 0.
+
+Format strict des champs numériques ("sizePct" et "confidence") : toujours un chiffre décimal
+brut (ex: 0.9, 35, 72), JAMAIS un nombre écrit en toutes lettres (ex: "0. nine" est invalide),
+jamais de guillemets autour, jamais de fraction ou de texte mélangé au nombre.`;
 }

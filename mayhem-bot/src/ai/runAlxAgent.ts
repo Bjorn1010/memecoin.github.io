@@ -34,13 +34,18 @@ async function main() {
 
   await watcher.start();
   const hardStopInterval = setInterval(() => runner.tickAllHardStops(), 5_000);
+  const summaryInterval = setInterval(() => runner.logSummary(), 60_000);
 
-  process.on("SIGINT", () => {
+  const shutdown = () => {
     console.log("\n[alx-agent] shutting down");
+    runner.logSummary();
     clearInterval(hardStopInterval);
+    clearInterval(summaryInterval);
     watcher.stop();
     process.exit(0);
-  });
+  };
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 }
 
 main().catch((err) => {

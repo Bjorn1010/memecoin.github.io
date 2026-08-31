@@ -92,6 +92,26 @@ export class AlxAgentRunner {
     return Math.round(Math.min((currentSolInvested / original) * 100, 100));
   }
 
+  /** Prints equity/PNL — without this, "did it make money" required reconstructing it
+   *  by hand from scattered BUY/SELL log lines, which is how the sizing and rate-limit
+   *  bugs almost got missed in the first live run. */
+  logSummary() {
+    const prices = new Map<string, number>();
+    for (const [mint, update] of this.latestUpdates) {
+      if (update.currentPriceSol > 0) prices.set(mint, update.currentPriceSol);
+    }
+    const snap = this.portfolio.snapshot(prices);
+    const wins = this.portfolio.trades.filter((t) => t.side === "sell" && t.reason !== "hard_stop_loss").length;
+    const stopLosses = this.portfolio.trades.filter((t) => t.reason === "hard_stop_loss").length;
+
+    console.log(
+      `[alx-agent] === résumé === equity=${snap.equitySol.toFixed(4)} SOL (départ ${aiConfig.startingBalanceSol}) ` +
+        `| réalisé=${snap.realizedPnlSol.toFixed(4)} | non-réalisé=${snap.unrealizedPnlSol.toFixed(4)} | ` +
+        `positions ouvertes=${this.portfolio.positions.size} | trades=${this.portfolio.trades.length} ` +
+        `(sorties normales=${wins}, hard-stops=${stopLosses}) | frais cumulés=${snap.totalFeesSol.toFixed(4)}`,
+    );
+  }
+
   /** Runs the hard-stop safety net over every open position, using the last known price. */
   tickAllHardStops() {
     for (const mint of this.portfolio.positions.keys()) {
