@@ -27,12 +27,33 @@ function main(): void {
     process.exit(2);
   }
 
-  if (observations && existsSync(observations)) {
-    console.log(renderObserveReport(buildObserveReport(observations)));
+  const haveObservations = Boolean(observations && existsSync(observations));
+  const haveAttempts = Boolean(attempts && existsSync(attempts));
+
+  if (!haveObservations && !haveAttempts) {
+    // Silence here would look like a broken command. An empty run is the most
+    // common early result and it means something specific, so say it.
+    console.log("=== nothing recorded ===");
+    console.log("");
+    console.log("No observations and no attempts were written for this run.");
+    console.log("That is a result, not a failure: the bot evaluated cycles and none");
+    console.log("cleared the gross-profit bar, so there was nothing to record.");
+    console.log("");
+    console.log("The run summary printed on shutdown shows the reject breakdown —");
+    console.log("`not-profitable-gross` means the gaps were smaller than the fees,");
+    console.log("`size-below-dust` means the pools were too shallow to trade at");
+    console.log("MIN_TRADE_SIZE, and `stale-state` would mean a feed problem.");
+    console.log("");
+    console.log("Observe for longer, or widen MAX_WATCHED_POOLS, before concluding.");
+    return;
+  }
+
+  if (haveObservations) {
+    console.log(renderObserveReport(buildObserveReport(observations!)));
     console.log("");
   }
-  if (attempts && existsSync(attempts)) {
-    console.log(renderAttemptReport(attempts));
+  if (haveAttempts) {
+    console.log(renderAttemptReport(attempts!));
   }
 }
 

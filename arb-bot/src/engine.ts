@@ -213,13 +213,19 @@ export class ArbEngine {
     });
 
     this.warnIfSimulationIsBlind();
-    await feed.start();
+
+    // Subscribe and prime BEFORE connecting. Subscriptions requested while the
+    // feed is down are queued and issued the moment it opens, so this closes
+    // the window where the socket is live but nothing is watched — and it is
+    // what makes --replay work at all, since a replay drains as fast as it is
+    // read and would otherwise finish before the first pool was registered.
     // The shared config accounts must be watched: pump's fee tiers live in one
     // of them, and a fee change we did not see would make every quote wrong.
     await feed.subscribe([pumpGlobalConfigAddress(), pumpFeeConfigAddress()]);
     await this.primeSharedAccounts();
-
     await this.runScreener();
+
+    await feed.start();
     this.screenerTimer = setInterval(() => {
       void this.runScreener().catch((e) => console.warn(`[screener] ${describe(e)}`));
     }, config.screenerIntervalMs);
