@@ -388,7 +388,16 @@ export class EngineManager extends EventEmitter {
       // an unaffected price, then marking out at a later one, books a gain no tradeable fill
       // could have produced (it printed +1464% in 81 seconds). Below the floor, keep waiting
       // for the pool to fill out rather than entering on an untradeable price.
-      if ((quote.liquidityUsd ?? 0) < MIN_POST_MIGRATION_LIQUIDITY_USD) continue;
+      if ((quote.liquidityUsd ?? 0) < MIN_POST_MIGRATION_LIQUIDITY_USD) {
+        // Logged so the floor can be tuned from the observed depth distribution instead of
+        // guessed at. A floor that rejects every migration teaches nothing, and without this
+        // line a rejected candidate leaves no trace to tell that apart from "no migrations".
+        console.log(
+          `[migration] ${mint.slice(0, 8)}… rejete: liquidite ${Math.round(quote.liquidityUsd ?? 0)}$ ` +
+            `< ${MIN_POST_MIGRATION_LIQUIDITY_USD}$`,
+        );
+        continue;
+      }
 
       this.awaitingMigrationPrice.delete(mint);
       this.priceCache.set(mint, quote.priceSol);
