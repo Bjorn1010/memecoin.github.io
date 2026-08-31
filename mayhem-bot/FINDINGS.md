@@ -100,6 +100,36 @@ Les trois intervalles contiennent zéro et les écarts médians sont nuls : les 
 comportent identiquement à la référence sur 91-97% des mints. Le trailing reste la seule sortie
 rentable (+39% à +59% de moyenne selon la variante), mais **ses réglages ne sont pas un levier**.
 
+## `maxHoldSeconds` : monotonie observée, NON significative
+
+Fenêtre 17:11-18:07. Expérience remarquablement propre : les cohortes `stop_loss` (819 sorties à
+-22.99%) et `trailing_stop` (201 à +38.21%) sont **identiques au trade près** dans les quatre
+variantes, `maxHoldSeconds` ne pouvant rien changer avant que son horizon soit atteint. Toute la
+différence tient à la seule cohorte `max_hold_time` :
+
+| variante | rend. pondéré total | cohorte max_hold | rendement moyen de la cohorte |
+|---|---|---|---|
+| hold-120s | **-9.66%** | n=50 | +14.70% |
+| hold-300s | -9.85% | n=40 | +15.44% |
+| liquid-only (600s) | -9.93% | n=37 | +15.13% |
+| hold-1800s | -10.48% | n=16 | +12.20% |
+
+Plus la sortie forcée est précoce, plus elle capture de positions (50 contre 16) à un rendement
+moyen à peine plus bas, et meilleur est le total. Le sens colle à la décroissance on-chain
+(-24% à t+15s, -72% à t+60s, -95% à t+300s) : attendre coûte plus que ce que la queue rapporte.
+
+**Ce n'est pas significatif.** Test apparié restreint aux positions dont la sortie diffère
+effectivement de la référence : -2.44 pts [-6.22, +1.24] pour 120s, -2.72 pts [-6.37, +1.07] pour
+300s — intervalles contenant zéro, gains sur 53% des cas, soit un pile ou face. Amplitude totale
+0.82 point entre les extrêmes.
+
+**Un ordonnancement monotone sur une seule fenêtre est exactement ce qui a fait annoncer à tort
+un effet de profondeur de pool, puis l'annoncer à l'envers.** Protocole retenu : ne pas rejouer
+les mêmes points mais **prolonger la prédiction** vers 30s et 60s. Si la monotonie est réelle
+elle doit continuer ; si elle s'inverse ou s'aplatit, c'était du bruit. Une prédiction vérifiée
+sur des points nouveaux vaut mieux qu'une corrélation réobservée sur les mêmes. `hold-120s` est
+conservée comme point de recouvrement entre les deux fenêtres.
+
 ## Mesures tentées sans conclusion (à reprendre)
 
 - **Frais de plateforme (1% par jambe) : non validé.** Reconstruire le SOL entré dans la courbe
