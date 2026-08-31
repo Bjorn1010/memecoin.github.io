@@ -192,6 +192,59 @@ de régime de marché, qui est la source de bruit dominante, et c'est le seul te
 ici une réponse stable. Le rendement pondéré reste sans dimension, donc comparable aux fenêtres
 antérieures malgré le changement d'échelle du capital.
 
+## L'évaluateur hors-ligne (`src/tools/replay.ts`)
+
+Construit au cycle 15:20 pour attaquer le vrai goulot : une fenêtre live produit ~200
+allers-retours en 50 minutes, avec un IC90 de 6 à 22 points — trop large pour trancher quoi que
+ce soit. Le replay rejoue les événements déjà en base : **4346 entrées éligibles en 2.3
+secondes**, autant de fois qu'on veut. `npx tsx src/tools/replay.ts`.
+
+Il réutilise `simulateBuy`/`simulateSell` et `PLATFORM_FEE_PCT` du moteur réel — réimplémenter
+la comptabilité reviendrait à comparer deux modèles différents.
+
+**Trois bugs trouvés dans l'outil lui-même avant de croire un seul de ses chiffres.** À
+connaître, ils se reproduiront :
+
+1. **Biais de survie → +46.29% fabriqué.** Les positions n'atteignant aucun seuil avant la fin
+   du chemin étaient jetées. Or un token mort cesse d'être tradé par Mayhem, donc n'a plus
+   d'observations, donc ne peut plus déclencher de sortie : les jeter revient à jeter les pires
+   perdants. « Sans stop » abandonnait ainsi 47% de ses positions. Elles sont désormais closes
+   de force à la dernière observation, et le taux de clôtures forcées est affiché.
+2. **Générateur aléatoire cassé.** Un LCG naïf en flottant JS (`seed * 1103515245`) dépasse 2^53
+   au premier tour et perd ses bits faibles. Symptôme : **l'IC n'encadrait pas son estimation
+   ponctuelle** — c'est toujours un bug de générateur, jamais un résultat. Remplacé par
+   mulberry32 (`Math.imul`, arithmétique 32 bits exacte).
+3. **`full_exit` est un KIND d'événement**, pas un `sell` à solde nul. Le solde résiduel n'est
+   jamais exactement zéro (minimum observé 0.648 token de poussière) ; c'est `txParser` qui
+   applique `DUST_UI_AMOUNT` à l'écriture. Symptôme : deux politiques ne différant que par
+   `sellOnMayhemFullExit` rendaient des résultats **rigoureusement identiques**.
+
+### BIAIS D'OPTIMISME — ne jamais lire un chiffre positif du replay comme « rentable »
+
+Le replay rend **+0.5% à +3.0%** là où les mêmes politiques rendent **-5% à -10% en live**.
+L'écart est structurel et va toujours dans ce sens : en live 66-73% des sorties partent en
+`stop_loss` à un hold médian d'UNE seconde, sur des creux intra-seconde que le chemin
+échantillonné (uniquement les transactions de Mayhem, médiane ~103 observations après l'entrée)
+ne voit pas. **C'est un comparateur de politiques sur effets lents, pas un prédicteur de PnL.**
+Toute conclusion doit être confirmée en fenêtre live.
+
+### Ce qu'il dit aujourd'hui
+
+| politique | n | rend. pondéré | IC 90% | médiane | >+100% | forcées |
+|---|---|---|---|---|---|---|
+| référence (stop immédiat) | 4346 | +1.60% | [-0.2, +3.5] | -18.74% | 5.6% | 12.8% |
+| grace 20s | 4346 | +2.96% | [+0.2, +5.7] | -16.10% | 9.3% | 19.0% |
+| grace 60s | 4346 | +1.33% | [-1.5, +4.2] | -11.30% | 9.5% | 22.9% |
+| grace 60s nofollow | 4346 | +1.93% | [-1.1, +4.8] | -5.51% | 10.1% | 30.3% |
+| sans stop | 4346 | +0.54% | [-2.4, +3.4] | -6.23% | 9.9% | 27.6% |
+| trail armé à +20% | 4346 | +1.88% | [+0.1, +3.8] | -17.67% | 5.4% | 12.4% |
+| trail serré -15% | 4346 | +1.76% | [+0.1, +3.5] | -18.61% | 5.4% | 11.9% |
+
+**Tous les intervalles se recoupent largement** — même verdict que le live, sur 20x plus de
+données : aucune politique de sortie n'est distinguable des autres. La temporisation améliore
+nettement la médiane (-18.74% → -5.51%) et double la fréquence des queues (5.6% → 10.1%) sans
+que le rendement pondéré suive, ce qui est cohérent avec tout ce qui précède.
+
 ## Distribution source
 
 Trades de Mayhem : **médiane -47.6%, moyenne +26.7%** — une loterie portée par ~9.6% de trades
