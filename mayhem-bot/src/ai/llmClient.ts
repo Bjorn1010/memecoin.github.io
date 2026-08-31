@@ -39,9 +39,17 @@ export async function getAlxCooksDecision(
       },
       body: JSON.stringify({
         model: aiConfig.model,
-        // gpt-oss-120b spends part of this budget on its own internal "reasoning" field
-        // before writing the JSON content — 500 measured too tight and truncated mid-JSON
-        // in testing (400 json_validate_failed). 900 leaves headroom for both.
+        // gpt-oss models spend part of the token budget on an internal "reasoning" field
+        // before writing the JSON content — measured 500-570 reasoning tokens per call by
+        // default, which is most of why the free tier's daily quota (200k tokens/day)
+        // burned out after less than half an hour of real traffic. reasoning_effort:"low"
+        // (a gpt-oss-specific param, honored by Groq) cut that to ~6 tokens per call in
+        // testing with no visible drop in decision quality — a ~2.4x cut in total tokens
+        // per call, which directly multiplies how many decisions the free daily budget
+        // actually buys. Harmless no-op on non-gpt-oss models if ALX_MODEL is swapped.
+        reasoning_effort: "low",
+        // 900 leaves headroom even though reasoning is now tiny — a long redFlags list
+        // plus reasoning text can still run a few hundred tokens on a busy setup.
         max_tokens: 900,
         response_format: { type: "json_object" },
         messages: [

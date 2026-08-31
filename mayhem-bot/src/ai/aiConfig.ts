@@ -49,14 +49,12 @@ export const aiConfig = {
   minTokenAgeSecondsBeforeDecision: Number(process.env.ALX_MIN_TOKEN_AGE_SECONDS ?? 15),
   minTradesBeforeDecision: Number(process.env.ALX_MIN_TRADES_BEFORE_DECISION ?? 5),
   decisionCooldownMs: Number(process.env.ALX_DECISION_COOLDOWN_MS ?? 20_000),
-  // openai/gpt-oss-120b's free tier gives 8000 tokens/min. A 20-minute live run measured
-  // real per-call cost at 2100-2500 tokens (higher than the ~1800 first estimated,
-  // because reasoning length scales with how many red flags the model finds) — 4/min
-  // still 429'd repeatedly (4 x ~2400 > 8000). 3/min (x ~2500 = 7500) leaves margin.
-  // On pump.fun's real firehose, far more than 3/min will cross the eligibility
-  // threshold — most get skipped, which is the honest tradeoff of a free-tier bot, not
-  // a bug. Raise this only after moving to Groq's paid Dev Tier, or a bigger-budget model.
-  maxDecisionCallsPerMinute: Number(process.env.ALX_MAX_DECISIONS_PER_MINUTE ?? 3),
+  // openai/gpt-oss-120b's free tier gives 8000 tokens/min and 200000 tokens/day. A first
+  // live run measured 2100-2500 tokens/call (needed 3/min to avoid 429s) — but that was
+  // before reasoning_effort:"low" (see llmClient.ts) cut real cost to ~400-500 tokens/call.
+  // 12/min (x ~500 = 6000) keeps margin under the per-minute cap; the daily cap is now
+  // the real ceiling (200000 / ~500 ≈ 400 decisions/day vs. ~90 before the reasoning fix).
+  maxDecisionCallsPerMinute: Number(process.env.ALX_MAX_DECISIONS_PER_MINUTE ?? 12),
   inactiveTokenPruneMs: Number(process.env.ALX_INACTIVE_PRUNE_MS ?? 15 * 60_000),
 
   // Independent safety net — never fully delegate risk control to the LLM's own
