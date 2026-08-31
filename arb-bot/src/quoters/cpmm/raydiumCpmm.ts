@@ -201,6 +201,107 @@ export function raydiumSwapBaseInput(args: {
   return { outputAmount, tradeFee, protocolFee, fundFee, creatorFee, inputAmountLessFees };
 }
 
+/** `Fees::calculate_pre_fee_amount` — the inverse of a fee deduction. */
+export function raydiumPreFeeAmount(postFeeAmount: bigint, feeRate: bigint): bigint {
+  if (feeRate === 0n) return postFeeAmount;
+  const denominator = RAY_FEE_RATE_DENOMINATOR - feeRate;
+  if (denominator <= 0n) {
+    throw new UnquotableError("amount-out-of-range", "fee rate is 100% or more");
+  }
+  return ceilDiv(postFeeAmount * RAY_FEE_RATE_DENOMINATOR, denominator);
+}
+
+export interface RaydiumSwapOutputResult {
+  /** Total input the user must provide, fees included. */
+  inputAmount: bigint;
+  /** Amount actually removed from the output vault. */
+  actualOutputAmount: bigint;
+  tradeFee: bigint;
+  protocolFee: bigint;
+  fundFee: bigint;
+  creatorFee: bigint;
+}
+
+/**
+ * `CurveCalculator::swap_base_output`, transcribed literally.
+ *
+ * Used for leg 1 of a cycle: asking for an EXACT output makes the intermediate
+ * amount deterministic, so leg 2 can sell precisely what leg 1 produced and the
+ * cycle leaves no residue at all. The tolerance moves to the input side, where
+ * a favourable price move makes us pay less instead of accumulating dust.
+ */
+export function raydiumSwapBaseOutput(args: {
+  outputAmount: bigint;
+  inputVaultAmount: bigint;
+  outputVaultAmount: bigint;
+  tradeFeeRate: bigint;
+  creatorFeeRate: bigint;
+  protocolFeeRate: bigint;
+  fundFeeRate: bigint;
+  isCreatorFeeOnInput: boolean;
+}): RaydiumSwapOutputResult {
+  const {
+    outputAmount,
+    inputVaultAmount,
+    outputVaultAmount,
+    tradeFeeRate,
+    creatorFeeRate,
+    protocolFeeRate,
+    fundFeeRate,
+    isCreatorFeeOnInput,
+  } = args;
+
+  if (outputAmount <= 0n) {
+    throw new UnquotableError("amount-out-of-range", "outputAmount must be > 0");
+  }
+
+  let creatorFee = 0n;
+  let actualOutputAmount: bigint;
+  if (isCreatorFeeOnInput) {
+    actualOutputAmount = outputAmount;
+  } else {
+    const withCreatorFee = raydiumPreFeeAmount(outputAmount, creatorFeeRate);
+    creatorFee = withCreatorFee - outputAmount;
+    actualOutputAmount = withCreatorFee;
+  }
+
+  if (actualOutputAmount >= outputVaultAmount) {
+    throw new UnquotableError("amount-out-of-range", "requested output exceeds the vault");
+  }
+
+  // ConstantProductCurve::swap_base_output_without_fees — ceiling division.
+  const inputAmountSwapped = ceilDiv(
+    inputVaultAmount * actualOutputAmount,
+    outputVaultAmount - actualOutputAmount,
+  );
+
+  let tradeFee: bigint;
+  let inputAmount: bigint;
+  if (isCreatorFeeOnInput) {
+    const withFee = raydiumPreFeeAmount(inputAmountSwapped, tradeFeeRate + creatorFeeRate);
+    const totalFee = withFee - inputAmountSwapped;
+    creatorFee =
+      tradeFeeRate + creatorFeeRate === 0n
+        ? 0n
+        : floorDiv(totalFee * creatorFeeRate, tradeFeeRate + creatorFeeRate);
+    tradeFee = totalFee - creatorFee;
+    inputAmount = withFee;
+  } else {
+    const withFee = raydiumPreFeeAmount(inputAmountSwapped, tradeFeeRate);
+    tradeFee = withFee - inputAmountSwapped;
+    inputAmount = withFee;
+  }
+
+  return {
+    inputAmount,
+    actualOutputAmount,
+    tradeFee,
+    protocolFee: floorDiv(tradeFee * protocolFeeRate, RAY_FEE_RATE_DENOMINATOR),
+    fundFee: floorDiv(tradeFee * fundFeeRate, RAY_FEE_RATE_DENOMINATOR),
+    creatorFee,
+  };
+}
+
 export class RaydiumCpmmQuoter implements Quoter {
   readonly family = "raydium-cpmm" as const;
 

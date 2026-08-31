@@ -290,6 +290,76 @@ export function pumpBuyQuoteInput(args: {
   return { baseAmountOut, effectiveQuote, lpFee, protocolFee, coinCreatorFee, fees };
 }
 
+export interface PumpBuyBaseResult {
+  /** Total quote the user must provide, fees included. */
+  totalQuoteIn: bigint;
+  quoteAmountIn: bigint;
+  lpFee: bigint;
+  protocolFee: bigint;
+  coinCreatorFee: bigint;
+  fees: PumpFees;
+}
+
+/**
+ * `buy.ts::buyBaseInput` — how much quote is needed for an EXACT base output.
+ *
+ * This is the leg-1 pricing for a cycle: asking for an exact amount of the
+ * intermediate token makes leg 2's input deterministic, so the cycle closes
+ * with no residue and the tolerance sits on the input side.
+ */
+export function pumpBuyBaseInput(args: {
+  base: bigint;
+  baseReserve: bigint;
+  quoteReserve: bigint;
+  virtualQuoteReserves: bigint;
+  baseMintSupply: bigint;
+  coinCreatorIsDefault: boolean;
+  globalConfig: PumpGlobalConfig;
+  feeConfig: PumpFeeConfig | null;
+  isCanonicalPumpPool: boolean;
+}): PumpBuyBaseResult {
+  if (args.baseReserve === 0n || args.quoteReserve === 0n) {
+    throw new UnquotableError("empty-reserves", "baseReserve or quoteReserve is zero");
+  }
+  if (args.base <= 0n) {
+    throw new UnquotableError("amount-out-of-range", "base must be > 0");
+  }
+  if (args.base >= args.baseReserve) {
+    throw new UnquotableError("amount-out-of-range", "cannot buy more base than the pool holds");
+  }
+
+  const effectiveQuoteReserve = args.quoteReserve + args.virtualQuoteReserves;
+  if (effectiveQuoteReserve <= 0n) {
+    throw new UnquotableError("empty-reserves", "effective quote reserve is not positive");
+  }
+
+  const quoteAmountIn = ceilDiv(effectiveQuoteReserve * args.base, args.baseReserve - args.base);
+
+  const fees = pumpComputeFeesBps({
+    globalConfig: args.globalConfig,
+    feeConfig: args.feeConfig,
+    isCanonicalPumpPool: args.isCanonicalPumpPool,
+    baseMintSupply: args.baseMintSupply,
+    baseReserve: args.baseReserve,
+    quoteReserve: effectiveQuoteReserve,
+  });
+
+  const lpFee = pumpFee(quoteAmountIn, fees.lpFeeBps);
+  const protocolFee = pumpFee(quoteAmountIn, fees.protocolFeeBps);
+  const coinCreatorFee = args.coinCreatorIsDefault
+    ? 0n
+    : pumpFee(quoteAmountIn, fees.creatorFeeBps);
+
+  return {
+    totalQuoteIn: quoteAmountIn + lpFee + protocolFee + coinCreatorFee,
+    quoteAmountIn,
+    lpFee,
+    protocolFee,
+    coinCreatorFee,
+    fees,
+  };
+}
+
 export class PumpSwapQuoter implements Quoter {
   readonly family = "pump-swap" as const;
 
