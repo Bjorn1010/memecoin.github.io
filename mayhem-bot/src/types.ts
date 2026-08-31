@@ -85,6 +85,16 @@ export interface StrategyConfig {
    * off during its first ordinary pullback, before it has a chance to become one of the
    * tail winners the whole strategy depends on. */
   trailingArmPct: number | null;
+  /** Seconds after entry during which the hard stop-loss is suppressed (trailing stop and
+   * max-hold still apply). Measured, not assumed: over 3910 eligible Mayhem buys the price
+   * two seconds later has a median of -0.10% but a p25 of -28.21% and a p75 of +17.19%. A
+   * -12% stop sits *inside* that two-second dispersion band, so it cannot discriminate a
+   * decaying token from an ordinary tick — it just harvests the downside half of the noise.
+   * That is what it did: 72.2% of round trips exited `stop_loss` at a median hold of 1
+   * second for an average -28.29%, summing to -13299 percentage points, while the positions
+   * that survived long enough to trail out averaged +55.79%. Suppressing the stop until the
+   * dispersion narrows is the direct test of that reading. */
+  stopLossGraceSeconds: number | null;
   maxHoldSeconds: number | null;
   sellOnMayhemFullExit: boolean;
   minMayhemBuySol: number | null; // ignore mayhem buys smaller than this

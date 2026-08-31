@@ -117,8 +117,15 @@ export class StrategyRunner {
       const peakGainPct = (pos.peakPriceSol - pos.avgEntryPriceSol) / pos.avgEntryPriceSol;
       const heldSeconds = (Date.now() - pos.openedAt) / 1000;
 
+      // The stop is suppressed for the first `stopLossGraceSeconds`: inside that window the
+      // price dispersion is wider than the stop's own threshold, so firing on it is a coin
+      // flip resolved against us. See StrategyConfig.stopLossGraceSeconds for the numbers.
+      const stopArmed =
+        this.config.stopLossGraceSeconds == null ||
+        heldSeconds >= this.config.stopLossGraceSeconds;
+
       let reason: string | null = null;
-      if (this.config.stopLossPct != null && changePct <= -this.config.stopLossPct) {
+      if (stopArmed && this.config.stopLossPct != null && changePct <= -this.config.stopLossPct) {
         reason = "stop_loss";
       } else if (this.config.takeProfitPct != null && changePct >= this.config.takeProfitPct) {
         reason = "take_profit";

@@ -1,57 +1,54 @@
 import type { StrategyConfig } from "../types.js";
 
 /**
- * Tuned from a 30-minute live paper-trading run (2026-08-29, 4 strategies, ~9000 Mayhem
- * buy events, 200-250 of our own round trips each). The 4652f8a fix (TP +35%/SL -12% to
- * clear the ~11-12% round-trip cost floor) was necessary but not sufficient: all 4
- * strategies still lost 75-99.9% of their starting 2 SOL bankroll in the window.
+ * Roster du cycle courant : un seul axe testé, la **temporisation du stop-loss**.
  *
- * The reason isn't fees — measured AMM fill slippage over ~1700 trades averaged 0.05%,
- * nowhere near the assumed 5.5%. It's the *shape* of Mayhem's own returns. Reconstructing
- * Mayhem's own buy-to-exit price moves from raw on-chain events (6964 round trips, both
- * tracked wallets): median -47.6%, mean +26.7%. That gap is a lottery-ticket distribution —
- * 70.6% of Mayhem's own trades eventually go below -12%, but the 9.6% that clear +100%
- * contribute more combined return than the other 90.4% put together (672 trades >+100%
- * summed to +4700 percentage points; the entire population summed to +1850). A hard
- * +35% take-profit sells right into that dead zone: it exits before the tail move that
- * is the entire source of edge, while still eating every one of the frequent -12%+
- * losers. That's why every strategy bled out regardless of its own filter axis.
+ * Ce qui a mené ici, mesuré sur 979 allers-retours postérieurs à la correction du priority
+ * fee (donc au coût réel) :
  *
- * Two more rounds after that fix (event-driven exits instead of 2.5s polling; a
- * post-migration-entry strategy) confirmed the exit side was already about as good as it
- * gets — realized stop-loss went from -30/-45% to -16/-24% against a -12% nominal, and a
- * single measured migration barely dented its 2 SOL bankroll — but every immediate-entry
- * strategy was still deeply negative. Two more changes, both aimed at the two things that
- * still didn't match the lottery-ticket shape:
+ * - Le filtre de profondeur du pool est **réfuté**. Sur rendement pondéré par le capital
+ *   engagé — et non sur une moyenne non pondérée de pourcentages, qui donne autant de poids
+ *   à un aller-retour qu'à cent — il se dégrade de façon monotone quand on l'ouvre :
+ *   40 SOL -5.98% (n=651), 150 SOL -9.23% (n=126), 250 SOL -12.33% (n=64),
+ *   150 SOL + conviction -14.79% (n=15). Et la fréquence des queues >+100%, dont dépend
+ *   toute la thèse, s'effondre dans le même sens : 4.1% / 3.2% / 1.6% / 0.0%. Le filtre
+ *   supprime précisément les événements qui portent le rendement. Les trois variantes de
+ *   profondeur sont retirées. (Une mesure antérieure concluait l'inverse sur une fenêtre
+ *   unique ; elle ne s'est pas reproduite au cycle suivant. Le sens était une illusion de
+ *   petit échantillon.)
  *
- * 1. trailingArmPct: the trailing stop used to arm on ANY profit at all (changePct > 0),
- *    meaning a real pump got sold on its first ordinary pullback before it had a chance to
- *    become one of the tail winners the whole strategy depends on. It now only arms once a
- *    position has been up 50%+ at its peak — past the point where a normal winner
- *    (+35-65% was the old average) would've already been forced out — while a move that
- *    never gets there still exits on the unchanged -12% stop-loss.
- * 2. `liquid-only`'s pool-depth floor was 10 SOL — below Mayhem's own median entry reserves
- *    (~16 SOL), so it barely filtered anything. Raised to 40 SOL, meaningfully above that
- *    median, to actually test whether avoiding the thinnest pools (where a single trade can
- *    move price 20-50%) helps, at the cost of far fewer qualifying entries.
+ * - Le vrai coupable est le stop-loss, et il l'est pour une raison structurelle, pas pour
+ *   un mauvais réglage. Répartition des sorties de la référence :
+ *     stop_loss        72.2%  rendement moyen -28.29%  hold médian    1s  somme -13299 pts
+ *     trailing_stop    20.1%  rendement moyen +55.79%  hold médian    6s  somme  +7308 pts
+ *     max_hold_time     6.8%  rendement moyen +40.52%  hold médian  600s  somme  +1783 pts
+ *   Un stop nominal à -12% qui se réalise à -28% en une seconde ne coupe pas une tendance :
+ *   il se déclenche avant qu'une tendance existe. Le slippage n'y est pour rien (0.19% médian)
+ *   et les frais non plus (1.78%) — le prix bouge vraiment.
  *
- * IMPORTANT — a "+1300%" post-migration result was measured and then found to be an
- * artifact, not alpha. Its entry had been booked at a price read off a bonding curve caught
- * mid-drain at migration (SOL side nearly empty => absurdly low price), then marked against
- * the real DexScreener price: a fabricated ~180x in 11 seconds on an already-migrated (i.e.
- * deep-liquidity) token, which is not physically possible. Entries now wait for a real
- * post-migration market price (see EngineManager.resolveMigrationEntries), and priceFeed no
- * longer falls back to a completed curve's price at all. Treat any pre-fix post-migration
- * number in the DB as invalid.
+ * - Reconstruit indépendamment de notre simulation, à partir des seuls événements on-chain
+ *   de Mayhem (3910 achats éligibles), le prix après un achat de Mayhem vaut :
+ *     t+2s   médiane  -0.10%   p25 -28.21%   p75 +17.19%   >+100% :  3.0%
+ *     t+5s   médiane  -4.20%   p25 -41.57%   p75 +15.82%   >+100% :  6.2%
+ *     t+15s  médiane -24.46%   p25 -67.23%   p75  +5.12%   >+100% :  8.0%
+ *     t+60s  médiane -72.03%   p25 -95.22%   p75  -0.07%   >+100% :  7.2%
+ *   Deux choses à la fois : la dispersion à 2 secondes (-28% / +17% entre quartiles) est
+ *   bien plus large que le seuil de -12% du stop, et la fréquence des queues >+100% croît
+ *   avec l'horizon. Un stop plus étroit que le bruit dans lequel il baigne ne discrimine
+ *   rien ; il encaisse la moitié basse du bruit et interdit d'atteindre l'horizon où les
+ *   queues apparaissent.
  *
- * With that corrected, nothing here is known to be profitable yet. The set below is
- * deliberately lean: the three clearly-dead immediate-copy strategies (copy-all,
- * big-buys-only, fast-exit — all down 88%+) are removed, `liquid-only` stays purely as a
- * control so post-migration's numbers can be compared against something, and the
- * post-migration family varies exactly ONE axis per variant (trail width, stop width,
- * position size) so a difference in outcome points at a specific cause. All variants share
- * the same live event stream and the same starting bankroll, so they are directly
- * comparable.
+ * D'où l'expérience : suspendre le stop pendant les N premières secondes, N étant le seul
+ * paramètre qui varie. `no-stop` borne l'expérience par le haut — si elle bat les deux
+ * autres, le stop n'a aucune valeur à aucun horizon ; si elle est la pire, la temporisation
+ * a un optimum intermédiaire et il est entre 15 et 60 secondes. Le trailing stop et le
+ * max-hold restent actifs partout, donc aucune variante ne peut se bloquer sur un token mort.
+ *
+ * Les capitaux sont remis à 2 SOL pour ce cycle : la référence était tombée à 0.139 SOL et
+ * ne pouvait plus ouvrir la moindre position, ce qui la rendait incomparable aux autres.
+ * L'historique des trades reste en base — c'est lui, pas le solde, qui porte l'information.
+ *
+ * Rien ici n'est démontré rentable. Voir FINDINGS.md.
  */
 const BASE = {
   startingBalanceSol: 2,
@@ -67,78 +64,70 @@ const BASE = {
   // ruiner un capital de 2 SOL à lui seul, et donc pour invalider toute conclusion de
   // rentabilité tirée avant cette mesure. Outil de mesure : src/tools/measureFees.ts.
   priorityFeeSol: 0.000025,
-  minPoolLiquiditySol: null,
+  // Tenu constant à 40 SOL sur toutes les variantes : l'axe profondeur est réfuté (voir
+  // en-tête), donc il devient un contrôle, plus une variable.
+  minPoolLiquiditySol: 40,
+  minMayhemBuySol: null,
   waitForMigration: false,
-  // Every variant deadlocked at 8/8 positions holding tokens Mayhem had abandoned 48-58
-  // minutes earlier. On a constant-product curve no trades means no price movement, and
-  // every exit here is price-driven, so neither the stop-loss nor the trailing stop can ever
-  // fire on a dead token: the slot is held forever and no new entry is possible. That made
-  // the variants a race to fill up with dead weight rather than a comparison of exit policy.
-  // It also inflated equity, marking positions at the last price of something nobody trades.
-  // The forced exit still prices its fill through simulateSell against the last known
-  // reserves, so it books the AMM's price impact rather than the stale mark.
+  stopLossGraceSeconds: null,
+  maxConcurrentPositions: 8,
+  // Sans lui, une position sur un token mort ne sort jamais : pas de trade = pas de mouvement
+  // de prix = aucun seuil déclenché. La stratégie se bloque à 8/8 et la comparaison devient
+  // une course à la saturation plutôt qu'un test de politique de sortie. La sortie forcée
+  // price son fill via simulateSell contre les dernières réserves connues, donc elle encaisse
+  // l'impact de l'AMM et non la marque périmée.
   maxHoldSeconds: 600,
 } as const;
 
 export const defaultStrategies: StrategyConfig[] = [
   {
     id: "liquid-only",
-    name: "Référence (copie immédiate)",
+    name: "Référence (stop immédiat)",
     description:
-      "Référence de comparaison. Copie immédiate, uniquement si le pool a au moins 40 SOL de réserves. SL -12% / trailing stop -25% armé à +50%. Les trois variantes ci-dessous ne changent qu'UN paramètre chacune par rapport à celle-ci.",
+      "Référence de comparaison, inchangée : stop-loss -12% armé dès l'entrée. C'est la configuration dont 72.2% des sorties partent en stop_loss au bout d'une seconde pour -28.29% en moyenne. Les trois variantes ci-dessous ne changent qu'UNE chose chacune : le moment où ce stop devient actif.",
     kind: "generic",
     enabled: true,
     ...BASE,
-    minMayhemBuySol: null,
-    minPoolLiquiditySol: 40,
-    maxConcurrentPositions: 8,
   },
   {
-    id: "copy-conviction",
-    name: "Convictions de Mayhem (>=0.25 SOL)",
+    id: "grace-15s",
+    name: "Stop temporisé 15s",
     description:
-      "Teste le filtre de qualite a l'ENTREE plutot qu'un enieme seuil de sortie. Avec les vrais frais, le cout qui reste est celui de plateforme : 1% par jambe, soit 2% par aller-retour. Il faut donc un edge de prix superieur a 2%, ce que la reference a 40 SOL n'atteint pas (+0.9%) mais que la profondeur permet (+4.4% a 150 SOL, +7.8% a 250). Autre levier possible : ne suivre que les achats ou Mayhem engage vraiment. Sa mediane est 0.0249 SOL ; le seuil de 0.25 SOL ne retient que les 6% les plus gros, ce qui reduit fortement la frequence et donc la charge de plateforme. Combine avec le filtre de profondeur a 150 SOL. Remplace copy-pessimistic-fee, dont le role est rempli : elle a chiffre l'erreur (1.146 SOL de priority fees contre 0.011 pour la meme config au cout reel).",
+      "Stop-loss suspendu pendant les 15 premières secondes. Choisi sur la dispersion mesurée : à t+2s l'écart interquartile va de -28.21% à +17.19%, à t+15s il s'est resserré vers le bas (médiane -24.46%, p75 +5.12%), c'est-à-dire qu'une baisse a cessé d'être du bruit et commence à être une tendance. Si le stop ne sert qu'à encaisser du bruit, cette variante doit battre la référence.",
     kind: "generic",
     enabled: true,
     ...BASE,
-    minPoolLiquiditySol: 150,
-    minMayhemBuySol: 0.25,
-    maxConcurrentPositions: 8,
+    stopLossGraceSeconds: 15,
   },
   {
-    id: "copy-deeper-pools",
-    name: "Pools 250 SOL",
+    id: "grace-60s",
+    name: "Stop temporisé 60s",
     description:
-      "Pousse plus loin le seul axe qui a montré un signal : la profondeur du pool à l'entrée. Sur 67-87 allers-retours par variante, le filtre à 150 SOL perdait 0.0027 SOL par trade contre 0.0060 pour la référence à 40 SOL. Si la tendance tient, 250 SOL doit faire mieux encore ; sinon l'effet plafonne, ce qui est aussi une information. Remplace copy-tight-stop, dont l'hypothèse est réfutée (stop -6% : -0.478 SOL contre -0.489 pour la référence, soit aucun écart).",
+      "Même chose, mais 60 secondes. Pousse l'axe jusqu'à l'horizon où la médiane est déjà à -72.03% : si la temporisation aide, elle doit cesser d'aider quelque part avant ce point, et l'écart entre 15s et 60s dit où. Si au contraire 60s fait mieux que 15s, c'est que la fréquence des queues (7.2% à t+60s contre 3.0% à t+2s) compense la décroissance médiane.",
     kind: "generic",
     enabled: true,
     ...BASE,
-    minMayhemBuySol: null,
-    minPoolLiquiditySol: 250,
-    maxConcurrentPositions: 8,
+    stopLossGraceSeconds: 60,
   },
   {
-    id: "copy-deep-pools",
-    name: "Pools très profonds (150 SOL)",
+    id: "no-stop",
+    name: "Sans stop-loss",
     description:
-      "Comme la référence, sauf le seuil de profondeur porté à 150 SOL. Teste si la profondeur du pool à l'entrée, seul filtre de qualité observable, sépare les trades gagnants des perdants.",
+      "Borne supérieure de l'expérience : aucun stop-loss, sorties uniquement par trailing stop (-25% armé à +50%), max-hold 600s, ou sortie complète de Mayhem. Si elle bat les deux variantes temporisées, le stop n'a de valeur à aucun horizon et il faut le retirer. Si elle est la pire des quatre, la temporisation a un optimum intermédiaire — ce qui est l'information qu'on cherche.",
     kind: "generic",
     enabled: true,
     ...BASE,
-    minMayhemBuySol: null,
-    minPoolLiquiditySol: 150,
-    maxConcurrentPositions: 8,
+    stopLossPct: null,
   },
   {
     id: "post-migration",
-    name: "Après migration (sous observation)",
+    name: "Après migration (sonde)",
     description:
-      "Conservée uniquement comme sonde. Sur 20 migrations détectées, les pools résultants valaient 1$ à 126$ (médiane ~6$) plusieurs heures après : il n'y a rien de tradable. Ne prendra une position que si un pool dépasse enfin 25000$ de profondeur, ce qui n'est jamais arrivé.",
+      "Conservée uniquement comme sonde, elle ne coûte rien. Sur 20 migrations détectées, les pools résultants valaient 1$ à 126$ (médiane ~6$) plusieurs heures après : il n'y a rien de tradable. Ne prendra une position que si un pool dépasse enfin 25000$ de profondeur, ce qui n'est jamais arrivé. Qu'elle ne trade jamais est le résultat attendu.",
     kind: "generic",
     enabled: true,
     ...BASE,
+    minPoolLiquiditySol: null,
     waitForMigration: true,
-    minMayhemBuySol: null,
-    maxConcurrentPositions: 8,
   },
 ];
