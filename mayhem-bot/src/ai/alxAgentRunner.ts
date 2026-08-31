@@ -21,6 +21,11 @@ export class AlxAgentRunner {
   readonly memory = new MemoryStore(aiConfig.memoryFilePath, aiConfig.memoryMaxEntries);
   private lastDecisionAtMs = new Map<string, number>();
   private latestUpdates = new Map<string, WatchedTokenUpdate>();
+  // Global sliding window across ALL mints — pump.fun's firehose can make many tokens
+  // cross the decision threshold within the same few seconds, which blew straight past
+  // Groq's free-tier 30 req/min cap in testing (every extra call over the limit just
+  // 429s, wasting the quota other tokens needed). This queues gracefully instead.
+  private decisionCallTimestampsMs: number[] = [];
   // Position.solInvested shrinks proportionally on partial sells (see PaperPortfolio.sell),
   // so it alone can't tell us "% of the original bag still held" — track the original
   // commitment per mint ourselves, cleared once the position fully closes.
@@ -38,7 +43,7 @@ export class AlxAgentRunner {
 
     const lastAt = this.lastDecisionAtMs.get(update.mint) ?? 0;
     if (Date.now() - lastAt < aiConfig.decisionCooldownMs) return;
-    this.lastDecisionAtMs.set(update.mint, lastAt); // set below once the call actually fires
+    if (!this.tryReserveDecisionSlot()) return; // global per-minute budget exhausted, skip quietly
 
     const position = this.portfolio.positions.get(update.mint);
     const context: TokenContext = {
@@ -70,6 +75,15 @@ export class AlxAgentRunner {
     }
 
     this.executeDecision(update, decision.action, decision.sizePct, decision.memoryNote);
+  }
+
+  /** True and reserves a slot if we're under the per-minute decision-call budget. */
+  private tryReserveDecisionSlot(): boolean {
+    const cutoff = Date.now() - 60_000;
+    this.decisionCallTimestampsMs = this.decisionCallTimestampsMs.filter((t) => t > cutoff);
+    if (this.decisionCallTimestampsMs.length >= aiConfig.maxDecisionCallsPerMinute) return false;
+    this.decisionCallTimestampsMs.push(Date.now());
+    return true;
   }
 
   private remainingBagPct(mint: string, currentSolInvested: number): number {
@@ -113,7 +127,10 @@ export class AlxAgentRunner {
     switch (action) {
       case "enter_scout":
       case "scale_in": {
-        const solAmount = aiConfig.positionSizeSol * (action === "enter_scout" ? 0.3 : 1) * (sizePct / 100 || 1);
+        // sizePct is already the model's intended fraction of the normal position size
+        // (see the "Précisions sur sizePct" block in buildDecisionPrompt) — enter_scout
+        // vs scale_in is what signals caution, not a second multiplier stacked on top.
+        const solAmount = aiConfig.positionSizeSol * (Math.min(Math.max(sizePct, 0), 100) / 100 || 0.3);
         const t = this.portfolio.buy({
           mint: update.mint,
           priceSol: update.currentPriceSol,

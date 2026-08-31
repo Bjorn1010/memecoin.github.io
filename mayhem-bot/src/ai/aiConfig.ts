@@ -25,11 +25,18 @@ function parseTrackedWallets(raw: string | undefined): Array<{ address: string; 
 export const aiConfig = {
   // Groq: OpenAI-compatible endpoint, genuinely free tier (no card required), and fast
   // enough for a scalping use case — matters more here than for a one-off query. Get a
-  // free key at console.groq.com. llama-3.3-70b-versatile is the best-reasoning free
-  // model as of 2026-08; swap to llama-3.1-8b-instant via ALX_MODEL for a much higher
-  // daily quota (14 400 req/day vs a few hundred) if 70b's free-tier limit gets tight.
+  // free key at console.groq.com. Verified live against the account's actual /v1/models
+  // list on 2026-08-31 — Groq's lineup turns over fast (llama-3.3-70b-versatile, the
+  // obvious pick from training-era docs, was already gone/404). Tried groq/compound-mini
+  // next (its own rate-limit headers advertised 70000 tokens/min) but it's an
+  // orchestrator that silently routes each call through llama-3.3-70b AND gpt-oss-120b
+  // (see its usage_breakdown) — those two only get 12000 / 8000 tokens/min each on this
+  // account, so real throughput was actually worse, not better. openai/gpt-oss-120b
+  // called directly avoids the double-dip: one sub-model, one budget, ~1800 tokens/call
+  // measured live against the real system prompt -> roughly 4 decisions/min sustainable
+  // on the free tier (see maxDecisionCallsPerMinute below, tuned to match).
   groqApiKey: process.env.GROQ_API_KEY ?? null,
-  model: process.env.ALX_MODEL ?? "llama-3.3-70b-versatile",
+  model: process.env.ALX_MODEL ?? "openai/gpt-oss-120b",
 
   startingBalanceSol: Number(process.env.ALX_STARTING_BALANCE_SOL ?? 2),
   positionSizeSol: Number(process.env.ALX_POSITION_SIZE_SOL ?? 0.1),
@@ -42,6 +49,13 @@ export const aiConfig = {
   minTokenAgeSecondsBeforeDecision: Number(process.env.ALX_MIN_TOKEN_AGE_SECONDS ?? 15),
   minTradesBeforeDecision: Number(process.env.ALX_MIN_TRADES_BEFORE_DECISION ?? 5),
   decisionCooldownMs: Number(process.env.ALX_DECISION_COOLDOWN_MS ?? 20_000),
+  // openai/gpt-oss-120b's free tier gives 8000 tokens/min; a real decision call against
+  // the full alxcooks system prompt measured ~1800-1900 tokens — so ~4/min is what the
+  // free tier actually sustains without 429ing. On pump.fun's real firehose, far more
+  // than 4 tokens/min will cross the eligibility threshold — most get skipped, which is
+  // the honest tradeoff of a free-tier bot, not a bug. Raise this only after moving to
+  // Groq's paid Dev Tier, or dropping to a model with a bigger free TPM budget.
+  maxDecisionCallsPerMinute: Number(process.env.ALX_MAX_DECISIONS_PER_MINUTE ?? 4),
   inactiveTokenPruneMs: Number(process.env.ALX_INACTIVE_PRUNE_MS ?? 15 * 60_000),
 
   // Independent safety net — never fully delegate risk control to the LLM's own

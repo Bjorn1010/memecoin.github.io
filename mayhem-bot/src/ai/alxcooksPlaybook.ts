@@ -149,5 +149,10 @@ TOKEN À ÉVALUER :
 - Action de prix récente : ${context.recentPriceActionSummary}
 
 Donne ta décision au format JSON suivant, rien d'autre :
-{"action": "skip|enter_scout|scale_in|hold|scale_out|exit_full", "sizePct": number, "confidence": number, "reasoning": string, "redFlags": string[]}`;
+{"action": "skip|enter_scout|scale_in|hold|scale_out|exit_full", "sizePct": number, "confidence": number, "reasoning": string, "redFlags": string[]}
+
+Précisions sur "sizePct" (0 à 100, ce n'est PAS ta conviction en % — c'est une fraction de taille) :
+- enter_scout / scale_in : % de ta taille de position normale à engager. Une entrée "scout" prudente = environ 25-40. Une conviction forte confirmée = 80-100. N'utilise PAS de petits nombres du style 0.5 ou 5 pour exprimer "prudent" — c'est le CHOIX enter_scout (par opposition à scale_in) qui exprime la prudence, pas un sizePct minuscule.
+- scale_out : % de ton bag restant à vendre maintenant (10-25 pour une sortie échelonnée classique, 100 = tout vendre = équivalent à exit_full).
+- skip / hold / exit_full : sizePct est ignoré, mets 0.`;
 }

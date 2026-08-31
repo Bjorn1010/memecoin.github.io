@@ -39,7 +39,10 @@ export async function getAlxCooksDecision(
       },
       body: JSON.stringify({
         model: aiConfig.model,
-        max_tokens: 500,
+        // gpt-oss-120b spends part of this budget on its own internal "reasoning" field
+        // before writing the JSON content — 500 measured too tight and truncated mid-JSON
+        // in testing (400 json_validate_failed). 900 leaves headroom for both.
+        max_tokens: 900,
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: ALX_COOKS_SYSTEM_PROMPT },
