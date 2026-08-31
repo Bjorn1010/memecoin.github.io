@@ -23,11 +23,13 @@ function parseTrackedWallets(raw: string | undefined): Array<{ address: string; 
  * fixed TP/SL rules.
  */
 export const aiConfig = {
-  anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? null,
-  // Haiku by default: this agent can fire many decisions per hour, so cost/latency
-  // matter more than for a one-off query. Bump to claude-sonnet-5 / claude-opus-5
-  // via ALX_MODEL if you want stronger reasoning and can accept the extra cost/latency.
-  model: process.env.ALX_MODEL ?? "claude-haiku-4-5-20251001",
+  // Groq: OpenAI-compatible endpoint, genuinely free tier (no card required), and fast
+  // enough for a scalping use case — matters more here than for a one-off query. Get a
+  // free key at console.groq.com. llama-3.3-70b-versatile is the best-reasoning free
+  // model as of 2026-08; swap to llama-3.1-8b-instant via ALX_MODEL for a much higher
+  // daily quota (14 400 req/day vs a few hundred) if 70b's free-tier limit gets tight.
+  groqApiKey: process.env.GROQ_API_KEY ?? null,
+  model: process.env.ALX_MODEL ?? "llama-3.3-70b-versatile",
 
   startingBalanceSol: Number(process.env.ALX_STARTING_BALANCE_SOL ?? 2),
   positionSizeSol: Number(process.env.ALX_POSITION_SIZE_SOL ?? 0.1),

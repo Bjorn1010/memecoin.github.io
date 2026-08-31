@@ -8,16 +8,19 @@ import { aiConfig } from "./aiConfig.js";
  *
  *   npx tsx src/ai/runAlxAgent.ts
  *
- * Requires ANTHROPIC_API_KEY in the environment (or .env) to actually make decisions —
- * without it, the agent will watch and log tokens but every decision call is skipped.
- * Also strongly recommends a paid RPC (RPC_HTTP_URL / RPC_WS_URL, same vars as the rest of
- * the project) — this watches the ENTIRE pump.fun program, a much heavier subscription
- * than mayhem-bot's fixed 2-wallet watch, and free public RPCs will struggle under it.
+ * Requires GROQ_API_KEY in the environment (or .env) to actually make decisions — free,
+ * no card required, get one at console.groq.com/keys. Without it, the agent will watch
+ * and log tokens but every decision call is skipped.
+ * Also strongly recommends a paid RPC (RPC_HTTP_URL / RPC_WS_URL — reuses whatever the
+ * main mayhem-bot is already configured with, same env vars, no separate setup needed)
+ * — this watches the ENTIRE pump.fun program, a much heavier subscription than
+ * mayhem-bot's fixed 2-wallet watch, and free public RPCs will struggle under it.
  */
 async function main() {
   console.log("[alx-agent] starting — paper trading only, no real funds at risk");
-  if (!aiConfig.anthropicApiKey) {
-    console.log("[alx-agent] WARNING: ANTHROPIC_API_KEY not set — will watch but never decide.");
+  if (!aiConfig.groqApiKey) {
+    console.log("[alx-agent] WARNING: GROQ_API_KEY not set — will watch but never decide.");
+    console.log("[alx-agent] get a free key at https://console.groq.com/keys");
   }
   console.log(
     `[alx-agent] tracked wallets: ${aiConfig.trackedWallets.map((w) => `${w.label} (${w.address.slice(0, 6)}…)`).join(", ")}`,

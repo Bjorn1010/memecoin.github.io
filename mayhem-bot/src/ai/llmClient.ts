@@ -12,35 +12,39 @@ const VALID_ACTIONS: AlxCooksAction[] = ["skip", "enter_scout", "scale_in", "hol
 let warnedMissingKey = false;
 
 /**
- * Calls Claude with the alxcooks reasoning playbook for one token decision. Uses the raw
- * Anthropic Messages API via fetch (no SDK dependency) so this stays a drop-in call site —
- * swap the endpoint/parsing here if you want a different provider, nothing else changes.
+ * Calls a free-tier LLM (Groq — OpenAI-compatible chat completions, no cost, no card —
+ * see console.groq.com) with the alxcooks reasoning playbook for one token decision.
+ * Kept as a plain fetch call, not the OpenAI SDK, so the whole agent stays dependency-free;
+ * swap the endpoint/body here if you want a different OpenAI-compatible provider later.
  */
 export async function getAlxCooksDecision(
   context: TokenContext,
   recentLessons: string[],
 ): Promise<AlxCooksDecision | null> {
-  if (!aiConfig.anthropicApiKey) {
+  if (!aiConfig.groqApiKey) {
     if (!warnedMissingKey) {
-      console.warn("[alx-agent] ANTHROPIC_API_KEY not set — the agent can watch tokens but can't decide anything.");
+      console.warn("[alx-agent] GROQ_API_KEY not set — the agent can watch tokens but can't decide anything.");
+      console.warn("[alx-agent] get a free key at https://console.groq.com/keys");
       warnedMissingKey = true;
     }
     return null;
   }
 
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "x-api-key": aiConfig.anthropicApiKey,
-        "anthropic-version": "2023-06-01",
+        authorization: `Bearer ${aiConfig.groqApiKey}`,
       },
       body: JSON.stringify({
         model: aiConfig.model,
         max_tokens: 500,
-        system: ALX_COOKS_SYSTEM_PROMPT,
-        messages: [{ role: "user", content: buildDecisionPrompt(context, recentLessons) }],
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: ALX_COOKS_SYSTEM_PROMPT },
+          { role: "user", content: buildDecisionPrompt(context, recentLessons) },
+        ],
       }),
       signal: AbortSignal.timeout(15_000),
     });
@@ -50,8 +54,8 @@ export async function getAlxCooksDecision(
       return null;
     }
 
-    const data = (await res.json()) as { content?: Array<{ type: string; text?: string }> };
-    const text = data.content?.find((b) => b.type === "text")?.text;
+    const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+    const text = data.choices?.[0]?.message?.content;
     if (!text) return null;
 
     return parseDecision(text);
@@ -61,13 +65,10 @@ export async function getAlxCooksDecision(
   }
 }
 
-/** The model is asked for raw JSON but may still wrap it in prose or a code fence — extract defensively. */
+/** response_format:"json_object" guarantees valid JSON, but the shape/fields still need validating. */
 function parseDecision(text: string): AlxCooksDecision | null {
-  const match = text.match(/\{[\s\S]*\}/);
-  if (!match) return null;
-
   try {
-    const raw = JSON.parse(match[0]) as Partial<AlxCooksDecision>;
+    const raw = JSON.parse(text) as Partial<AlxCooksDecision>;
     if (!raw.action || !VALID_ACTIONS.includes(raw.action)) return null;
 
     return {
