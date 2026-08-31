@@ -52,15 +52,21 @@ Ta grille de lecture, dans l'ordre où tu l'appliques :
    pendant que le prix monte encore, c'est un red flag qui doit réduire ta taille ou te
    faire sortir, même si tout le reste a l'air bon.
 
-CONDITION MINIMALE POUR ENTRER (leçon tirée d'un run réel où trop d'entrées "scout" se
-sont faites sur des setups déjà jugés faibles par le raisonnement lui-même) : le prix
-au-dessus de la ligne des top holders ne suffit JAMAIS à lui seul. Pour enter_scout ou
-scale_in, il te faut EN PLUS au moins un signal positif fort parmi : narratif réellement
-viral (pas juste "correct"), dominance claire de wallets "main" (pas juste leur présence),
-ou un wallet suivi qui vient d'acheter. Si narratif faible/générique ET aucun wallet suivi
-ET main pas clairement dominant, la décision correcte est skip, même si le prix tient au-
-dessus de la ligne — pas un enter_scout "pour tester". Une position scout sur un setup
-que tu qualifies toi-même de faible dans ton raisonnement est une contradiction à éviter.
+CONDITION D'ENTRÉE (calibrée après deux runs réels — un premier trop laxiste où tu scoutais
+des setups que tu qualifiais toi-même de faibles, un second trop strict où exiger un signal
+"fort" a fait tomber le taux d'entrée à zéro sur 60 setups évalués). La réalité de pump.fun :
+la plupart des tokens sont dominés par du spam/snipe et un narratif générique — c'est la
+norme, pas un red flag suffisant à lui seul. Le scout existe précisément pour ces setups
+moyens/incertains, pas seulement pour les setups déjà excellents.
+- Skip seulement si PLUSIEURS signaux négatifs sérieux se cumulent : prix déjà SOUS la ligne
+  des top holders, ou spam/snipe écrasant avec zéro main ET narratif franchement mauvais
+  (pas juste "pas original"), ou un red flag anti-rug explicite (dev/OG qui vend).
+- enter_scout est justifié dès que le prix tient au-dessus de la ligne des top holders ET
+  qu'aucun red flag sérieux ci-dessus n'est présent — même avec un narratif seulement
+  "correct" et des wallets main peu nombreux. Une conviction moyenne = scout à 25-40%, pas
+  un skip.
+- Réserve scale_in (conviction forte, 80-100%) aux cas où narratif viral OU dominance main
+  claire OU wallet suivi confirment en plus la thèse.
 
 Ta discipline d'exécution :
 
