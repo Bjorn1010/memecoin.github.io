@@ -49,12 +49,15 @@ export const aiConfig = {
   minTokenAgeSecondsBeforeDecision: Number(process.env.ALX_MIN_TOKEN_AGE_SECONDS ?? 15),
   minTradesBeforeDecision: Number(process.env.ALX_MIN_TRADES_BEFORE_DECISION ?? 5),
   decisionCooldownMs: Number(process.env.ALX_DECISION_COOLDOWN_MS ?? 20_000),
-  // openai/gpt-oss-120b's free tier gives 8000 tokens/min and 200000 tokens/day. A first
-  // live run measured 2100-2500 tokens/call (needed 3/min to avoid 429s) — but that was
-  // before reasoning_effort:"low" (see llmClient.ts) cut real cost to ~400-500 tokens/call.
-  // 12/min (x ~500 = 6000) keeps margin under the per-minute cap; the daily cap is now
-  // the real ceiling (200000 / ~500 ≈ 400 decisions/day vs. ~90 before the reasoning fix).
-  maxDecisionCallsPerMinute: Number(process.env.ALX_MAX_DECISIONS_PER_MINUTE ?? 12),
+  // openai/gpt-oss-*'s free tier gives 8000 tokens/min and 200000 tokens/day. Groq's rate
+  // limiter reserves prompt_tokens + max_tokens per call UP FRONT (confirmed live — 429
+  // "Requested" sizes matched that sum, not actual usage). Measured against the real
+  // system+decision prompt: 1747 prompt tokens + max_tokens 450 (llmClient.ts) ≈ 2200
+  // reserved/call -> 8000/2200 ≈ 3.6/min is what the free tier actually sustains, no
+  // matter how cheap reasoning_effort:"low" made the completion itself. 200000/2200 ≈ 90
+  // decisions/day is the real daily ceiling. The lever that would raise this further is
+  // shrinking the system prompt itself (it's ~1350 of the 1747), not reasoning_effort.
+  maxDecisionCallsPerMinute: Number(process.env.ALX_MAX_DECISIONS_PER_MINUTE ?? 3),
   inactiveTokenPruneMs: Number(process.env.ALX_INACTIVE_PRUNE_MS ?? 15 * 60_000),
 
   // Independent safety net — never fully delegate risk control to the LLM's own

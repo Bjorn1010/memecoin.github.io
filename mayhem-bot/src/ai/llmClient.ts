@@ -48,9 +48,13 @@ export async function getAlxCooksDecision(
         // per call, which directly multiplies how many decisions the free daily budget
         // actually buys. Harmless no-op on non-gpt-oss models if ALX_MODEL is swapped.
         reasoning_effort: "low",
-        // 900 leaves headroom even though reasoning is now tiny — a long redFlags list
-        // plus reasoning text can still run a few hundred tokens on a busy setup.
-        max_tokens: 900,
+        // Groq's rate limiter reserves max_tokens against the per-minute/per-day budget
+        // UP FRONT, regardless of how much the model actually generates (confirmed live —
+        // 429 "Requested" sizes matched prompt_tokens + max_tokens, not actual usage). With
+        // reasoning_effort:"low" real completions run ~150-400 tokens, so 900 was wasting
+        // roughly half of every reservation. 450 keeps real headroom without inflating the
+        // reservation the limiter actually charges against.
+        max_tokens: 450,
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: ALX_COOKS_SYSTEM_PROMPT },
