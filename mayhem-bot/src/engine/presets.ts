@@ -89,17 +89,17 @@ export const defaultStrategies: StrategyConfig[] = [
     maxConcurrentPositions: 8,
   },
   {
-    id: "copy-big-size",
-    name: "Grosse taille (0.75 SOL)",
+    id: "copy-low-fee",
+    name: "Priority fee realiste (0.0003)",
     description:
-      "Attaque le coût qui domine tout le reste. Le priority fee est FIXE (0.003 SOL par jambe) : sur une position de 0.15 SOL il représente 4% par aller-retour, et liquid-only a payé 3.708 SOL de frais sur 2 SOL de capital (185%) en 841 jambes. À 0.75 SOL la position, le même frais fixe tombe à 0.8% par aller-retour, soit 5x moins de saignée. Dans un pool d'au moins 150 SOL, 0.75 SOL reste 0.5% de la profondeur, donc le slippage reste faible. Remplace copy-wide-trail, réfutée (pire taux de gagnants des quatre à 16%, ruinée à répétition).",
+      "Teste l'hypothese de cout qui decide de tout. Sur liquid-only, le mouvement de prix moyen par aller-retour est POSITIF (+1.5%, 30.2% de gagnants sur 182 A/R) : la selection de trades n'est pas le probleme. Mais 1.571 SOL de frais sur 27.3 SOL de volume ont ruine le compte — la totalite de la perte vient de la. Or priorityFeeSol=0.003 est une hypothese de modelisation posee au depart par prudence, pas un cout mesure ; 0.0003 SOL est un ordre de grandeur courant sur Solana. Cette variante est identique a la reference sauf ce parametre, pour separer proprement deux questions : la strategie est-elle intrinsequement perdante, ou seulement perdante sous une hypothese de frais pessimiste ? Remplace copy-big-size, refutee (edge de prix -11.4%, ruinee en minutes).",
     kind: "generic",
     enabled: true,
     ...BASE,
-    positionSizeSol: 0.75,
-    minPoolLiquiditySol: 150,
+    priorityFeeSol: 0.0003,
+    minPoolLiquiditySol: 40,
     minMayhemBuySol: null,
-    maxConcurrentPositions: 2,
+    maxConcurrentPositions: 8,
   },
   {
     id: "copy-deeper-pools",
