@@ -94,16 +94,15 @@ export const defaultStrategies: StrategyConfig[] = [
     maxConcurrentPositions: 8,
   },
   {
-    id: "copy-pessimistic-fee",
-    name: "Temoin frais pessimistes (0.003)",
+    id: "copy-conviction",
+    name: "Convictions de Mayhem (>=0.25 SOL)",
     description:
-      "TÉMOIN. Conserve l'ancienne hypothèse de frais (0.003 SOL/jambe) pendant que toutes les autres utilisent le coût réel mesuré on-chain (0.000025). Sert à chiffrer en continu ce que l'hypothèse erronée coûtait, et à garder une trace de l'erreur plutôt que de l'effacer.",
+      "Teste le filtre de qualite a l'ENTREE plutot qu'un enieme seuil de sortie. Avec les vrais frais, le cout qui reste est celui de plateforme : 1% par jambe, soit 2% par aller-retour. Il faut donc un edge de prix superieur a 2%, ce que la reference a 40 SOL n'atteint pas (+0.9%) mais que la profondeur permet (+4.4% a 150 SOL, +7.8% a 250). Autre levier possible : ne suivre que les achats ou Mayhem engage vraiment. Sa mediane est 0.0249 SOL ; le seuil de 0.25 SOL ne retient que les 6% les plus gros, ce qui reduit fortement la frequence et donc la charge de plateforme. Combine avec le filtre de profondeur a 150 SOL. Remplace copy-pessimistic-fee, dont le role est rempli : elle a chiffre l'erreur (1.146 SOL de priority fees contre 0.011 pour la meme config au cout reel).",
     kind: "generic",
     enabled: true,
     ...BASE,
-    priorityFeeSol: 0.003,
-    minPoolLiquiditySol: 40,
-    minMayhemBuySol: null,
+    minPoolLiquiditySol: 150,
+    minMayhemBuySol: 0.25,
     maxConcurrentPositions: 8,
   },
   {
