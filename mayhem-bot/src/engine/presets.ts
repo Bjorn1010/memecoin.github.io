@@ -61,7 +61,12 @@ const BASE = {
   trailingStopPct: 0.25,
   trailingArmPct: 0.5,
   sellOnMayhemFullExit: true,
-  priorityFeeSol: 0.003,
+  // MESURÉ, pas supposé : 40 transactions Mayhem lues on-chain paient toutes exactement
+  // 0.000025 SOL de frais. Le modèle facturait 0.003, soit 120x trop. Sur les 364 jambes de
+  // liquid-only cela représentait 1.09 SOL de frais fictifs contre 0.009 réels — assez pour
+  // ruiner un capital de 2 SOL à lui seul, et donc pour invalider toute conclusion de
+  // rentabilité tirée avant cette mesure. Outil de mesure : src/tools/measureFees.ts.
+  priorityFeeSol: 0.000025,
   minPoolLiquiditySol: null,
   waitForMigration: false,
   // Every variant deadlocked at 8/8 positions holding tokens Mayhem had abandoned 48-58
@@ -89,14 +94,14 @@ export const defaultStrategies: StrategyConfig[] = [
     maxConcurrentPositions: 8,
   },
   {
-    id: "copy-low-fee",
-    name: "Priority fee realiste (0.0003)",
+    id: "copy-pessimistic-fee",
+    name: "Temoin frais pessimistes (0.003)",
     description:
-      "Teste l'hypothese de cout qui decide de tout. Sur liquid-only, le mouvement de prix moyen par aller-retour est POSITIF (+1.5%, 30.2% de gagnants sur 182 A/R) : la selection de trades n'est pas le probleme. Mais 1.571 SOL de frais sur 27.3 SOL de volume ont ruine le compte — la totalite de la perte vient de la. Or priorityFeeSol=0.003 est une hypothese de modelisation posee au depart par prudence, pas un cout mesure ; 0.0003 SOL est un ordre de grandeur courant sur Solana. Cette variante est identique a la reference sauf ce parametre, pour separer proprement deux questions : la strategie est-elle intrinsequement perdante, ou seulement perdante sous une hypothese de frais pessimiste ? Remplace copy-big-size, refutee (edge de prix -11.4%, ruinee en minutes).",
+      "TÉMOIN. Conserve l'ancienne hypothèse de frais (0.003 SOL/jambe) pendant que toutes les autres utilisent le coût réel mesuré on-chain (0.000025). Sert à chiffrer en continu ce que l'hypothèse erronée coûtait, et à garder une trace de l'erreur plutôt que de l'effacer.",
     kind: "generic",
     enabled: true,
     ...BASE,
-    priorityFeeSol: 0.0003,
+    priorityFeeSol: 0.003,
     minPoolLiquiditySol: 40,
     minMayhemBuySol: null,
     maxConcurrentPositions: 8,
