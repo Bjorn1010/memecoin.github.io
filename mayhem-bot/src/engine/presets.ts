@@ -64,6 +64,15 @@ const BASE = {
   priorityFeeSol: 0.003,
   minPoolLiquiditySol: null,
   waitForMigration: false,
+  // Every variant deadlocked at 8/8 positions holding tokens Mayhem had abandoned 48-58
+  // minutes earlier. On a constant-product curve no trades means no price movement, and
+  // every exit here is price-driven, so neither the stop-loss nor the trailing stop can ever
+  // fire on a dead token: the slot is held forever and no new entry is possible. That made
+  // the variants a race to fill up with dead weight rather than a comparison of exit policy.
+  // It also inflated equity, marking positions at the last price of something nobody trades.
+  // The forced exit still prices its fill through simulateSell against the last known
+  // reserves, so it books the AMM's price impact rather than the stale mark.
+  maxHoldSeconds: 600,
 } as const;
 
 export const defaultStrategies: StrategyConfig[] = [
@@ -75,7 +84,6 @@ export const defaultStrategies: StrategyConfig[] = [
     kind: "generic",
     enabled: true,
     ...BASE,
-    maxHoldSeconds: null,
     minMayhemBuySol: null,
     minPoolLiquiditySol: 40,
     maxConcurrentPositions: 8,
@@ -89,7 +97,6 @@ export const defaultStrategies: StrategyConfig[] = [
     enabled: true,
     ...BASE,
     trailingStopPct: 0.45,
-    maxHoldSeconds: null,
     minMayhemBuySol: null,
     minPoolLiquiditySol: 40,
     maxConcurrentPositions: 8,
@@ -102,7 +109,6 @@ export const defaultStrategies: StrategyConfig[] = [
     kind: "generic",
     enabled: true,
     ...BASE,
-    maxHoldSeconds: null,
     minMayhemBuySol: null,
     minPoolLiquiditySol: 250,
     maxConcurrentPositions: 8,
@@ -115,7 +121,6 @@ export const defaultStrategies: StrategyConfig[] = [
     kind: "generic",
     enabled: true,
     ...BASE,
-    maxHoldSeconds: null,
     minMayhemBuySol: null,
     minPoolLiquiditySol: 150,
     maxConcurrentPositions: 8,
@@ -129,7 +134,6 @@ export const defaultStrategies: StrategyConfig[] = [
     enabled: true,
     ...BASE,
     waitForMigration: true,
-    maxHoldSeconds: null,
     minMayhemBuySol: null,
     maxConcurrentPositions: 8,
   },
