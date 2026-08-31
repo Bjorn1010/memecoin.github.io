@@ -11,10 +11,13 @@ const STRATEGY_ID = "alxcooks-ai";
  * Wires TokenWatcher updates -> LLM decision -> paper trade execution. Paper trading only,
  * same as the rest of mayhem-bot — this never touches a real wallet.
  *
- * Two layers of risk control, on purpose: the LLM decides *when there's a real setup*, but
- * a fixed hard stop-loss / max hold time (aiConfig.hardStopLossPct / maxHoldSeconds) is
- * enforced independently every tick, regardless of what the model last said. Never trust a
- * single point of failure for risk management, model included.
+ * Independent risk control on purpose: the LLM decides *when there's a real setup*, but a
+ * fixed hard stop-loss, trailing profit-lock, and max hold time (aiConfig.hardStopLossPct /
+ * trailingStopFromPeakPct / maxHoldSeconds) are enforced every tick regardless of what the
+ * model last said — including when the model can't be reached at all (free-tier daily quota
+ * exhaustion happened mid-run in testing; without the trailing lock, positions that were
+ * already up double digits just rode the market back down with nothing managing them).
+ * Never trust a single point of failure for risk management, model included.
  */
 export class AlxAgentRunner {
   readonly portfolio = new PaperPortfolio(STRATEGY_ID, aiConfig.startingBalanceSol);
@@ -129,8 +132,13 @@ export class AlxAgentRunner {
     const changePct = (currentPriceSol - pos.avgEntryPriceSol) / pos.avgEntryPriceSol;
     const heldSeconds = (Date.now() - pos.openedAt) / 1000;
 
+    const drawdownFromPeakPct = (pos.peakPriceSol - currentPriceSol) / pos.peakPriceSol;
+    const stillInProfit = currentPriceSol > pos.avgEntryPriceSol;
+
     if (changePct <= -aiConfig.hardStopLossPct) {
       this.sell(mint, currentPriceSol, "hard_stop_loss", 1);
+    } else if (stillInProfit && drawdownFromPeakPct >= aiConfig.trailingStopFromPeakPct) {
+      this.sell(mint, currentPriceSol, "trailing_stop_profit_lock", 1);
     } else if (heldSeconds >= aiConfig.maxHoldSeconds) {
       this.sell(mint, currentPriceSol, "max_hold_time", 1);
     }

@@ -64,6 +64,14 @@ export const aiConfig = {
   // judgment. Checked every tick regardless of what the agent last decided.
   hardStopLossPct: Number(process.env.ALX_HARD_STOP_LOSS_PCT ?? 0.5),
   maxHoldSeconds: Number(process.env.ALX_MAX_HOLD_SECONDS ?? 30 * 60),
+  // The stop-loss side alone isn't a complete safety net: a 20-minute live run hit the
+  // free tier's daily LLM quota ~11 minutes in, after which the model could no longer be
+  // consulted at all — open positions just rode the market with no way to lock in gains.
+  // One position's unrealized PNL peaked at +0.17 SOL and drifted back to +0.12 with
+  // nothing exiting it. This trails the position's own peak price (only once it's net
+  // profitable) so a bought-out gain still gets captured if the LLM goes silent for any
+  // reason (quota, API outage, network) — not just protected from catastrophic loss.
+  trailingStopFromPeakPct: Number(process.env.ALX_TRAILING_STOP_FROM_PEAK_PCT ?? 0.3),
 
   trackedWallets: parseTrackedWallets(process.env.ALX_TRACKED_WALLETS),
 
