@@ -45,11 +45,17 @@ export class StrategyRunner {
     // waitForMigration strategies never buy on the bonding curve itself — EngineManager
     // watches the mint instead and calls enterAfterMigration() once it's off the curve.
     if (this.config.waitForMigration) return trades;
-    if (
-      this.config.minPoolLiquiditySol != null &&
-      event.solReservesUi != null &&
-      event.solReservesUi < this.config.minPoolLiquiditySol
-    ) {
+    // No reserves means we cannot model this fill at all, and entering anyway is not a
+    // harmless approximation — it manufactures profit. The entry gets booked at the raw
+    // event price with zero slippage, while the matching exit goes through simulateSell()
+    // against whatever reserves have landed in the cache by then. The two legs end up priced
+    // off different bases, which produced eight consecutive 3.5x-13x round trips on one mint
+    // in under four seconds each. It also silently defeated the depth filter below: with
+    // reserves unknown, a `>= 40 SOL` requirement admitted a pool that never held more than
+    // 27 SOL. Roughly 4% of Mayhem buy events arrive without reserves; skipping them costs
+    // little and is the only honest option.
+    if (!poolReserves) return trades;
+    if (this.config.minPoolLiquiditySol != null && poolReserves.solReservesUi < this.config.minPoolLiquiditySol) {
       return trades; // pool too thin — AMM slippage would eat the trade alive
     }
     if (!this.portfolio.canOpen(this.config.maxConcurrentPositions)) return trades;

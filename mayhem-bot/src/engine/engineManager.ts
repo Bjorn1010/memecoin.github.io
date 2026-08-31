@@ -291,6 +291,12 @@ export class EngineManager extends EventEmitter {
           solReservesUi: event.solReservesUi,
           tokenReservesUi: event.tokenReservesUi,
         });
+      } else {
+        // Price without reserves: keeping the previous reserves would pair a fresh price
+        // with a stale pool, and exits price their fill off the reserves while checking
+        // their threshold against the price. Drop them so sell() falls back to the flat
+        // spot price and both legs at least agree on what the market is.
+        this.reservesCache.delete(event.mint);
       }
     }
 
