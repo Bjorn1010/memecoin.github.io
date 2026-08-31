@@ -1,6 +1,0 @@
-node_modules
-dist
-data
-.env
-web/dist
-web/node_modules

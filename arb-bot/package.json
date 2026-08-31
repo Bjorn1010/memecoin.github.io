@@ -1,0 +1,38 @@
+{
+  "name": "solana-arb-bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "observe": "tsx src/cli/observe.ts",
+    "paper": "tsx src/cli/paper.ts",
+    "live": "tsx src/cli/live.ts",
+    "replay": "tsx src/cli/replay.ts",
+    "report": "tsx src/cli/report.ts",
+    "verify:quoters": "tsx src/cli/verifyQuoters.ts",
+    "discover": "tsx src/cli/discover.ts"
+  },
+  "dependencies": {
+    "@solana/spl-token": "^0.4.15",
+    "@solana/web3.js": "^1.98.4",
+    "dotenv": "^16.6.1",
+    "ws": "^8.21.3",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@pump-fun/pump-swap-sdk": "^1.19.0",
+    "@types/bn.js": "^5.2.0",
+    "@types/node": "^22.20.1",
+    "@types/ws": "^8.18.1",
+    "bn.js": "^5.2.5",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.9"
+  }
+}

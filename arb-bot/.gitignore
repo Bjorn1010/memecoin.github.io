@@ -1,0 +1,23 @@
+# --- secrets: never commit ---
+.env
+.env.*
+!.env.example
+*.keypair
+*.keypair.json
+wallet.json
+id.json
+keypair*.json
+
+# --- runtime data ---
+node_modules/
+data/
+logs/
+*.log
+
+# Captured state and ledgers are runtime output, not source.
+# Test fixtures are explicitly re-included below so `*.json` ignores never
+# swallow legitimate committed fixtures.
+!test/fixtures/
+!test/fixtures/**/*.json
+!idl/
+!idl/**/*.json
