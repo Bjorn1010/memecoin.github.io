@@ -47,60 +47,44 @@ C'est tout, à ce jour. Rien d'autre n'a survécu à une seconde fenêtre.
   contre des fills sur des pools à 6$. La stratégie reste une sonde ; qu'elle ne trade jamais
   est le résultat attendu.
 
-## Le stop-loss est plus étroit que le bruit dans lequel il baigne
+## LA TEMPORISATION DU STOP EST RÉFUTÉE (résultat significatif)
 
-Le résultat le plus solide obtenu jusqu'ici. **Le mécanisme est confirmé, le gain net ne l'est
-pas** — la perte a changé de guichet plutôt que de disparaître.
+Premier résultat franchement concluant de tout le projet, et il annule ma conclusion du matin.
 
-Répartition des sorties de la référence historique (n=312, fenêtre 12:22-13:12) :
+Il a fallu supprimer la contention d'emplacements (60 positions, 20 SOL) pour l'obtenir : les
+variantes prennent désormais **99.0% des mêmes entrées** (302 mints communs sur 305), ce qui rend
+enfin valide la **comparaison appariée mint par mint** — la seule mesure qui élimine la variance
+de régime de marché, dominante et jusque-là confondue avec l'effet des politiques.
 
-| sortie | part | rendement moyen | hold médian |
-|---|---|---|---|
-| `stop_loss` | 73.4% | **-28.72%** | **1 s** |
-| `trailing_stop` | 22.4% | +40.78% | 4 s |
-| `max_hold_time` | 3.5% | +72.05% | 600 s |
+Écart apparié contre la référence (stop immédiat), fenêtre 15:10-16:09 :
 
-Un stop nominal à -12% qui se réalise à -28% en une seconde ne coupe pas une tendance : il se
-déclenche avant qu'une tendance existe. Ce n'est ni du slippage (0.19% médian) ni des frais
-(1.78%) — le prix bouge vraiment, et la détection n'est pas en retard (lag médian sous la
-seconde, achats bookés en 1 ms).
-
-Reconstruit **indépendamment de notre simulation**, sur les seuls événements on-chain de Mayhem
-(3910 achats éligibles, pool ≥40 SOL) :
-
-| horizon | médiane | p25 | p75 | >+100% |
-|---|---|---|---|---|
-| t+2s | -0.10% | -28.21% | +17.19% | 3.0% |
-| t+5s | -4.20% | -41.57% | +15.82% | 6.2% |
-| t+15s | -24.46% | -67.23% | +5.12% | 8.0% |
-| t+60s | -72.03% | -95.22% | -0.07% | 7.2% |
-
-L'écart interquartile à 2 secondes va de -28% à +17% : le seuil de -12% est deux fois plus
-étroit que le bruit dans lequel il baigne, donc il ne discrimine rien et encaisse la moitié
-basse. Et la fréquence des queues croît avec l'horizon pendant que la médiane s'effondre — il y
-a un arbitrage, pas un réglage évident.
-
-Attention au `t+300s` (médiane -28.73%, moyenne +3105%) : n=585 sur 3910, conditionné à ce que
-Mayhem trade encore le mint 5 minutes plus tard. **Biais de survie massif, ne pas s'en servir.**
-
-### Ce que la temporisation a donné (829 allers-retours, fenêtre 12:22-13:12)
-
-| variante | n | rend. pondéré | médiane | >+100% | part `stop_loss` |
+| variante | n | écart moyen | médiane | gagne sur | IC 90% |
 |---|---|---|---|---|---|
-| liquid-only | 312 | -7.09% | -21.88% | 3.8% | 73.4% |
-| grace-15s | 203 | -6.06% | -14.75% | 5.4% | 34.5% |
-| grace-60s | 154 | **-6.00%** | **-6.22%** | **5.8%** | 14.3% |
-| no-stop | 149 | -7.44% | -6.55% | 4.7% | 0.0% |
+| grace-60s | 299 | -2.07 pts | +0.00 | 19% | [-5.16, +1.51] |
+| grace-60s-nofollow | 297 | -4.90 pts | +0.00 | 27% | [-9.66, **-0.26**] |
+| grace-20s-nofollow | 298 | -5.83 pts | +0.00 | 20% | [-9.35, **-2.18**] |
 
-Tout ce que la temporisation devait produire, elle le produit : médiane -21.88% → -6.22%,
-queues 3.8% → 5.8%, part du `stop_loss` 73.4% → 14.3% au profit du trailing stop (22.4% →
-46.8%), qui est la sortie rentable. **Et pourtant le rendement pondéré ne bouge presque pas.**
+Les deux dernières ont un **intervalle qui exclut zéro** : significativement pires que le stop
+immédiat. Écart médian nul, gain sur seulement 19-27% des mints — la plupart du temps la
+temporisation ne change rien, et quand elle change quelque chose elle perd plus qu'elle ne gagne.
 
-Deux enseignements à garder :
-- **Supprimer entièrement le stop ne paie pas.** `no-stop` est la pire en rendement pondéré
-  (-7.44%) malgré une bonne médiane. L'optimum est une temporisation, pas une suppression.
-- **60s > 15s**, mais l'écart est sur la médiane, pas sur le rendement pondéré (-6.00% contre
-  -6.06%, égalité). Ne pas surinterpréter.
+**Le diagnostic restait juste, le remède coûte plus cher que le mal.** Le stop à -12% est bien
+plus étroit que la dispersion à 2 secondes (interquartile -28% / +17%), il coupe donc dans le
+bruit. Mais couper vite à -28% bat couper tard à -70%. La mesure on-chain le disait déjà sans que
+j'en tire la conséquence : médiane **-24.46% à t+15s, -72.03% à t+60s**. Laisser respirer les
+perdants coûte plus que ce que rapporte laisser respirer les gagnants.
+
+### L'évaluateur hors-ligne classe ces politiques À L'ENVERS
+
+Il donnait `grace 20s` meilleure que la référence (+2.96% contre +1.60%) là où le test apparié la
+donne **pire de 5.83 points avec IC excluant zéro**. La cause est structurelle : son chemin de
+prix n'est échantillonné qu'aux transactions de Mayhem, il ne voit pas les creux intra-seconde
+qui déclenchent 79% des sorties de la référence à un hold médian d'UNE seconde. **Son biais
+d'optimisme n'est donc pas uniforme** : il favorise exactement les politiques qui évitent les
+stops rapides.
+
+**Ne jamais utiliser le replay pour classer des politiques différant par le timing du stop.**
+Il reste valide pour les effets lents — largeur du trailing, seuil d'armement, durée max.
 
 ## `sellOnMayhemFullExit` : effet non démontré
 

@@ -1,67 +1,59 @@
 import type { StrategyConfig } from "../types.js";
 
 /**
- * Ce cycle ne change pas un seuil : il change le **protocole de mesure**, parce que la mesure
- * elle-même s'est révélée incapable de départager quoi que ce soit.
+ * **La temporisation du stop est réfutée, avec significativité.** C'est le premier résultat
+ * franchement concluant obtenu ici, et il annule ce que ce fichier affirmait il y a cinq cycles.
  *
- * Rendement pondéré de la MÊME configuration, inchangée, sur trois fenêtres consécutives :
+ * Il a fallu pour cela supprimer la contention d'emplacements (60 positions, 20 SOL) : les
+ * variantes prennent désormais **99.0% des mêmes entrées** (302 mints communs sur 305), ce qui
+ * rend enfin valide la comparaison appariée mint par mint — celle qui élimine la variance de
+ * régime de marché, dominante et jusqu'ici confondue avec l'effet des politiques.
  *
- * | variante           | 12:22-13:12 | 13:15-14:11 | 14:13-15:09 |
- * |--------------------|-------------|-------------|-------------|
- * | liquid-only        |      -7.09% |     -11.55% |      -7.88% |
- * | grace-60s          |      -6.00% |      -7.34% |     -18.58% |
- * | grace-60s-nofollow |          -- |      +0.18% |     -19.70% |
+ * Écart apparié contre la référence (stop immédiat), fenêtre 15:10-16:09 :
  *
- * `liquid-only` n'a pas bougé d'un paramètre et oscille sur 4.5 points. `grace-60s-nofollow`,
- * annoncée meilleure variante jamais obtenue à +0.18%, revient à -19.70% la fenêtre suivante.
- * **La variance entre fenêtres est du même ordre que les écarts entre variantes** : tout ce que
- * j'ai comparé jusqu'ici était à la limite du bruit.
+ * | variante           |   n | écart moyen | gagne sur | IC 90%           |
+ * |--------------------|-----|-------------|-----------|------------------|
+ * | grace-60s          | 299 |   -2.07 pts |       19% | [-5.16 , +1.51]  |
+ * | grace-60s-nofollow | 297 |   -4.90 pts |       27% | [-9.66 , -0.26]  |
+ * | grace-20s-nofollow | 298 |   -5.83 pts |       20% | [-9.35 , -2.18]  |
  *
- * Intervalles de confiance à 90% (bootstrap 4000 tirages, fenêtres poolées) :
+ * Les deux dernières ont un intervalle qui **exclut zéro** : elles sont significativement pires
+ * que le stop immédiat. L'écart médian est nul et elles ne gagnent que sur 19-27% des mints —
+ * autrement dit, la plupart du temps la temporisation ne change rien, et quand elle change
+ * quelque chose elle perd plus qu'elle ne gagne.
  *
- *     liquid-only          n=856   -8.49%   [-11.54% , -5.20%]   largeur  6.3 pts
- *     grace-60s            n=468   -9.09%   [-15.31% , -2.83%]   largeur 12.5 pts
- *     grace-60s-nofollow   n=297   -5.46%   [-15.37% , +5.48%]   largeur 20.9 pts
- *     grace-20s-nofollow   n=178   -8.65%   [-19.32% , +2.60%]   largeur 21.9 pts
- *     grace-15s            n=202   -6.06%   [-13.55% , +1.51%]   largeur 15.1 pts
- *     no-stop              n=286   -9.63%   [-17.14% , -1.51%]   largeur 15.6 pts
+ * Le diagnostic de départ restait juste : le stop à -12% est bien plus étroit que la dispersion
+ * à deux secondes (écart interquartile -28% / +17%), il coupe donc dans le bruit. **Mais le
+ * remède coûte plus cher que le mal.** Couper vite à -28% bat couper tard à -70%, et la mesure
+ * on-chain le disait déjà sans que j'en tire la conséquence : médiane -24.46% à t+15s,
+ * -72.03% à t+60s. Laisser respirer les perdants coûte davantage que ce que rapporte laisser
+ * respirer les gagnants. Retour au stop immédiat partout.
  *
- * **Tous les intervalles se recoupent.** Aucune variante n'est distinguable d'une autre, ni de
- * la référence. Les estimations ponctuelles tiennent toutes entre -5% et -10%. Sur une
- * distribution en loterie, quelques centaines d'allers-retours ne suffisent pas : la queue porte
- * le résultat et sa fréquence d'apparition est elle-même très bruitée.
+ * **L'évaluateur hors-ligne classe ces mêmes politiques à l'envers** — il donnait grace-20s
+ * meilleure que la référence (+2.96% contre +1.60%) là où le test apparié la donne pire de
+ * 5.83 points avec IC excluant zéro. La raison est structurelle et connue : son chemin de prix
+ * n'est échantillonné qu'aux transactions de Mayhem, il ne voit pas les creux intra-seconde qui
+ * déclenchent 79% des sorties de la référence à un hold médian d'UNE seconde. Son biais
+ * d'optimisme n'est donc **pas uniforme** : il favorise précisément les politiques qui évitent
+ * les stops rapides. **Ne pas s'en servir pour classer des politiques différant par le timing du
+ * stop.** Il reste valide pour des effets lents — largeur du trailing, seuil d'armement, durée
+ * max — qui sont l'axe testé ici.
  *
- * La cause est identifiée et corrigeable. Les variantes **ne prennent pas les mêmes entrées** :
- * dès qu'une politique de sortie garde ses positions plus longtemps, ses 8 emplacements se
- * saturent et elle rate des entrées que les autres prennent. La comparaison mélange alors deux
- * effets — la politique de sortie et le hasard de l'occupation — et le second domine. C'est
- * précisément ce qui avait fait attribuer à tort le résultat de `grace-60s-nofollow` au fait de
- * ne pas suivre Mayhem, alors que le test apparié ne montrait aucun effet (12/30, médiane -1.4 pt).
- *
- * **Correctif : supprimer la contention.** `maxConcurrentPositions` passe de 8 à 60 et le capital
- * de 2 à 20 SOL, si bien qu'aucune variante ne peut plus être limitée ni par un emplacement ni
- * par le solde (60 x 0.15 = 9 SOL de déploiement maximum contre 20 disponibles). Toutes voient
- * alors **exactement le même flux d'entrées**, et leurs différences ne viennent plus que de la
- * politique de sortie. La comparaison appariée mint par mint devient la mesure principale : elle
- * élimine d'un coup la variance de régime de marché, qui est la source de bruit dominante, et
- * c'est le seul test qui ait produit ici une réponse stable.
- *
- * Effet secondaire bienvenu : plus de faillite en cours de fenêtre, donc plus de remise à zéro
- * du capital qui tronquait les séries.
- *
- * Le rendement pondéré reste sans dimension, donc comparable aux fenêtres précédentes malgré le
- * changement d'échelle du capital.
+ * Ce cycle teste donc le trailing stop, la seule sortie rentable dans toutes les fenêtres
+ * (+33% à +65% de moyenne selon la variante), sur ses deux paramètres, à stop immédiat partout
+ * pour que la comparaison appariée reste propre :
+ * - `trail-arm-20` abaisse le seuil d'armement de +50% à +20% : aujourd'hui une position qui
+ *   monte de 40% puis retombe n'a aucune protection de trailing et finit au stop-loss.
+ * - `trail-tight-15` et `trail-wide-40` encadrent la largeur actuelle de -25%.
  *
  * Rappels durables :
- * - **Le trailing stop est la seule sortie rentable**, dans toutes les variantes et toutes les
- *   fenêtres (+38% à +65% de moyenne). Sa part varie de 18.7% à 41.4% selon la politique.
  * - Filtre de profondeur du pool : **réfuté**. Tenu constant à 40 SOL, comme contrôle.
  * - Priority fee **mesuré** à 0.000025 SOL. Le modèle a facturé 0.003 pendant longtemps, soit
  *   120x trop, ce qui a invalidé toutes les conclusions antérieures — y compris les négatives.
- * - Taux d'occupation, `sellOnMayhemFullExit`, suppression totale du stop : hypothèses testées,
- *   aucune n'a survécu. Voir FINDINGS.md.
+ * - `sellOnMayhemFullExit`, suppression totale du stop, taux d'occupation : testés, aucun effet
+ *   démontré. Voir FINDINGS.md.
  *
- * Rien n'est démontré rentable, et à ce stade rien n'est même démontré différent.
+ * Rien n'est démontré rentable. La référence elle-même est à -8.77% [IC90 -10.75, -6.68].
  */
 const BASE = {
   startingBalanceSol: 20,
@@ -106,36 +98,34 @@ export const defaultStrategies: StrategyConfig[] = [
     ...BASE,
   },
   {
-    id: "grace-60s-nofollow",
-    name: "Grace 60s sans suivre Mayhem (référence de travail)",
+    id: "trail-arm-20",
+    name: "Trailing arme a +20%",
     description:
-      "LE test du cycle. Identique a grace-60s sauf sellOnMayhemFullExit: false. Sur la fenetre precedente cette sortie representait 30.5% des fermetures de grace-60s pour -66.45% en moyenne, soit -3123 points, le premier poste de perte de la meilleure variante. Si la sortie de Mayhem est un signal retarde, la desactiver doit ameliorer le rendement pondere ; si elle protege vraiment d'une chute encore pire, cette variante doit faire pire et on saura que -66% etait le moindre mal. Les positions concernees sortiront alors par trailing stop, stop-loss apres 60s, ou max-hold a 600s.",
+      "Abaisse le seuil d'armement du trailing stop de +50% a +20%. Aujourd'hui une position qui monte de 40% puis retombe n'est jamais protegee par le trailing et finit au stop-loss : le trailing ne s'arme qu'au-dela de +50% de gain au pic. Or le trailing est la seule sortie rentable de toutes les fenetres. Elargir la population de positions qu'il protege est l'hypothese la plus directe qui reste. Risque symetrique : armer trop tot coupe une vraie pompe sur son premier repli ordinaire, ce que le seuil a +50% avait justement ete introduit pour eviter.",
     kind: "generic",
     enabled: true,
     ...BASE,
-    stopLossGraceSeconds: 60,
-    sellOnMayhemFullExit: false,
+    trailingArmPct: 0.2,
   },
   {
-    id: "grace-60s",
-    name: "Grace 60s (suit Mayhem)",
+    id: "trail-tight-15",
+    name: "Trailing serre -15%",
     description:
-      "Meilleure variante de la fenetre precedente et nouvelle reference de comparaison : stop-loss suspendu 60 secondes, sortie sur la sortie complete de Mayhem conservee. Mediane -6.22% contre -21.88% pour liquid-only, queues >+100% a 5.8% contre 3.8%, part des sorties en stop_loss ramenee de 73.4% a 14.3%. C'est la variante dont grace-60s-nofollow ne change qu'UNE chose.",
+      "Resserre le trailing de -25% a -15%, a seuil d'armement inchange. Encadre la largeur actuelle par le bas : une fois une position declaree gagnante, rend-on plus en verrouillant tot qu'en laissant courir ?",
     kind: "generic",
     enabled: true,
     ...BASE,
-    stopLossGraceSeconds: 60,
+    trailingStopPct: 0.15,
   },
   {
-    id: "grace-20s-nofollow",
-    name: "Grace 20s, sans suivre Mayhem",
+    id: "trail-wide-40",
+    name: "Trailing large -40%",
     description:
-      "LE test du cycle. Identique a grace-60s-nofollow sauf la temporisation, ramenee de 60 a 20 secondes. Choisi sur la courbe de decroissance mesuree on-chain : la mediane d'un achat de Mayhem vaut -24.46% a t+15s contre -72.03% a t+60s, et le stop de grace-60s-nofollow se realise justement a -70.12%. Vingt secondes suffisent a franchir la bande de bruit des deux premieres secondes (ecart interquartile -28% / +17%) tout en coupant avant l'effondrement median. Si la temporisation ne sert qu'a franchir le bruit, cette variante doit gagner ; si les gagnants ont besoin de la minute entiere pour se declarer, elle doit perdre.",
+      "Elargit le trailing de -25% a -40%, a seuil d'armement inchange. Encadre la largeur actuelle par le haut. Un trail a -45% avait ete teste et rejete tres tot, mais sous le regime du priority fee errone (120x trop cher) qui a invalide toutes les conclusions de cette periode : l'hypothese merite d'etre reposee proprement.",
     kind: "generic",
     enabled: true,
     ...BASE,
-    stopLossGraceSeconds: 20,
-    sellOnMayhemFullExit: false,
+    trailingStopPct: 0.4,
   },
   {
     id: "post-migration",
