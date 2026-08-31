@@ -96,6 +96,7 @@ function snapshot(data: RaydiumCpmmPoolData, slot = 100): PoolSnapshot {
     receivedAt: 1_000,
     source: "replay",
     accounts: ["pool1", data.token0Vault, data.token1Vault],
+    subscribed: true,
     data,
   };
 }

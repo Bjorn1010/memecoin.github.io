@@ -270,30 +270,87 @@ describe("kill switch", () => {
 });
 
 describe("state freshness (§20)", () => {
-  const policy = { maxStateAgeSlots: 3, maxStateAgeMs: 500 };
+  const policy = { maxStateAgeSlots: 4, maxStateAgeMs: 1_500, feedStallMs: 30_000 };
+  const healthy = { connected: true, lastUpdateAt: 1_000, dataSlot: 200 };
 
-  it("accepts fresh state", () => {
-    const v = isStateFresh({ slot: 100, receivedAt: 1_000 }, 101, 1_200, policy);
+  it("trusts subscription-delivered state however old, while the feed is live", () => {
+    // accountSubscribe only fires on CHANGE, so a quiet pool's data is old and
+    // completely current. Ageing it out would blind the bot to exactly the
+    // uncontested pools it is meant to hunt in.
+    const v = isStateFresh(
+      { slot: 100, receivedAt: 1_000, source: "ws" },
+      { ...healthy, lastUpdateAt: 60_000, dataSlot: 100_000 },
+      60_100,
+      policy,
+    );
+    expect(v.fresh).toBe(true);
+    expect(v.ageSlots).toBe(99_900);
+  });
+
+  it("invalidates everything at once when the feed disconnects", () => {
+    const v = isStateFresh(
+      { slot: 199, receivedAt: 1_000, source: "ws" },
+      { ...healthy, connected: false },
+      1_100,
+      policy,
+    );
+    expect(v.fresh).toBe(false);
+    expect(v.reason).toBe("feed-disconnected");
+  });
+
+  it("invalidates everything when the feed goes silent", () => {
+    // A socket that is open but delivering nothing looks healthy while every
+    // quote it feeds goes quietly stale.
+    const v = isStateFresh(
+      { slot: 199, receivedAt: 1_000, source: "ws" },
+      { ...healthy, lastUpdateAt: 1_000 },
+      100_000,
+      policy,
+    );
+    expect(v.fresh).toBe(false);
+    expect(v.reason).toBe("feed-stalled");
+  });
+
+  it("expires RPC-primed state, because nothing is watching it", () => {
+    const v = isStateFresh(
+      { slot: 199, receivedAt: 1_000, source: "rpc" },
+      { ...healthy, lastUpdateAt: 5_000 },
+      5_000,
+      policy,
+    );
+    expect(v.fresh).toBe(false);
+    expect(v.reason).toBe("primed-state-expired");
+  });
+
+  it("accepts freshly primed state", () => {
+    const v = isStateFresh(
+      { slot: 199, receivedAt: 1_000, source: "rpc" },
+      { ...healthy, lastUpdateAt: 1_500 },
+      1_500,
+      policy,
+    );
     expect(v.fresh).toBe(true);
     expect(v.reason).toBeNull();
   });
 
-  it("rejects state that is too many slots old", () => {
-    const v = isStateFresh({ slot: 100, receivedAt: 1_000 }, 110, 1_100, policy);
+  it("expires primed state that is too many slots behind the newest data", () => {
+    const v = isStateFresh(
+      { slot: 100, receivedAt: 1_400, source: "rpc" },
+      { ...healthy, lastUpdateAt: 1_500, dataSlot: 200 },
+      1_500,
+      policy,
+    );
     expect(v.fresh).toBe(false);
-    expect(v.reason).toBe("slot-age");
-  });
-
-  it("rejects state that is fresh by slot but stale by wall clock", () => {
-    // A stalled process: the slot number we last saw is close, but that was
-    // seconds ago and the world has moved on.
-    const v = isStateFresh({ slot: 100, receivedAt: 1_000 }, 101, 9_000, policy);
-    expect(v.fresh).toBe(false);
-    expect(v.reason).toBe("wall-age");
+    expect(v.reason).toBe("primed-state-slot-age");
   });
 
   it("flags, but does not reject, state ahead of our slot tracker", () => {
-    const v = isStateFresh({ slot: 200, receivedAt: 1_000 }, 100, 1_100, policy);
+    const v = isStateFresh(
+      { slot: 300, receivedAt: 1_000, source: "ws" },
+      { ...healthy, lastUpdateAt: 1_050 },
+      1_100,
+      policy,
+    );
     expect(v.fresh).toBe(true);
     expect(v.reason).toBe("future-slot");
   });
@@ -301,14 +358,13 @@ describe("state freshness (§20)", () => {
   it("takes the worst of several accounts", () => {
     const v = worstFreshness(
       [
-        { slot: 100, receivedAt: 1_000 },
-        { slot: 90, receivedAt: 1_000 },
+        { slot: 199, receivedAt: 1_400, source: "rpc" },
+        { slot: 199, receivedAt: 1_000, source: "rpc" },
       ],
-      101,
-      1_100,
+      { ...healthy, lastUpdateAt: 5_000 },
+      5_000,
       policy,
     );
     expect(v.fresh).toBe(false);
-    expect(v.ageSlots).toBe(11);
   });
 });

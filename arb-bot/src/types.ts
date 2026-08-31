@@ -90,6 +90,12 @@ export interface PoolSnapshot {
   source: StateMeta["source"];
   /** Addresses of every account this snapshot is derived from. */
   accounts: string[];
+  /**
+   * True when every volatile account behind this snapshot is covered by a live
+   * subscription. A subscribed account is current even if we read it over RPC
+   * minutes ago: the subscription would have told us about any change since.
+   */
+  subscribed: boolean;
   /** Family-specific decoded payload. Narrowed by the quoter. */
   data: unknown;
 }

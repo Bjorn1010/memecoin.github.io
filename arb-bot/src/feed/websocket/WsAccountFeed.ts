@@ -65,7 +65,20 @@ export class WsAccountFeed extends BaseMarketDataFeed {
   /** Everything we want to be subscribed to, whether or not we currently are. */
   private readonly desired = new Set<string>();
 
-  private slot = 0;
+  /**
+   * Highest slot seen on an ACCOUNT notification, i.e. at our subscription's
+   * commitment. This is the clock freshness is measured against.
+   */
+  private dataSlot = 0;
+  /**
+   * Highest slot seen on the slot subscription. `slotSubscribe` reports slots
+   * as they are PROCESSED, which runs several slots ahead of confirmed account
+   * data. Measuring a confirmed account's age against it would make every
+   * quote look stale by a constant offset — which is exactly what happened the
+   * first time this ran: 384 of 388 cycles rejected as stale-state while the
+   * wall-clock age was zero. Kept separately, for liveness only.
+   */
+  private processedSlot = 0;
   private slotSubId: number | null = null;
   private running = false;
   private reconnectDelay: number;
@@ -144,8 +157,14 @@ export class WsAccountFeed extends BaseMarketDataFeed {
     return [...this.desired];
   }
 
+  /** The clock freshness is measured against: newest data at our commitment. */
   currentSlot(): number {
-    return this.slot;
+    return this.dataSlot;
+  }
+
+  /** Newest processed slot, ahead of the data slot. Liveness only. */
+  processedSlotNumber(): number {
+    return this.processedSlot;
   }
 
   stats(): FeedStats {
@@ -155,7 +174,7 @@ export class WsAccountFeed extends BaseMarketDataFeed {
       reconnects: this.counters.reconnects,
       unknownUpdates: this.counters.unknownUpdates,
       lastUpdateAt: this.counters.lastUpdateAt,
-      lastSlot: this.slot,
+      lastSlot: this.dataSlot,
       connected: this.isOpen(),
     };
   }
@@ -332,8 +351,8 @@ export class WsAccountFeed extends BaseMarketDataFeed {
 
     if (msg.method === "slotNotification") {
       const slot = msg.params?.result?.slot;
-      if (typeof slot === "number" && slot > this.slot) {
-        this.slot = slot;
+      if (typeof slot === "number" && slot > this.processedSlot) {
+        this.processedSlot = slot;
         this.emitSlot(slot);
       }
       return;
@@ -352,10 +371,11 @@ export class WsAccountFeed extends BaseMarketDataFeed {
       const encoded = Array.isArray(value.data) ? value.data[0] : null;
       if (typeof encoded !== "string") return;
 
-      const slot = typeof contextSlot === "number" ? contextSlot : this.slot;
-      // An account notification carries a slot too; keep our clock honest even
-      // if the slot subscription is lagging or absent.
-      if (slot > this.slot) this.slot = slot;
+      const slot = typeof contextSlot === "number" ? contextSlot : this.dataSlot;
+      // The account notification's own context slot is the only slot measured
+      // at the same commitment as the data it carries, so it — and nothing
+      // else — advances the clock that freshness is judged against.
+      if (slot > this.dataSlot) this.dataSlot = slot;
 
       const update: AccountUpdate = {
         address,

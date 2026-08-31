@@ -76,6 +76,7 @@ export class PoolStateStore {
   private readonly pools = new Map<string, PoolRegistration>();
   private readonly mints = new Map<string, MintState>();
   private readonly decodeFailures = new Map<string, number>();
+  private readonly subscribed = new Set<string>();
 
   constructor(private readonly deps: PoolStateStoreDeps) {}
 
@@ -162,6 +163,16 @@ export class PoolStateStore {
 
   getAccount(address: string): StoredAccount | undefined {
     return this.accounts.get(address);
+  }
+
+  /** Tell the store which accounts a live subscription currently covers. */
+  setSubscribed(addresses: readonly string[]): void {
+    this.subscribed.clear();
+    for (const a of addresses) this.subscribed.add(a);
+  }
+
+  isSubscribed(address: string): boolean {
+    return this.subscribed.has(address);
   }
 
   hasAllAccountsFor(poolId: string): boolean {
@@ -254,7 +265,13 @@ export class PoolStateStore {
       vault1Amount: v1.amount,
     });
 
-    const parts = [poolAcc, vault0Acc, vault1Acc, configAcc];
+    // Freshness is measured over the VOLATILE accounts only. The AmmConfig
+    // changes about never, so it is read once and then sits at whatever slot it
+    // was read at; folding it into the minimum would pin every snapshot to
+    // startup and make the whole watchlist permanently "stale". We still watch
+    // it — a fee change must reach us — but its age says nothing about whether
+    // our reserves are current.
+    const parts = [poolAcc, vault0Acc, vault1Acc];
     return {
       family: "raydium-cpmm",
       poolId: reg.poolId,
@@ -264,6 +281,9 @@ export class PoolStateStore {
       receivedAt: Math.min(...parts.map((p) => p.receivedAt)),
       source: poolAcc.source,
       accounts: [reg.poolAccount, pool.token0Vault, pool.token1Vault, reg.configAccount],
+      subscribed: [reg.poolAccount, pool.token0Vault, pool.token1Vault].every((a) =>
+        this.subscribed.has(a),
+      ),
       data,
     };
   }
@@ -301,7 +321,10 @@ export class PoolStateStore {
       poolQuoteAmount: quote.amount,
     });
 
-    const parts = [poolAcc, baseAcc, quoteAcc, globalAcc, feeAcc];
+    // Volatile accounts only — see the note in buildRaydium. The global and fee
+    // configs are subscribed so a fee-tier change reaches us immediately, but
+    // their slot is not a measure of our data's freshness.
+    const parts = [poolAcc, baseAcc, quoteAcc];
     return {
       family: "pump-swap",
       poolId: reg.poolId,
@@ -317,6 +340,9 @@ export class PoolStateStore {
         this.deps.pumpGlobalConfigAddress,
         this.deps.pumpFeeConfigAddress,
       ],
+      subscribed: [reg.poolAccount, pool.poolBaseTokenAccount, pool.poolQuoteTokenAccount].every(
+        (a) => this.subscribed.has(a),
+      ),
       data,
     };
   }

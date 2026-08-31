@@ -20,13 +20,16 @@ const CLUSTER: ClusterFeeParams = {
   slot: 1_000,
 };
 
-function costs(over: { cuLimit?: number; cuPrice?: bigint; tip?: bigint } = {}) {
+function costs(
+  over: { cuLimit?: number; cuPrice?: bigint; tip?: bigint; revertCostsFees?: boolean } = {},
+) {
   return computeTransactionCosts({
     cluster: CLUSTER,
     numSignatures: 1,
     computeUnitLimit: over.cuLimit ?? 200_000,
     computeUnitPriceMicroLamports: over.cuPrice ?? 10_000n,
     tipLamports: over.tip ?? 0n,
+    revertCostsFees: over.revertCostsFees ?? true,
   });
 }
 
@@ -78,8 +81,31 @@ describe("transaction costs distinguish the three outcomes", () => {
       computeUnitLimit: 0,
       computeUnitPriceMicroLamports: 0n,
       tipLamports: 0n,
+      revertCostsFees: true,
     });
     expect(c.baseFee).toBe(10_000n);
+  });
+
+  it("charges nothing on a failure when the transport drops failed attempts", () => {
+    // A Jito bundle that does not fully succeed is never included, so a failed
+    // attempt is free. That single bit is what makes a low land rate survivable.
+    const bundled = costs({ tip: 50_000n, revertCostsFees: false });
+    expect(bundled.onRevert).toBe(0n);
+    expect(bundled.onSuccess).toBe(57_000n);
+  });
+
+  it("free failures turn a rejected opportunity into a viable one", () => {
+    const landing = landRate(0.05, 0.7);
+    const shared = {
+      grossProfit: 300_000n,
+      landRate: landing,
+      minProfitLamports: 10_000n,
+      minExpectedValueLamports: 0n,
+    };
+    const viaRpc = profitNet({ ...shared, costs: costs({ revertCostsFees: true }) });
+    const viaBundle = profitNet({ ...shared, costs: costs({ revertCostsFees: false }) });
+    expect(viaRpc.expectedValue).toBeLessThan(viaBundle.expectedValue);
+    expect(viaBundle.expectedCostPerSuccess).toBeLessThan(viaRpc.expectedCostPerSuccess);
   });
 });
 

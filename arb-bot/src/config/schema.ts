@@ -71,6 +71,8 @@ export const ConfigSchema = z.object({
   // --- freshness (§20) ------------------------------------------------------
   maxStateAgeSlots: positiveInt.default(4),
   maxStateAgeMs: positiveInt.default(1_500),
+  /** Feed silence longer than this invalidates every quote at once. */
+  feedStallMs: positiveInt.default(30_000),
 
   // --- compute and fees (§17) ----------------------------------------------
   /** Safety margin added to the simulated CU usage. */
@@ -93,6 +95,7 @@ export const ConfigSchema = z.object({
   screenerEntryMargin: z.coerce.number().nonnegative().default(0.25),
   screenerMinScore: z.coerce.number().default(0.1),
   screenerMinResidencyMs: positiveInt.default(600_000),
+  screenerCooldownMs: positiveInt.default(1_800_000),
 
   // --- token policy (§29) ---------------------------------------------------
   rejectFreezeAuthority: z.coerce.boolean().default(true),
@@ -146,6 +149,7 @@ const ENV_KEYS: Record<keyof Config, string> = {
   minExpectedValue: "MIN_EXPECTED_VALUE",
   maxStateAgeSlots: "MAX_STATE_AGE_SLOTS",
   maxStateAgeMs: "MAX_STATE_AGE_MS",
+  feedStallMs: "FEED_STALL_MS",
   computeUnitMarginBps: "COMPUTE_UNIT_MARGIN_BPS",
   maxComputeUnitLimit: "MAX_COMPUTE_UNIT_LIMIT",
   maxComputeUnitPriceMicroLamports: "MAX_COMPUTE_UNIT_PRICE",
@@ -159,6 +163,7 @@ const ENV_KEYS: Record<keyof Config, string> = {
   screenerEntryMargin: "SCREENER_ENTRY_MARGIN",
   screenerMinScore: "SCREENER_MIN_SCORE",
   screenerMinResidencyMs: "SCREENER_MIN_RESIDENCY_MS",
+  screenerCooldownMs: "SCREENER_COOLDOWN_MS",
   rejectFreezeAuthority: "REJECT_FREEZE_AUTHORITY",
   rejectMintAuthority: "REJECT_MINT_AUTHORITY",
   minPoolLiquidity: "MIN_POOL_LIQUIDITY",

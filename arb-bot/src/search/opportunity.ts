@@ -28,7 +28,7 @@ import {
   type SizingResult,
 } from "./sizing.js";
 import { bigintMin } from "../util/bigintMath.js";
-import { isStateFresh, type FreshnessPolicy } from "./freshness.js";
+import { isStateFresh, type FeedHealth, type FreshnessPolicy } from "./freshness.js";
 import {
   raydiumEffectiveReserves,
   raydiumOutputFeeRate,
@@ -103,12 +103,13 @@ export interface EvaluateCycleArgs {
   ctx: QuoteContext;
   limits: OpportunitySearchLimits;
   freshness: FreshnessPolicy;
+  feed: FeedHealth;
   nowMs: number;
   sizingOptions?: SizingOptions;
 }
 
 export function evaluateCycle(args: EvaluateCycleArgs): EvaluatedOpportunity {
-  const { cycle, buyPool, sellPool, quoters, ctx, limits, freshness, nowMs } = args;
+  const { cycle, buyPool, sellPool, quoters, ctx, limits, freshness, feed, nowMs } = args;
   const emptySizing: SizingResult = {
     optimalAmountIn: 0n,
     expectedAmountOut: 0n,
@@ -132,7 +133,7 @@ export function evaluateCycle(args: EvaluateCycleArgs): EvaluatedOpportunity {
 
   // Freshness gate before any work: a stale pair is not worth quoting.
   for (const p of [buyPool, sellPool]) {
-    const v = isStateFresh(p, ctx.currentSlot, nowMs, freshness);
+    const v = isStateFresh(p, feed, nowMs, freshness);
     if (!v.fresh) {
       return { cycle, sized: null, sizing: emptySizing, rejected: "stale-state" };
     }

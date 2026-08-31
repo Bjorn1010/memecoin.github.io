@@ -38,6 +38,20 @@ export interface TransactionCostInputs {
   computeUnitPriceMicroLamports: bigint;
   /** Jito (or equivalent) tip, in lamports. 0 when not using a tip. */
   tipLamports: bigint;
+  /**
+   * Whether a transaction that lands and REVERTS still costs fees.
+   *
+   * True for a plain RPC send: the transaction is included, it fails, and the
+   * base and priority fees are charged anyway.
+   *
+   * False when sending as a Jito bundle: the block engine's documented
+   * behaviour is that a bundle whose transactions do not all succeed is
+   * rejected and never included, so nothing is charged. That single bit
+   * transforms the economics at a low land rate — it is the difference between
+   * paying for every failure and paying only for successes — so it is a
+   * property of the sender, not a constant.
+   */
+  revertCostsFees: boolean;
 }
 
 export interface TransactionCosts {
@@ -50,9 +64,12 @@ export interface TransactionCosts {
    */
   onSuccess: bigint;
   /**
-   * What we pay if the transaction is included but REVERTS (our profit assert
-   * fires, or a leg slips). The tip is an instruction inside the same
-   * transaction, so it reverts with everything else; the fees do not.
+   * What we pay if the attempt fails after being sent.
+   *
+   * On a plain RPC send the transaction is included, reverts, and still pays
+   * the base and priority fees; the tip is an instruction inside the same
+   * transaction so it reverts with everything else. Sent as a Jito bundle, a
+   * failing transaction is not included at all and this is zero.
    */
   onRevert: bigint;
   /**
@@ -82,7 +99,7 @@ export function computeTransactionCosts(i: TransactionCostInputs): TransactionCo
     priorityFee,
     tip,
     onSuccess: baseFee + priorityFee + tip,
-    onRevert: baseFee + priorityFee,
+    onRevert: i.revertCostsFees ? baseFee + priorityFee : 0n,
     onNotIncluded: 0n,
   };
 }

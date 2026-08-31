@@ -33,6 +33,15 @@ export interface SelectorConfig {
   minScoreToStay: number;
   /** Grace period during which a freshly added pool cannot be evicted. */
   minResidencyMs: number;
+  /**
+   * How long an evicted pool is barred from re-entering.
+   *
+   * Without it, eviction and re-admission happen in the SAME pass: the pool
+   * leaves, its slot is free, and it is immediately the best candidate for its
+   * own slot. The watchlist would then churn every cycle while never actually
+   * changing, burning a resubscribe each time.
+   */
+  cooldownMs: number;
 }
 
 export const DEFAULT_SELECTOR_CONFIG: SelectorConfig = {
@@ -40,6 +49,7 @@ export const DEFAULT_SELECTOR_CONFIG: SelectorConfig = {
   entryMarginScore: 0.25,
   minScoreToStay: 0.1,
   minResidencyMs: 10 * 60_000,
+  cooldownMs: 30 * 60_000,
 };
 
 export interface SelectionChange {
@@ -58,6 +68,7 @@ export interface SelectionResult {
 export class WatchlistSelector {
   private entries = new Map<string, WatchlistEntry>();
   private readonly history: WatchlistEntry[] = [];
+  private readonly cooldownUntil = new Map<string, number>();
 
   constructor(private readonly config: SelectorConfig = DEFAULT_SELECTOR_CONFIG) {}
 
@@ -80,7 +91,16 @@ export class WatchlistSelector {
   update(scores: readonly PoolScore[], now: number): SelectionResult {
     const changes: SelectionChange[] = [];
     const byId = new Map(scores.map((s) => [s.poolId, s]));
-    const { maxWatched, entryMarginScore, minScoreToStay, minResidencyMs } = this.config;
+    const { maxWatched, entryMarginScore, minScoreToStay, minResidencyMs, cooldownMs } = this.config;
+    const eligible = (poolId: string): boolean => {
+      const until = this.cooldownUntil.get(poolId);
+      if (until === undefined) return true;
+      if (now >= until) {
+        this.cooldownUntil.delete(poolId);
+        return true;
+      }
+      return false;
+    };
 
     // 1. Refresh incumbents' scores and drop those that fell below the floor.
     for (const entry of [...this.entries.values()]) {
@@ -97,12 +117,21 @@ export class WatchlistSelector {
     }
 
     // 2. Fill free slots with the best challengers.
-    const ranked = rankPools(scores).filter((s) => !this.entries.has(s.poolId));
+    //
+    // The score floor deliberately does NOT apply here. A pool we have never
+    // watched has no observations, so it scores zero, so applying the floor
+    // would mean it can never be watched and therefore never observed — a
+    // cold-start deadlock that leaves the watchlist permanently empty. A free
+    // slot is spare capacity, and spending it on an unproven pool costs nothing
+    // but the subscription. The floor still applies at eviction (step 1), so an
+    // unproven pool gets exactly one `minResidencyMs` trial to justify itself.
+    const ranked = rankPools(scores).filter(
+      (s) => !this.entries.has(s.poolId) && eligible(s.poolId),
+    );
     let challengerIndex = 0;
     while (this.entries.size < maxWatched && challengerIndex < ranked.length) {
       const c = ranked[challengerIndex++]!;
-      if (c.score < minScoreToStay) break;
-      this.enter(c, `free slot; ${c.explanation}`, now, changes);
+      this.enter(c, `free slot (trial); ${c.explanation}`, now, changes);
     }
 
     // 3. Swap only on a clear margin, and never evict a pool still in its
@@ -159,6 +188,7 @@ export class WatchlistSelector {
     entry.exitedAt = now;
     entry.exitReason = reason;
     this.entries.delete(entry.poolId);
+    this.cooldownUntil.set(entry.poolId, now + this.config.cooldownMs);
     changes.push({ poolId: entry.poolId, action: "exit", reason, score: entry.score, at: now });
   }
 }

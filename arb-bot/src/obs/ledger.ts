@@ -120,23 +120,68 @@ export class Ledger {
   private readonly observationsPath: string;
   private readonly watchlistPath: string;
   private readonly landRatePath: string;
+  private readonly statePath: string;
+  private stateBytesWritten = 0;
 
-  constructor(dataDir: string, runId: string) {
+  constructor(
+    dataDir: string,
+    runId: string,
+    /** Cap on the raw state capture, so a long run cannot fill the disk. */
+    private readonly maxStateBytes = 512 * 1024 * 1024,
+  ) {
     const dir = join(dataDir, runId);
     mkdirSync(dir, { recursive: true });
     this.attemptsPath = join(dir, "attempts.jsonl");
     this.observationsPath = join(dir, "observations.jsonl");
     this.watchlistPath = join(dir, "watchlist.jsonl");
     this.landRatePath = join(dir, "land-rate.json");
+    this.statePath = join(dir, "state.jsonl");
   }
 
-  get paths(): { attempts: string; observations: string; watchlist: string; landRate: string } {
+  get paths(): {
+    attempts: string;
+    observations: string;
+    watchlist: string;
+    landRate: string;
+    state: string;
+  } {
     return {
       attempts: this.attemptsPath,
       observations: this.observationsPath,
       watchlist: this.watchlistPath,
       landRate: this.landRatePath,
+      state: this.statePath,
     };
+  }
+
+  /**
+   * Capture a raw account update so the run can be replayed later (§34).
+   * Stops writing once the cap is reached rather than growing without bound.
+   */
+  writeState(record: {
+    address: string;
+    data: Buffer;
+    owner: string;
+    lamports: bigint;
+    slot: number;
+    receivedAt: number;
+  }): void {
+    if (this.stateBytesWritten >= this.maxStateBytes) return;
+    const line =
+      JSON.stringify({
+        address: record.address,
+        data: record.data.toString("base64"),
+        owner: record.owner,
+        lamports: record.lamports.toString(),
+        slot: record.slot,
+        receivedAt: record.receivedAt,
+      }) + "\n";
+    this.stateBytesWritten += Buffer.byteLength(line);
+    appendFileSync(this.statePath, line, "utf8");
+  }
+
+  get stateCaptureBytes(): number {
+    return this.stateBytesWritten;
   }
 
   writeAttempt(record: AttemptRecord): void {
