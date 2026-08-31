@@ -49,26 +49,24 @@ C'est tout, à ce jour. Rien d'autre n'a survécu à une seconde fenêtre.
 
 ## Le stop-loss est plus étroit que le bruit dans lequel il baigne
 
-Le résultat le plus solide obtenu jusqu'ici, et l'axe testé actuellement.
+Le résultat le plus solide obtenu jusqu'ici. **Le mécanisme est confirmé, le gain net ne l'est
+pas** — la perte a changé de guichet plutôt que de disparaître.
 
-Répartition des sorties de la référence (n=651, coût réel) :
+Répartition des sorties de la référence historique (n=312, fenêtre 12:22-13:12) :
 
-| sortie | part | rendement moyen | hold médian | somme |
-|---|---|---|---|---|
-| `stop_loss` | 72.2% | **-28.29%** | **1 s** | -13299 pts |
-| `trailing_stop` | 20.1% | +55.79% | 6 s | +7308 pts |
-| `max_hold_time` | 6.8% | +40.52% | 600 s | +1783 pts |
-| `mayhem_full_exit` | 0.9% | -3.99% | 7 s | -24 pts |
+| sortie | part | rendement moyen | hold médian |
+|---|---|---|---|
+| `stop_loss` | 73.4% | **-28.72%** | **1 s** |
+| `trailing_stop` | 22.4% | +40.78% | 4 s |
+| `max_hold_time` | 3.5% | +72.05% | 600 s |
 
 Un stop nominal à -12% qui se réalise à -28% en une seconde ne coupe pas une tendance : il se
-déclenche avant qu'une tendance existe. Décomposition des 451 sorties `stop_loss` en ≤2s :
-edge de prix médian -21.22%, slippage achat +0.19%, slippage vente -0.19%, frais 1.78%. **Ce
-n'est ni du slippage ni des frais — le prix bouge vraiment.** Et la détection n'est pas en
-retard : le lag médian entre `block_time` et notre détection est sous la seconde, et nos
-achats sont bookés en 1 ms.
+déclenche avant qu'une tendance existe. Ce n'est ni du slippage (0.19% médian) ni des frais
+(1.78%) — le prix bouge vraiment, et la détection n'est pas en retard (lag médian sous la
+seconde, achats bookés en 1 ms).
 
-Reconstruit **indépendamment de notre simulation**, à partir des seuls événements on-chain de
-Mayhem (3910 achats éligibles, pool ≥40 SOL), le prix après un achat de Mayhem vaut :
+Reconstruit **indépendamment de notre simulation**, sur les seuls événements on-chain de Mayhem
+(3910 achats éligibles, pool ≥40 SOL) :
 
 | horizon | médiane | p25 | p75 | >+100% |
 |---|---|---|---|---|
@@ -77,37 +75,48 @@ Mayhem (3910 achats éligibles, pool ≥40 SOL), le prix après un achat de Mayh
 | t+15s | -24.46% | -67.23% | +5.12% | 8.0% |
 | t+60s | -72.03% | -95.22% | -0.07% | 7.2% |
 
-Deux lectures simultanées : (1) l'écart interquartile à 2 secondes va de -28% à +17%, soit une
-dispersion bien plus large que le seuil de -12% du stop — un seuil plus étroit que le bruit ne
-discrimine rien, il encaisse la moitié basse ; (2) la fréquence des queues >+100% **croît avec
-l'horizon** (3.0% → 8.0%), donc sortir en une seconde interdit structurellement d'atteindre
-l'endroit où le rendement se trouve. Mais la médiane s'effondre avec le même horizon, donc
-attendre n'est pas gratuit : il y a un arbitrage, et son optimum est ce qu'on mesure.
+L'écart interquartile à 2 secondes va de -28% à +17% : le seuil de -12% est deux fois plus
+étroit que le bruit dans lequel il baigne, donc il ne discrimine rien et encaisse la moitié
+basse. Et la fréquence des queues croît avec l'horizon pendant que la médiane s'effondre — il y
+a un arbitrage, pas un réglage évident.
 
 Attention au `t+300s` (médiane -28.73%, moyenne +3105%) : n=585 sur 3910, conditionné à ce que
-Mayhem trade encore le mint 5 minutes plus tard. Biais de survie massif, ne pas s'en servir.
+Mayhem trade encore le mint 5 minutes plus tard. **Biais de survie massif, ne pas s'en servir.**
 
-Roster en cours : `liquid-only` (stop immédiat, référence) / `grace-15s` / `grace-60s` /
-`no-stop` (borne supérieure) / `post-migration` (sonde). Un seul axe varie.
+### Ce que la temporisation a donné (829 allers-retours, fenêtre 12:22-13:12)
 
-## Artefacts démasqués (quatre) — à re-tester avant d'annoncer tout gain
+| variante | n | rend. pondéré | médiane | >+100% | part `stop_loss` |
+|---|---|---|---|---|---|
+| liquid-only | 312 | -7.09% | -21.88% | 3.8% | 73.4% |
+| grace-15s | 203 | -6.06% | -14.75% | 5.4% | 34.5% |
+| grace-60s | 154 | **-6.00%** | **-6.22%** | **5.8%** | 14.3% |
+| no-stop | 149 | -7.44% | -6.55% | 4.7% | 0.0% |
 
-1. Entrée bookée au prix d'une bonding curve **en cours de vidage** à la migration → faux +1300%.
-2. Données de curve **réinjectées pour un mint déjà migré** → sortie 22x hors plage, et un
-   `stop_loss` booké sur +176%.
-3. Entrée **sans réserves connues** (slippage 0) appariée à une sortie calculée sur réserves →
-   8 allers-retours de 3.5x à 13x en quelques secondes. **Les deux prix étaient dans la plage
-   on-chain : le contrôle de plage seul ne suffit pas.**
-4. Fills post-migration à **slippage nul dans un pool quasi vide** → +1464% en 81 secondes.
+Tout ce que la temporisation devait produire, elle le produit : médiane -21.88% → -6.22%,
+queues 3.8% → 5.8%, part du `stop_loss` 73.4% → 14.3% au profit du trailing stop (22.4% →
+46.8%), qui est la sortie rentable. **Et pourtant le rendement pondéré ne bouge presque pas.**
 
-Contrôles à appliquer : prix d'entrée **et** de sortie contre la plage on-chain
-(`mayhem_events`) ; multiple énorme sur durée courte ; slippage exactement 0 des deux côtés ;
-slippage incohérent avec la profondeur du pool ; `stop_loss` à pct positif ou `take_profit` à
-pct négatif. Un gain spectaculaire sur une durée courte est **suspect par défaut**.
+Deux enseignements à garder :
+- **Supprimer entièrement le stop ne paie pas.** `no-stop` est la pire en rendement pondéré
+  (-7.44%) malgré une bonne médiane. L'optimum est une temporisation, pas une suppression.
+- **60s > 15s**, mais l'écart est sur la médiane, pas sur le rendement pondéré (-6.00% contre
+  -6.06%, égalité). Ne pas surinterpréter.
 
-Nuance : pour un mint migré, nos prix viennent de DexScreener alors que `mayhem_events`
-contient des prix de bonding curve d'avant migration — la comparaison de plage sonnera « hors
-plage » à tort. Juger alors sur l'amplitude réelle du mint et la durée.
+## `sellOnMayhemFullExit` : la sortie de Mayhem est un signal retardé
+
+La fuite qu'a révélée la temporisation, et l'axe testé actuellement. `mayhem_full_exit` passe
+de 0.6% des sorties (n=2) chez liquid-only à 30.5% (n=47) chez grace-60s, **à -66.45% de
+rendement moyen**, soit -3123 points : le premier poste de perte de la meilleure variante.
+
+Le stop-loss fermait la position à une seconde ; en le temporisant, ces positions vivent assez
+longtemps pour être fermées par la sortie de Mayhem — plus tard et beaucoup plus bas. Ce
+-66.45% dit quelque chose de précis : **quand Mayhem sort complètement, le token a déjà chuté
+des deux tiers.** Sa sortie n'est pas un signal avancé mais retardé, et la copier revient à
+vendre après la baisse. `sellOnMayhemFullExit` a été écrit comme une protection ; mesuré, c'est
+la principale perte.
+
+Roster en cours : `liquid-only` (témoin historique) / `grace-60s` (référence de travail) /
+`grace-60s-nofollow` (le test) / `no-stop` (borne de l'axe stop) / `post-migration` (sonde).
 
 ## Distribution source
 
@@ -117,8 +126,8 @@ par les frais. Sa taille d'achat médiane est 0.0249 SOL (p90 = 0.164, p99 = 1.0
 
 ## Statut
 
-Aucune configuration n'est démontrée rentable à ce jour. Capitaux remis à 2 SOL au cycle du
-31/08 12:10 : la référence était tombée à 0.139 SOL et ne pouvait plus ouvrir de position,
+Aucune configuration n'est démontrée rentable à ce jour. Capitaux remis à 2 SOL aux cycles du
+31/08 12:10 puis 13:15 (les quatre variantes finissaient la fenêtre à solde 0.0000) : la référence était tombée à 0.139 SOL et ne pouvait plus ouvrir de position,
 donc plus servir de contrôle. L'historique des trades reste en base — c'est lui qui porte
 l'information, pas le solde. Si aucune ne tient après de nombreux
 cycles, « ce wallet n'est pas copiable de façon rentable » est une conclusion valide et utile.
