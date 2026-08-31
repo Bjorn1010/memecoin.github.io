@@ -95,17 +95,16 @@ export const defaultStrategies: StrategyConfig[] = [
     maxConcurrentPositions: 8,
   },
   {
-    id: "copy-tight-stop",
-    name: "Stop serré (-6%)",
+    id: "copy-deeper-pools",
+    name: "Pools 250 SOL",
     description:
-      "Comme la référence, sauf le stop-loss resserré à -6%. La médiane de Mayhem est -47.6% : couper plus tôt réduit peut-être la saignée des perdants fréquents, au risque d'être éjecté avant un rebond.",
+      "Pousse plus loin le seul axe qui a montré un signal : la profondeur du pool à l'entrée. Sur 67-87 allers-retours par variante, le filtre à 150 SOL perdait 0.0027 SOL par trade contre 0.0060 pour la référence à 40 SOL. Si la tendance tient, 250 SOL doit faire mieux encore ; sinon l'effet plafonne, ce qui est aussi une information. Remplace copy-tight-stop, dont l'hypothèse est réfutée (stop -6% : -0.478 SOL contre -0.489 pour la référence, soit aucun écart).",
     kind: "generic",
     enabled: true,
     ...BASE,
-    stopLossPct: 0.06,
     maxHoldSeconds: null,
     minMayhemBuySol: null,
-    minPoolLiquiditySol: 40,
+    minPoolLiquiditySol: 250,
     maxConcurrentPositions: 8,
   },
   {
