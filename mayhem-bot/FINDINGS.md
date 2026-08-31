@@ -143,13 +143,54 @@ perdants tomber jusqu'au bout. D'où l'axe en cours, 20 secondes.
 Roster : `liquid-only` (témoin) / `grace-60s-nofollow` (référence de travail) / `grace-60s`
 (suit Mayhem) / `grace-20s-nofollow` (le test) / `post-migration` (sonde).
 
-## Meilleur résultat à ce jour
+## LE PROBLÈME DE MESURE — à lire avant toute comparaison de variantes
 
-`grace-60s-nofollow`, fenêtre 13:15-14:11 : **+0.18% de rendement pondéré, +0.051 SOL sur
-n=186**, médiane -6.14% (contre -20.75% pour le témoin), queues >+100% à 9.1% (contre 2.6%).
-C'est l'**équilibre, pas la rentabilité**, et il faut retenir la trajectoire : +13.30% à n=60,
-+6.62% à n=78, +0.18% à n=186. Un résultat porté par quelques événements de queue se dégrade
-quand n grandit. **Ne jamais annoncer une variante sur un n faible.**
+Rendement pondéré de configurations **inchangées** sur trois fenêtres consécutives :
+
+| variante | 12:22-13:12 | 13:15-14:11 | 14:13-15:09 |
+|---|---|---|---|
+| liquid-only | -7.09% | -11.55% | -7.88% |
+| grace-60s | -6.00% | -7.34% | -18.58% |
+| grace-60s-nofollow | -- | **+0.18%** | **-19.70%** |
+
+`liquid-only` n'a pas bougé d'un paramètre et oscille sur 4.5 points. `grace-60s-nofollow`,
+annoncée « meilleur résultat à ce jour » à +0.18%, revient à -19.70% la fenêtre suivante.
+
+Intervalles de confiance à 90% (bootstrap 4000 tirages, fenêtres poolées) :
+
+| variante | n | estimation | IC 90% | largeur |
+|---|---|---|---|---|
+| liquid-only | 856 | -8.49% | [-11.54%, -5.20%] | 6.3 pts |
+| grace-60s | 468 | -9.09% | [-15.31%, -2.83%] | 12.5 pts |
+| grace-60s-nofollow | 297 | -5.46% | [-15.37%, +5.48%] | 20.9 pts |
+| grace-20s-nofollow | 178 | -8.65% | [-19.32%, +2.60%] | 21.9 pts |
+| grace-15s | 202 | -6.06% | [-13.55%, +1.51%] | 15.1 pts |
+| no-stop | 286 | -9.63% | [-17.14%, -1.51%] | 15.6 pts |
+
+**Tous les intervalles se recoupent.** Aucune variante n'est distinguable d'une autre ni de la
+référence ; les estimations tiennent toutes entre -5% et -10%. Sur une distribution en loterie,
+quelques centaines d'allers-retours ne suffisent pas — la queue porte le résultat et sa
+fréquence d'apparition est elle-même très bruitée.
+
+**Conséquence : ne jamais annoncer une variante gagnante sur une seule fenêtre.** Exiger que
+l'écart survive à une deuxième fenêtre ET dépasse la largeur de l'intervalle de confiance.
+
+## Le correctif : supprimer la contention d'emplacements
+
+La cause du bruit est identifiée. Les variantes **ne prenaient pas les mêmes entrées** : dès
+qu'une politique de sortie garde ses positions plus longtemps, ses 8 emplacements saturent et
+elle rate des entrées que les autres prennent. La comparaison mélangeait la politique de sortie
+et le hasard de l'occupation, et le second dominait. C'est ce qui avait fait attribuer à tort le
+résultat de `grace-60s-nofollow` au fait de ne pas suivre Mayhem.
+
+Depuis le cycle 15:10 : `maxConcurrentPositions` = 60 et capital = 20 SOL, donc plus aucune
+contention possible (60 x 0.15 = 9 SOL de déploiement maximum contre 20 disponibles). Toutes les
+variantes voient **exactement le même flux d'entrées**.
+
+**La comparaison appariée mint par mint devient la mesure principale** : elle élimine la variance
+de régime de marché, qui est la source de bruit dominante, et c'est le seul test qui ait produit
+ici une réponse stable. Le rendement pondéré reste sans dimension, donc comparable aux fenêtres
+antérieures malgré le changement d'échelle du capital.
 
 ## Distribution source
 
@@ -159,7 +200,8 @@ par les frais. Sa taille d'achat médiane est 0.0249 SOL (p90 = 0.164, p99 = 1.0
 
 ## Statut
 
-Aucune configuration n'est démontrée rentable à ce jour. Capitaux remis à 2 SOL aux cycles du
+Aucune configuration n'est démontrée rentable à ce jour, **ni même démontrée différente d'une
+autre** : voir la section sur le problème de mesure. Capitaux remis à 2 SOL aux cycles du
 31/08 12:10 puis 13:15 (les quatre variantes finissaient la fenêtre à solde 0.0000) : la référence était tombée à 0.139 SOL et ne pouvait plus ouvrir de position,
 donc plus servir de contrôle. L'historique des trades reste en base — c'est lui qui porte
 l'information, pas le solde. Si aucune ne tient après de nombreux

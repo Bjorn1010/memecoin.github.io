@@ -1,75 +1,70 @@
 import type { StrategyConfig } from "../types.js";
 
 /**
- * Roster du cycle courant : un seul axe testé, **la durée de la temporisation du stop**.
+ * Ce cycle ne change pas un seuil : il change le **protocole de mesure**, parce que la mesure
+ * elle-même s'est révélée incapable de départager quoi que ce soit.
  *
- * Fenêtre 13:15-14:11, 766 allers-retours, contrôles anti-artefact passés (0 incohérence
- * raison/signe, 0 slippage nul des deux côtés, 0 gagnant >2x hors plage on-chain ; les gros
- * multiples se retrouvent à l'identique sur plusieurs variantes pour le même mint, ce qui les
- * recoupe) :
+ * Rendement pondéré de la MÊME configuration, inchangée, sur trois fenêtres consécutives :
  *
- * | variante           |   n | rend. pondéré | médiane | >+100% |    PnL |
- * |--------------------|-----|---------------|---------|--------|--------|
- * | liquid-only        | 230 |       -11.55% | -20.75% |   2.6% | -2.281 |
- * | grace-60s          | 209 |        -7.34% | -15.19% |   4.8% | -1.912 |
- * | grace-60s-nofollow | 186 |        +0.18% |  -6.14% |   9.1% | +0.051 |
- * | no-stop            | 141 |       -12.10% |  -8.24% |   4.3% | -2.099 |
+ * | variante           | 12:22-13:12 | 13:15-14:11 | 14:13-15:09 |
+ * |--------------------|-------------|-------------|-------------|
+ * | liquid-only        |      -7.09% |     -11.55% |      -7.88% |
+ * | grace-60s          |      -6.00% |      -7.34% |     -18.58% |
+ * | grace-60s-nofollow |          -- |      +0.18% |     -19.70% |
  *
- * `grace-60s-nofollow` est le meilleur résultat obtenu à ce jour et le premier rendement
- * pondéré non négatif. **Il faut le lire pour ce qu'il est : l'équilibre, pas la rentabilité.**
- * Il valait +13.30% à n=60 et +6.62% à n=78 avant de retomber à +0.18% à n=186 — la décroissance
- * attendue d'un résultat porté par quelques événements de queue. Aucune conclusion de rentabilité.
+ * `liquid-only` n'a pas bougé d'un paramètre et oscille sur 4.5 points. `grace-60s-nofollow`,
+ * annoncée meilleure variante jamais obtenue à +0.18%, revient à -19.70% la fenêtre suivante.
+ * **La variance entre fenêtres est du même ordre que les écarts entre variantes** : tout ce que
+ * j'ai comparé jusqu'ici était à la limite du bruit.
  *
- * Ce que la fenêtre a réfuté, et qui aurait fait un beau récit :
- * - **Le gain ne vient pas de « ne pas suivre Mayhem à la sortie ».** Test apparié sur les 30
- *   mints communs où `grace-60s` est effectivement sorti sur `mayhem_full_exit` : nofollow fait
- *   mieux sur 12/30, écart médian -1.4 pt. La moyenne (+20 pts) est portée par des valeurs
- *   extrêmes. C'est un pile ou face, pas un effet.
- * - **Le nombre de positions déjà ouvertes ne prédit pas la qualité d'une entrée.** Testé sur
- *   ~1500 allers-retours toutes variantes : médiane -22.6% à 0 position ouverte, -3.99% à 8,
- *   -32.8% à 9. Aucune monotonie exploitable. L'hypothèse d'un « régime de marché » lisible dans
- *   le taux d'occupation est morte.
+ * Intervalles de confiance à 90% (bootstrap 4000 tirages, fenêtres poolées) :
  *
- * Ce qui reste debout, et qui motive ce cycle : **le trailing stop est la seule sortie rentable**,
- * partout et dans toutes les variantes (+64.91% chez nofollow, +43.36% chez grace-60s, +33.75%
- * chez liquid-only), et sa part varie de 18.7% à 41.4% selon la politique. Tout ce qui augmente
- * la proportion de sorties par trailing stop améliore le résultat.
+ *     liquid-only          n=856   -8.49%   [-11.54% , -5.20%]   largeur  6.3 pts
+ *     grace-60s            n=468   -9.09%   [-15.31% , -2.83%]   largeur 12.5 pts
+ *     grace-60s-nofollow   n=297   -5.46%   [-15.37% , +5.48%]   largeur 20.9 pts
+ *     grace-20s-nofollow   n=178   -8.65%   [-19.32% , +2.60%]   largeur 21.9 pts
+ *     grace-15s            n=202   -6.06%   [-13.55% , +1.51%]   largeur 15.1 pts
+ *     no-stop              n=286   -9.63%   [-17.14% , -1.51%]   largeur 15.6 pts
  *
- * Or chez `grace-60s-nofollow`, ce qui tronque encore les positions, c'est le stop à 60s :
+ * **Tous les intervalles se recoupent.** Aucune variante n'est distinguable d'une autre, ni de
+ * la référence. Les estimations ponctuelles tiennent toutes entre -5% et -10%. Sur une
+ * distribution en loterie, quelques centaines d'allers-retours ne suffisent pas : la queue porte
+ * le résultat et sa fréquence d'apparition est elle-même très bruitée.
  *
- *     stop_loss       45.7%  **-70.12%**  hold  60s   somme -5960 pts
- *     trailing_stop   41.4%    +64.91%    hold  11s   somme +4998 pts
- *     max_hold_time   12.9%    +41.50%    hold 600s   somme  +996 pts
+ * La cause est identifiée et corrigeable. Les variantes **ne prennent pas les mêmes entrées** :
+ * dès qu'une politique de sortie garde ses positions plus longtemps, ses 8 emplacements se
+ * saturent et elle rate des entrées que les autres prennent. La comparaison mélange alors deux
+ * effets — la politique de sortie et le hasard de l'occupation — et le second domine. C'est
+ * précisément ce qui avait fait attribuer à tort le résultat de `grace-60s-nofollow` au fait de
+ * ne pas suivre Mayhem, alors que le test apparié ne montrait aucun effet (12/30, médiane -1.4 pt).
  *
- * Ce -70.12% n'est pas un hasard : il colle exactement à la décroissance mesurée on-chain, où la
- * médiane d'un achat de Mayhem vaut **-72.03% à t+60s** contre **-24.46% à t+15s**. Autrement dit
- * la temporisation à 60 secondes laisse bien les gagnants respirer (c'est son but, et ça marche :
- * le trailing passe de 18.7% à 41.4% des sorties), mais elle laisse aussi les perdants tomber
- * jusqu'au bout avant de couper. On encaisse la décroissance complète.
+ * **Correctif : supprimer la contention.** `maxConcurrentPositions` passe de 8 à 60 et le capital
+ * de 2 à 20 SOL, si bien qu'aucune variante ne peut plus être limitée ni par un emplacement ni
+ * par le solde (60 x 0.15 = 9 SOL de déploiement maximum contre 20 disponibles). Toutes voient
+ * alors **exactement le même flux d'entrées**, et leurs différences ne viennent plus que de la
+ * politique de sortie. La comparaison appariée mint par mint devient la mesure principale : elle
+ * élimine d'un coup la variance de régime de marché, qui est la source de bruit dominante, et
+ * c'est le seul test qui ait produit ici une réponse stable.
  *
- * D'où l'axe : **20 secondes**, choisi sur la courbe de décroissance et non par tâtonnement. Assez
- * pour être sorti de la bande de bruit des deux premières secondes (écart interquartile -28% /
- * +17%), qui était le problème d'origine ; assez tôt pour couper avant l'effondrement médian. Si
- * la temporisation n'a de valeur que pour franchir le bruit, 20s doit battre 60s. Si les gagnants
- * ont besoin de la minute entière pour se déclarer, 20s doit faire pire — et l'écart dira lequel
- * des deux effets domine.
+ * Effet secondaire bienvenu : plus de faillite en cours de fenêtre, donc plus de remise à zéro
+ * du capital qui tronquait les séries.
  *
- * `no-stop` est retirée : sa question est tranchée (pire variante deux fenêtres de suite, -7.44%
- * puis -12.10%), supprimer entièrement le stop ne paie pas. `grace-60s` reste avec follow=true
- * pour continuer d'accumuler du n sur un contraste que le test apparié laisse indécis.
+ * Le rendement pondéré reste sans dimension, donc comparable aux fenêtres précédentes malgré le
+ * changement d'échelle du capital.
  *
  * Rappels durables :
- * - Filtre de profondeur du pool : **réfuté** (dégradation monotone du rendement pondéré et
- *   effondrement des queues quand on le durcit). Tenu constant à 40 SOL, comme contrôle.
+ * - **Le trailing stop est la seule sortie rentable**, dans toutes les variantes et toutes les
+ *   fenêtres (+38% à +65% de moyenne). Sa part varie de 18.7% à 41.4% selon la politique.
+ * - Filtre de profondeur du pool : **réfuté**. Tenu constant à 40 SOL, comme contrôle.
  * - Priority fee **mesuré** à 0.000025 SOL. Le modèle a facturé 0.003 pendant longtemps, soit
  *   120x trop, ce qui a invalidé toutes les conclusions antérieures — y compris les négatives.
+ * - Taux d'occupation, `sellOnMayhemFullExit`, suppression totale du stop : hypothèses testées,
+ *   aucune n'a survécu. Voir FINDINGS.md.
  *
- * Capitaux remis à 2 SOL : trois variantes sur quatre finissaient à solde 0.0000.
- *
- * Rien n'est démontré rentable. Voir FINDINGS.md.
+ * Rien n'est démontré rentable, et à ce stade rien n'est même démontré différent.
  */
 const BASE = {
-  startingBalanceSol: 2,
+  startingBalanceSol: 20,
   positionSizeSol: 0.15,
   takeProfitPct: null,
   stopLossPct: 0.12,
@@ -91,7 +86,7 @@ const BASE = {
   minMayhemBuySol: null,
   waitForMigration: false,
   stopLossGraceSeconds: null,
-  maxConcurrentPositions: 8,
+  maxConcurrentPositions: 60,
   // Sans lui, une position sur un token mort ne sort jamais : pas de trade = pas de mouvement
   // de prix = aucun seuil déclenché. La stratégie se bloque à 8/8 et la comparaison devient
   // une course à la saturation plutôt qu'un test de politique de sortie. La sortie forcée
