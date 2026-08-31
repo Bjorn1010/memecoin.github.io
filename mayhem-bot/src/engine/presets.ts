@@ -1,59 +1,51 @@
 import type { StrategyConfig } from "../types.js";
 
 /**
- * **La temporisation du stop est réfutée, avec significativité.** C'est le premier résultat
- * franchement concluant obtenu ici, et il annule ce que ce fichier affirmait il y a cinq cycles.
+ * L'espace des politiques de SORTIE est très largement exploré, et rien n'y bat la référence.
+ * Deux fenêtres appariées propres (99% d'entrées communes, contention d'emplacements supprimée) :
  *
- * Il a fallu pour cela supprimer la contention d'emplacements (60 positions, 20 SOL) : les
- * variantes prennent désormais **99.0% des mêmes entrées** (302 mints communs sur 305), ce qui
- * rend enfin valide la comparaison appariée mint par mint — celle qui élimine la variance de
- * régime de marché, dominante et jusqu'ici confondue avec l'effet des politiques.
+ * Fenêtre 15:10-16:09 — **la temporisation du stop est réfutée**, deux variantes sur trois avec
+ * un IC excluant zéro : grace-20s-nofollow -5.83 pts [-9.35, -2.18], grace-60s-nofollow
+ * -4.90 pts [-9.66, -0.26]. Couper vite à -28% bat couper tard à -70%.
  *
- * Écart apparié contre la référence (stop immédiat), fenêtre 15:10-16:09 :
+ * Fenêtre 16:12-17:08 — **les paramètres du trailing ne font aucune différence mesurable** :
+ * trail-arm-20 +0.48 pts [-0.09, +1.07], trail-tight-15 -4.20 pts [-14.07, +1.77],
+ * trail-wide-40 -1.71 pts [-3.74, +0.34]. Les trois intervalles contiennent zéro, et les écarts
+ * médians sont nuls : les variantes se comportent identiquement à la référence sur 91-97% des
+ * mints. Axe mort.
  *
- * | variante           |   n | écart moyen | gagne sur | IC 90%           |
- * |--------------------|-----|-------------|-----------|------------------|
- * | grace-60s          | 299 |   -2.07 pts |       19% | [-5.16 , +1.51]  |
- * | grace-60s-nofollow | 297 |   -4.90 pts |       27% | [-9.66 , -0.26]  |
- * | grace-20s-nofollow | 298 |   -5.83 pts |       20% | [-9.35 , -2.18]  |
+ * S'ajoutent, plus tôt : profondeur du pool réfutée, `sellOnMayhemFullExit` sans effet
+ * démontré, suppression totale du stop pire que tout. Reste UN paramètre de sortie jamais testé
+ * proprement, et ce n'est pas le moindre — `maxHoldSeconds`. Les sorties `max_hold_time`
+ * rendent **+40.11% en moyenne**, la deuxième meilleure sortie après le trailing, mais ne
+ * représentent que 4.4% des fermetures. Personne n'a vérifié si 600 secondes est le bon
+ * horizon, ni ce qui se passe si on force davantage de positions à sortir par cette porte.
  *
- * Les deux dernières ont un intervalle qui **exclut zéro** : elles sont significativement pires
- * que le stop immédiat. L'écart médian est nul et elles ne gagnent que sur 19-27% des mints —
- * autrement dit, la plupart du temps la temporisation ne change rien, et quand elle change
- * quelque chose elle perd plus qu'elle ne gagne.
+ * L'argument va dans les deux sens, ce qui en fait un vrai test : la décroissance médiane
+ * mesurée on-chain (-24% à t+15s, -72% à t+60s, -95% à t+300s) plaide pour couper tôt ; la
+ * fréquence des queues >+100%, qui croît avec l'horizon, plaide pour laisser courir. Les
+ * variantes encadrent donc la valeur actuelle des deux côtés.
  *
- * Le diagnostic de départ restait juste : le stop à -12% est bien plus étroit que la dispersion
- * à deux secondes (écart interquartile -28% / +17%), il coupe donc dans le bruit. **Mais le
- * remède coûte plus cher que le mal.** Couper vite à -28% bat couper tard à -70%, et la mesure
- * on-chain le disait déjà sans que j'en tire la conséquence : médiane -24.46% à t+15s,
- * -72.03% à t+60s. Laisser respirer les perdants coûte davantage que ce que rapporte laisser
- * respirer les gagnants. Retour au stop immédiat partout.
- *
- * **L'évaluateur hors-ligne classe ces mêmes politiques à l'envers** — il donnait grace-20s
- * meilleure que la référence (+2.96% contre +1.60%) là où le test apparié la donne pire de
- * 5.83 points avec IC excluant zéro. La raison est structurelle et connue : son chemin de prix
- * n'est échantillonné qu'aux transactions de Mayhem, il ne voit pas les creux intra-seconde qui
- * déclenchent 79% des sorties de la référence à un hold médian d'UNE seconde. Son biais
- * d'optimisme n'est donc **pas uniforme** : il favorise précisément les politiques qui évitent
- * les stops rapides. **Ne pas s'en servir pour classer des politiques différant par le timing du
- * stop.** Il reste valide pour des effets lents — largeur du trailing, seuil d'armement, durée
- * max — qui sont l'axe testé ici.
- *
- * Ce cycle teste donc le trailing stop, la seule sortie rentable dans toutes les fenêtres
- * (+33% à +65% de moyenne selon la variante), sur ses deux paramètres, à stop immédiat partout
- * pour que la comparaison appariée reste propre :
- * - `trail-arm-20` abaisse le seuil d'armement de +50% à +20% : aujourd'hui une position qui
- *   monte de 40% puis retombe n'a aucune protection de trailing et finit au stop-loss.
- * - `trail-tight-15` et `trail-wide-40` encadrent la largeur actuelle de -25%.
+ * L'évaluateur hors-ligne est **valide sur cet axe** (effet lent, pas de timing de stop) —
+ * contrairement à l'axe précédent où il classait les politiques à l'envers.
  *
  * Rappels durables :
- * - Filtre de profondeur du pool : **réfuté**. Tenu constant à 40 SOL, comme contrôle.
  * - Priority fee **mesuré** à 0.000025 SOL. Le modèle a facturé 0.003 pendant longtemps, soit
  *   120x trop, ce qui a invalidé toutes les conclusions antérieures — y compris les négatives.
- * - `sellOnMayhemFullExit`, suppression totale du stop, taux d'occupation : testés, aucun effet
- *   démontré. Voir FINDINGS.md.
+ * - Frais de plateforme (1% par jambe) : **tentative de mesure non concluante**. Reconstruire
+ *   le SOL entré dans la courbe depuis les réserves stockées et les tokens échangés donne un
+ *   frais implicite négatif (médiane -15%) dans les deux sens de lecture (réserves pré- ou
+ *   post-trade), donc la reconstruction ne reproduit pas les montants. `price_sol` vaut
+ *   exactement S/T des réserves stockées, elles sont donc cohérentes entre elles ; l'écart
+ *   vient d'ailleurs (réserves virtuelles contre montants réels, très probablement). À
+ *   reprendre, sans en tirer de conclusion pour l'instant.
+ * - « Premier achat de Mayhem sur un mint » comme filtre d'entrée : **inutilisable**, 67 cas
+ *   éligibles contre 5215 renforts, soit 1.3%. Trop rare pour porter une stratégie.
+ * - Filtre de profondeur du pool : réfuté. Tenu constant à 40 SOL, comme contrôle.
  *
- * Rien n'est démontré rentable. La référence elle-même est à -8.77% [IC90 -10.75, -6.68].
+ * Rien n'est démontré rentable. La référence est à -4.20% [IC90 -7.92, -0.15] sur la dernière
+ * fenêtre. Si `maxHoldSeconds` ne donne rien non plus, « ce wallet n'est pas copiable de façon
+ * rentable par réglage de politique » deviendra une conclusion solide et honnête.
  */
 const BASE = {
   startingBalanceSol: 20,
@@ -98,34 +90,34 @@ export const defaultStrategies: StrategyConfig[] = [
     ...BASE,
   },
   {
-    id: "trail-arm-20",
-    name: "Trailing arme a +20%",
+    id: "hold-120s",
+    name: "Sortie forcee a 120s",
     description:
-      "Abaisse le seuil d'armement du trailing stop de +50% a +20%. Aujourd'hui une position qui monte de 40% puis retombe n'est jamais protegee par le trailing et finit au stop-loss : le trailing ne s'arme qu'au-dela de +50% de gain au pic. Or le trailing est la seule sortie rentable de toutes les fenetres. Elargir la population de positions qu'il protege est l'hypothese la plus directe qui reste. Risque symetrique : armer trop tot coupe une vraie pompe sur son premier repli ordinaire, ce que le seuil a +50% avait justement ete introduit pour eviter.",
+      "Ramene maxHoldSeconds de 600 a 120 secondes. La decroissance mediane mesuree on-chain (-24% a t+15s, -72% a t+60s, -95% a t+300s) dit qu'attendre coute cher : couper plus tot doit reduire la perte des positions qui n'ont ni touche le stop ni arme le trailing.",
     kind: "generic",
     enabled: true,
     ...BASE,
-    trailingArmPct: 0.2,
+    maxHoldSeconds: 120,
   },
   {
-    id: "trail-tight-15",
-    name: "Trailing serre -15%",
+    id: "hold-300s",
+    name: "Sortie forcee a 300s",
     description:
-      "Resserre le trailing de -25% a -15%, a seuil d'armement inchange. Encadre la largeur actuelle par le bas : une fois une position declaree gagnante, rend-on plus en verrouillant tot qu'en laissant courir ?",
+      "Point intermediaire entre 120s et la valeur actuelle de 600s. Sert a dire si l'effet, s'il existe, est monotone ou s'il a un optimum — un seul point de chaque cote ne le dirait pas.",
     kind: "generic",
     enabled: true,
     ...BASE,
-    trailingStopPct: 0.15,
+    maxHoldSeconds: 300,
   },
   {
-    id: "trail-wide-40",
-    name: "Trailing large -40%",
+    id: "hold-1800s",
+    name: "Sortie forcee a 1800s",
     description:
-      "Elargit le trailing de -25% a -40%, a seuil d'armement inchange. Encadre la largeur actuelle par le haut. Un trail a -45% avait ete teste et rejete tres tot, mais sous le regime du priority fee errone (120x trop cher) qui a invalide toutes les conclusions de cette periode : l'hypothese merite d'etre reposee proprement.",
+      "Elargit a 30 minutes. L'argument oppose : la frequence des queues >+100% croit avec l'horizon (3.0% a t+2s, 8.0% a t+15s), et les sorties max_hold_time rendent deja +40.11% en moyenne, la deuxieme meilleure sortie. Si laisser courir paie, c'est ici que ca doit se voir. Garde-fou intact : le stop-loss immediat et le trailing restent actifs, donc une position qui s'effondre sort bien avant.",
     kind: "generic",
     enabled: true,
     ...BASE,
-    trailingStopPct: 0.4,
+    maxHoldSeconds: 1800,
   },
   {
     id: "post-migration",

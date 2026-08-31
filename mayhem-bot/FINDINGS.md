@@ -86,6 +86,36 @@ stops rapides.
 **Ne jamais utiliser le replay pour classer des politiques différant par le timing du stop.**
 Il reste valide pour les effets lents — largeur du trailing, seuil d'armement, durée max.
 
+## Les paramètres du trailing ne font aucune différence (axe mort)
+
+Fenêtre appariée 16:12-17:08, 99% d'entrées communes, contre la référence :
+
+| variante | n | écart moyen | médiane | gagne sur | IC 90% |
+|---|---|---|---|---|---|
+| trail-arm-20 (armement +20%) | 229 | +0.48 pts | +0.00 | 5% | [-0.09, +1.07] |
+| trail-tight-15 (trail -15%) | 229 | -4.20 pts | +0.00 | 9% | [-14.07, +1.77] |
+| trail-wide-40 (trail -40%) | 229 | -1.71 pts | +0.00 | 3% | [-3.74, +0.34] |
+
+Les trois intervalles contiennent zéro et les écarts médians sont nuls : les variantes se
+comportent identiquement à la référence sur 91-97% des mints. Le trailing reste la seule sortie
+rentable (+39% à +59% de moyenne selon la variante), mais **ses réglages ne sont pas un levier**.
+
+## Mesures tentées sans conclusion (à reprendre)
+
+- **Frais de plateforme (1% par jambe) : non validé.** Reconstruire le SOL entré dans la courbe
+  depuis les réserves stockées et les tokens échangés — `x = S·Δt/(T∓Δt)`, exact et indépendant
+  des autres traders puisque tout vient de la même transaction — donne un frais implicite
+  **négatif** (médiane -15%) dans les deux sens de lecture (réserves pré- ou post-trade). La
+  reconstruction ne reproduit donc pas les montants. `price_sol` vaut exactement S/T des réserves
+  stockées (écart médian 0.0000%), elles sont cohérentes entre elles ; l'écart vient d'ailleurs,
+  très probablement de réserves virtuelles confrontées à des montants réels. **Ne pas en tirer
+  de conclusion sur les frais**, mais ne pas oublier non plus que c'est une hypothèse du modèle
+  toujours non vérifiée — et que la dernière non vérifiée valait un facteur 120.
+- **« Premier achat de Mayhem sur un mint » comme filtre d'entrée : inutilisable.** 67 cas
+  éligibles contre 5215 renforts, soit 1.3% des achats. Mayhem renforce presque toujours une
+  position existante. Trop rare pour porter une stratégie, et n trop faible pour conclure sur la
+  qualité du signal.
+
 ## `sellOnMayhemFullExit` : effet non démontré
 
 Quand Mayhem sort complètement, le token a déjà chuté : `mayhem_full_exit` se réalise à -49%
