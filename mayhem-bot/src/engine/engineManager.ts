@@ -46,9 +46,14 @@ const PRUNE_INTERVAL_MS = 10 * 60 * 1000;
 const PENDING_MIGRATION_TTL_MS = 25 * 60 * 1000;
 const MAX_PENDING_MIGRATION_WATCHES = 120;
 // How long to keep trying to get a real post-migration market price for a mint whose curve
-// just completed. DexScreener needs a few seconds to index a fresh pool; past this we give
-// up on the entry rather than enter on a price we can't trust.
-const MIGRATION_PRICE_TTL_MS = 90 * 1000;
+// just completed, before giving up rather than entering on a price we cannot trust.
+// Measured, not guessed: across three migrations watched for the full previous 90s window,
+// DexScreener reported pool depths of $0, $8, $9 and $50 — it had not finished indexing the
+// new pool at all. 90 seconds was simply too short, which is why zero entries were taken
+// while the depth floor did its job. Ten minutes gives indexing time to complete. The cost
+// is that an entry lands well after migration rather than at it; the alternative is trading
+// a price no pool could have filled, which is what produced the +1464%-in-81s artifact.
+const MIGRATION_PRICE_TTL_MS = 10 * 60 * 1000;
 // Minimum DEX pool depth before a post-migration entry is allowed. A 0.15 SOL position is
 // roughly $30, so $25k of pool depth keeps it near a thousandth of the pool — small enough
 // that the zero-slippage assumption we are forced into (no reserves for the new pool) stays
@@ -87,6 +92,7 @@ export class EngineManager extends EventEmitter {
   private pendingMigration = new Map<string, PendingMigration>();
   private awaitingMigrationPrice = new Map<string, PendingMigration>();
   private migratedMints = new Set<string>(loadMigratedMints());
+  private lastLoggedMigrationLiquidity = new Map<string, number>();
   private runners = new Map<string, StrategyRunner>();
   private priceCache = new Map<string, number>();
   private reservesCache = new Map<string, PoolReserves>();
@@ -374,6 +380,7 @@ export class EngineManager extends EventEmitter {
     for (const [mint, pending] of [...this.awaitingMigrationPrice]) {
       if (now - pending.firstSeenAt > MIGRATION_PRICE_TTL_MS) {
         this.awaitingMigrationPrice.delete(mint);
+        this.lastLoggedMigrationLiquidity.delete(mint);
         continue;
       }
 
@@ -389,17 +396,21 @@ export class EngineManager extends EventEmitter {
       // could have produced (it printed +1464% in 81 seconds). Below the floor, keep waiting
       // for the pool to fill out rather than entering on an untradeable price.
       if ((quote.liquidityUsd ?? 0) < MIN_POST_MIGRATION_LIQUIDITY_USD) {
-        // Logged so the floor can be tuned from the observed depth distribution instead of
-        // guessed at. A floor that rejects every migration teaches nothing, and without this
-        // line a rejected candidate leaves no trace to tell that apart from "no migrations".
-        console.log(
-          `[migration] ${mint.slice(0, 8)}… rejete: liquidite ${Math.round(quote.liquidityUsd ?? 0)}$ ` +
-            `< ${MIN_POST_MIGRATION_LIQUIDITY_USD}$`,
-        );
+        // Logged so the floor and the wait can be tuned from observed depth rather than
+        // guessed at — without it, a rejected candidate is indistinguishable from a quiet
+        // market. Deduplicated on the reported value: the retry runs every priceTick for the
+        // whole TTL, so logging each attempt would bury the signal (a pool filling up over
+        // time) under hundreds of identical lines.
+        const liq = Math.round(quote.liquidityUsd ?? 0);
+        if (this.lastLoggedMigrationLiquidity.get(mint) !== liq) {
+          this.lastLoggedMigrationLiquidity.set(mint, liq);
+          console.log(`[migration] ${mint.slice(0, 8)}… en attente: liquidite ${liq}$ < ${MIN_POST_MIGRATION_LIQUIDITY_USD}$`);
+        }
         continue;
       }
 
       this.awaitingMigrationPrice.delete(mint);
+      this.lastLoggedMigrationLiquidity.delete(mint);
       this.priceCache.set(mint, quote.priceSol);
       for (const runner of this.runners.values()) {
         const t = runner.enterAfterMigration(mint, quote.priceSol, pending.entryEventId, pending.mayhemBuySolAmount);
