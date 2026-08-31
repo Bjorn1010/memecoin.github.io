@@ -89,17 +89,17 @@ export const defaultStrategies: StrategyConfig[] = [
     maxConcurrentPositions: 8,
   },
   {
-    id: "copy-wide-trail",
-    name: "Trail large (-45%)",
+    id: "copy-big-size",
+    name: "Grosse taille (0.75 SOL)",
     description:
-      "Comme la référence, sauf le trailing stop élargi à -45%. Teste si un trail à -25% coupe les gagnants pendant un repli normal, vu que l'edge de Mayhem vient de la queue de distribution.",
+      "Attaque le coût qui domine tout le reste. Le priority fee est FIXE (0.003 SOL par jambe) : sur une position de 0.15 SOL il représente 4% par aller-retour, et liquid-only a payé 3.708 SOL de frais sur 2 SOL de capital (185%) en 841 jambes. À 0.75 SOL la position, le même frais fixe tombe à 0.8% par aller-retour, soit 5x moins de saignée. Dans un pool d'au moins 150 SOL, 0.75 SOL reste 0.5% de la profondeur, donc le slippage reste faible. Remplace copy-wide-trail, réfutée (pire taux de gagnants des quatre à 16%, ruinée à répétition).",
     kind: "generic",
     enabled: true,
     ...BASE,
-    trailingStopPct: 0.45,
+    positionSizeSol: 0.75,
+    minPoolLiquiditySol: 150,
     minMayhemBuySol: null,
-    minPoolLiquiditySol: 40,
-    maxConcurrentPositions: 8,
+    maxConcurrentPositions: 2,
   },
   {
     id: "copy-deeper-pools",
