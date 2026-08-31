@@ -49,6 +49,11 @@ const MAX_PENDING_MIGRATION_WATCHES = 120;
 // just completed. DexScreener needs a few seconds to index a fresh pool; past this we give
 // up on the entry rather than enter on a price we can't trust.
 const MIGRATION_PRICE_TTL_MS = 90 * 1000;
+// Minimum DEX pool depth before a post-migration entry is allowed. A 0.15 SOL position is
+// roughly $30, so $25k of pool depth keeps it near a thousandth of the pool — small enough
+// that the zero-slippage assumption we are forced into (no reserves for the new pool) stays
+// defensible rather than becoming a source of invented profit.
+const MIN_POST_MIGRATION_LIQUIDITY_USD = 25_000;
 
 // Only mints already within reach of the migration threshold are worth a watch slot. Of the
 // ~51k observed Mayhem buys, the median pool holds 11 SOL and p90 is 64 SOL, while the mints
@@ -376,6 +381,14 @@ export class EngineManager extends EventEmitter {
       // A migrated mint has no bonding-curve reserves any more; a quote that still carries
       // them is the dead curve being read again, not the new pool — keep waiting.
       if (!quote || !(quote.priceSol > 0) || quote.solReservesUi != null) continue;
+      // Post-migration fills are modelled with zero slippage because we have no reserves for
+      // the new pool. That is only honest while the pool is deep enough for a position to be
+      // negligible in it. A freshly migrated pair can be indexed with almost nothing in it —
+      // reserves as low as 0.03 SOL were observed on one such mint — and buying into that at
+      // an unaffected price, then marking out at a later one, books a gain no tradeable fill
+      // could have produced (it printed +1464% in 81 seconds). Below the floor, keep waiting
+      // for the pool to fill out rather than entering on an untradeable price.
+      if ((quote.liquidityUsd ?? 0) < MIN_POST_MIGRATION_LIQUIDITY_USD) continue;
 
       this.awaitingMigrationPrice.delete(mint);
       this.priceCache.set(mint, quote.priceSol);

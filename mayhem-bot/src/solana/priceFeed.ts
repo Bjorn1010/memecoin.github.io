@@ -1,5 +1,5 @@
 import { getBondingCurvePrice } from "./bondingCurve.js";
-import { getDexscreenerPrice } from "./dexscreener.js";
+import { getDexscreenerQuote } from "./dexscreener.js";
 import { SOL_DECIMALS, TOKEN_DECIMALS } from "./constants.js";
 
 export interface PriceQuote {
@@ -7,6 +7,8 @@ export interface PriceQuote {
   /** Only present pre-migration, when we can read the curve's real reserves for slippage math. */
   solReservesUi?: number;
   tokenReservesUi?: number;
+  /** Only present post-migration: depth of the DEX pool this price came from, in USD. */
+  liquidityUsd?: number;
 }
 
 /** Best-effort current price + pool depth, bonding curve first, DEX second. */
@@ -20,8 +22,10 @@ export async function getCurrentQuote(mint: string): Promise<PriceQuote | null> 
     };
   }
 
-  const dex = await getDexscreenerPrice(mint);
-  if (dex) return { priceSol: dex }; // migrated — deeper liquidity, no reserves to model slippage from
+  const dex = await getDexscreenerQuote(mint);
+  // Migrated: no reserves to model slippage from, so the pool's reported depth travels with
+  // the price and callers decide whether it is deep enough to trade on that assumption.
+  if (dex) return { priceSol: dex.priceSol, liquidityUsd: dex.liquidityUsd };
 
   // Deliberately NOT falling back to a completed curve's price: once a curve completes its
   // SOL side has been drained into the new AMM pool, so the price derived from it is
