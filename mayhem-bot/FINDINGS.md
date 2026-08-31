@@ -102,21 +102,54 @@ Deux enseignements à garder :
 - **60s > 15s**, mais l'écart est sur la médiane, pas sur le rendement pondéré (-6.00% contre
   -6.06%, égalité). Ne pas surinterpréter.
 
-## `sellOnMayhemFullExit` : la sortie de Mayhem est un signal retardé
+## `sellOnMayhemFullExit` : effet non démontré
 
-La fuite qu'a révélée la temporisation, et l'axe testé actuellement. `mayhem_full_exit` passe
-de 0.6% des sorties (n=2) chez liquid-only à 30.5% (n=47) chez grace-60s, **à -66.45% de
-rendement moyen**, soit -3123 points : le premier poste de perte de la meilleure variante.
+Quand Mayhem sort complètement, le token a déjà chuté : `mayhem_full_exit` se réalise à -49%
+à -66% de rendement moyen selon la fenêtre, et représente 40-52% des sorties des variantes
+temporisées. Sa sortie est donc un signal **retardé**.
 
-Le stop-loss fermait la position à une seconde ; en le temporisant, ces positions vivent assez
-longtemps pour être fermées par la sortie de Mayhem — plus tard et beaucoup plus bas. Ce
--66.45% dit quelque chose de précis : **quand Mayhem sort complètement, le token a déjà chuté
-des deux tiers.** Sa sortie n'est pas un signal avancé mais retardé, et la copier revient à
-vendre après la baisse. `sellOnMayhemFullExit` a été écrit comme une protection ; mesuré, c'est
-la principale perte.
+**Mais désactiver le suivi n'a pas d'effet démontrable.** Test apparié sur les 30 mints communs
+où `grace-60s` est effectivement sorti sur `mayhem_full_exit` : nofollow fait mieux sur 12/30,
+écart médian -1.4 pt (la moyenne +20 pts est portée par des valeurs extrêmes). C'est un pile ou
+face. `grace-60s-nofollow` est bien la meilleure variante, mais **pas pour la raison qu'on lui
+prête** — et c'est exactement le piège dans lequel la profondeur des pools m'a fait tomber.
 
-Roster en cours : `liquid-only` (témoin historique) / `grace-60s` (référence de travail) /
-`grace-60s-nofollow` (le test) / `no-stop` (borne de l'axe stop) / `post-migration` (sonde).
+## Hypothèses testées et mortes
+
+- **Le taux d'occupation ne prédit pas la qualité d'une entrée.** Sur ~1500 allers-retours,
+  médiane -22.6% à 0 position ouverte, -3.99% à 8, -32.8% à 9. Aucune monotonie. L'idée d'un
+  « régime de marché » lisible dans le nombre de positions ouvertes est morte.
+- **Supprimer entièrement le stop ne paie pas.** `no-stop` est la pire variante deux fenêtres de
+  suite (-7.44% puis -12.10% en rendement pondéré) malgré une bonne médiane. L'optimum est une
+  temporisation, pas une suppression.
+
+## Ce qui reste debout : le trailing stop est la seule sortie rentable
+
+Vrai dans toutes les variantes et toutes les fenêtres : +64.91% chez `grace-60s-nofollow`,
++43.36% chez `grace-60s`, +33.75% chez `liquid-only`. Sa part varie de 18.7% à 41.4% selon la
+politique de sortie. **Tout ce qui augmente la proportion de sorties par trailing stop améliore
+le résultat** — c'est le fil conducteur le plus fiable dont on dispose.
+
+Chez la meilleure variante, ce qui tronque encore les positions est le stop à 60s :
+
+    stop_loss       45.7%   -70.12%   hold  60s   somme -5960 pts
+    trailing_stop   41.4%   +64.91%   hold  11s   somme +4998 pts
+    max_hold_time   12.9%   +41.50%   hold 600s   somme  +996 pts
+
+Ce -70.12% colle exactement à la décroissance mesurée on-chain (médiane -72.03% à t+60s contre
+-24.46% à t+15s) : la temporisation à 60s laisse les gagnants respirer, mais laisse aussi les
+perdants tomber jusqu'au bout. D'où l'axe en cours, 20 secondes.
+
+Roster : `liquid-only` (témoin) / `grace-60s-nofollow` (référence de travail) / `grace-60s`
+(suit Mayhem) / `grace-20s-nofollow` (le test) / `post-migration` (sonde).
+
+## Meilleur résultat à ce jour
+
+`grace-60s-nofollow`, fenêtre 13:15-14:11 : **+0.18% de rendement pondéré, +0.051 SOL sur
+n=186**, médiane -6.14% (contre -20.75% pour le témoin), queues >+100% à 9.1% (contre 2.6%).
+C'est l'**équilibre, pas la rentabilité**, et il faut retenir la trajectoire : +13.30% à n=60,
++6.62% à n=78, +0.18% à n=186. Un résultat porté par quelques événements de queue se dégrade
+quand n grandit. **Ne jamais annoncer une variante sur un n faible.**
 
 ## Distribution source
 
