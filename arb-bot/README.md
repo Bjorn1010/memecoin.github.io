@@ -73,7 +73,7 @@ Node 20 or newer.
 cd arb-bot
 npm install
 cp .env.example .env     # then edit it
-npm test                 # 130 tests, no network required
+npm test                 # 143 tests, no network required
 ```
 
 ---
