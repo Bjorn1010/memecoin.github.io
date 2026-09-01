@@ -123,7 +123,7 @@ async function main(): Promise<void> {
         skip("raydium: no logs");
         continue;
       }
-      for (const payload of eventPayloadsFromLogs(tx.meta.logMessages)) {
+      for (const payload of eventPayloadsFromLogs(tx.meta.logMessages, RAYDIUM_CPMM_PROGRAM_ID)) {
         const ev = parseRaydiumSwapEvent(payload);
         if (!ev) continue;
         if (!ev.baseInput) {
@@ -138,7 +138,14 @@ async function main(): Promise<void> {
             skip("raydium: pool account missing");
             continue;
           }
-          pool = decodeRaydiumPoolState(acc.data);
+          try {
+            pool = decodeRaydiumPoolState(acc.data, acc.owner);
+          } catch (e) {
+            // A verification tool must report and continue, never abort: one
+            // odd account should not hide the results for every other swap.
+            skip(`raydium: ${e instanceof Error ? e.message : String(e)}`);
+            continue;
+          }
           poolCache.set(ev.poolId, pool);
         }
 
@@ -149,7 +156,12 @@ async function main(): Promise<void> {
             skip(`raydium: amm config ${pool.ammConfigAddress} not found`);
             continue;
           }
-          cfg = decodeRaydiumAmmConfig(pool.ammConfigAddress, acc.data);
+          try {
+            cfg = decodeRaydiumAmmConfig(pool.ammConfigAddress, acc.data, acc.owner);
+          } catch (e) {
+            skip(`raydium config: ${e instanceof Error ? e.message : String(e)}`);
+            continue;
+          }
           configCache.set(pool.ammConfigAddress, cfg);
         }
 
@@ -208,8 +220,8 @@ async function main(): Promise<void> {
     const gcAcc = await rpc.getAccount(globalConfigPda.toBase58(), RpcPriority.P3_Screener);
     const fcAcc = await rpc.getAccount(feeConfigPda.toBase58(), RpcPriority.P3_Screener);
     if (!gcAcc || !fcAcc) throw new Error("pump global/fee config not found");
-    const globalConfig = decodePumpGlobalConfig(globalConfigPda.toBase58(), gcAcc.data);
-    const feeConfig = decodePumpFeeConfig(feeConfigPda.toBase58(), fcAcc.data);
+    const globalConfig = decodePumpGlobalConfig(globalConfigPda.toBase58(), gcAcc.data, gcAcc.owner);
+    const feeConfig = decodePumpFeeConfig(feeConfigPda.toBase58(), fcAcc.data, fcAcc.owner);
     console.log(
       `pump fee tiers: ${feeConfig.feeTiers.length}, flat = ${feeConfig.flatFees.lpFeeBps}/${feeConfig.flatFees.protocolFeeBps}/${feeConfig.flatFees.creatorFeeBps} bps\n`,
     );
@@ -251,7 +263,12 @@ async function main(): Promise<void> {
             skip("pump: pool account missing");
             continue;
           }
-          pool = decodePumpPool(acc.data);
+          try {
+            pool = decodePumpPool(acc.data, acc.owner);
+          } catch (e) {
+            skip(`pump: ${e instanceof Error ? e.message : String(e)}`);
+            continue;
+          }
           poolCache.set(ev.pool, pool);
         }
 

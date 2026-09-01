@@ -235,7 +235,18 @@ export interface DecodedTokenAccount {
   isNative: boolean;
 }
 
-export function decodeTokenAccount(data: Buffer): DecodedTokenAccount {
+/**
+ * Decode an SPL / Token-2022 token account.
+ *
+ * `owner` is the program that owns the account and is REQUIRED. Reserves are
+ * read from these accounts, so accepting one owned by an arbitrary program
+ * would let any 165-byte account masquerade as a pool vault and fabricate a
+ * balance. Nothing about the bytes themselves can rule that out.
+ */
+export function decodeTokenAccount(data: Buffer, owner: string): DecodedTokenAccount {
+  if (owner !== TOKEN_PROGRAM_ID && owner !== TOKEN_2022_PROGRAM_ID) {
+    throw new Error(`decodeTokenAccount: account is owned by ${owner}, not a token program`);
+  }
   if (data.length < BASE_ACCOUNT_LEN) {
     throw new Error(`decodeTokenAccount: account too small (${data.length} bytes)`);
   }

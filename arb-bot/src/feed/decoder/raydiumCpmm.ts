@@ -10,8 +10,17 @@
  *  - `AmmConfig` is a normal Anchor account, i.e. Borsh, which is also
  *    unpadded.
  *
- * Both decoders verify the 8-byte discriminator and the account length before
- * reading anything: a wrong account type must fail loudly, never decode.
+ * Both decoders verify the OWNING PROGRAM, the 8-byte discriminator and the
+ * account length before reading anything.
+ *
+ * The owner check is not belt-and-braces. An Anchor discriminator is
+ * `sha256("account:<TypeName>")[0..8]`, so every program that happens to define
+ * an account type called `PoolState` produces the SAME eight bytes. That is a
+ * collision by construction, not by chance, and it is real: mainnet account
+ * `HrWp3QR3hNeVy6tEZtcpsjwEiGgKJuL1NDP84EaaU2Nh` is 1544 bytes owned by program
+ * `REALQqNEomY6cQGZJUGwywTBD2UmDT32rZcNnfxQ5N2` and opens with Raydium's exact
+ * PoolState discriminator. Without the owner check it decoded cleanly into
+ * fabricated reserves, mints and vaults.
  */
 import type { RaydiumCpmmAmmConfig, RaydiumCpmmPoolData } from "../../quoters/cpmm/raydiumCpmm.js";
 import { bs58Encode } from "./token2022.js";
@@ -35,7 +44,19 @@ export class DecodeError extends Error {
   }
 }
 
-function requireDiscriminator(data: Buffer, expected: Buffer, what: string): void {
+function requireOwnerAndDiscriminator(
+  data: Buffer,
+  owner: string,
+  expectedOwner: string,
+  expected: Buffer,
+  what: string,
+): void {
+  // Owner first: a discriminator match on a foreign program's account is the
+  // failure mode this guards against, and it is indistinguishable from a real
+  // one by the bytes alone.
+  if (owner !== expectedOwner) {
+    throw new DecodeError(what, `account is owned by ${owner}, not ${expectedOwner}`);
+  }
   if (data.length < 8) throw new DecodeError(what, `account is ${data.length} bytes`);
   if (!data.subarray(0, 8).equals(expected)) {
     throw new DecodeError(
@@ -106,8 +127,14 @@ export interface RaydiumPoolStateRaw {
   creatorFeesToken1: bigint;
 }
 
-export function decodeRaydiumPoolState(data: Buffer): RaydiumPoolStateRaw {
-  requireDiscriminator(data, RAYDIUM_POOL_STATE_DISCRIMINATOR, "Raydium PoolState");
+export function decodeRaydiumPoolState(data: Buffer, owner: string): RaydiumPoolStateRaw {
+  requireOwnerAndDiscriminator(
+    data,
+    owner,
+    RAYDIUM_CPMM_PROGRAM_ID,
+    RAYDIUM_POOL_STATE_DISCRIMINATOR,
+    "Raydium PoolState",
+  );
   if (data.length < RAYDIUM_POOL_STATE_LEN) {
     throw new DecodeError(
       "Raydium PoolState",
@@ -155,8 +182,18 @@ const CONFIG = {
   creatorFeeRate: 108,
 } as const;
 
-export function decodeRaydiumAmmConfig(address: string, data: Buffer): RaydiumCpmmAmmConfig {
-  requireDiscriminator(data, RAYDIUM_AMM_CONFIG_DISCRIMINATOR, "Raydium AmmConfig");
+export function decodeRaydiumAmmConfig(
+  address: string,
+  data: Buffer,
+  owner: string,
+): RaydiumCpmmAmmConfig {
+  requireOwnerAndDiscriminator(
+    data,
+    owner,
+    RAYDIUM_CPMM_PROGRAM_ID,
+    RAYDIUM_AMM_CONFIG_DISCRIMINATOR,
+    "Raydium AmmConfig",
+  );
   if (data.length < CONFIG.creatorFeeRate + 8) {
     throw new DecodeError("Raydium AmmConfig", `account is ${data.length} bytes`);
   }

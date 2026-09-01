@@ -55,6 +55,16 @@ export class Metrics {
   // --- funnel: never collapsed into one number (§6, §37) ---
   cyclesEvaluated = 0;
   cyclesGrossProfitable = 0;
+  /**
+   * Best gross profit found in each evaluation round, in basis points of the
+   * trade size, INCLUDING negative values.
+   *
+   * Without this, a run where nothing is ever profitable reports "0
+   * opportunities" and teaches nothing: being 3 bps short of break-even and
+   * being 300 bps short call for completely different decisions, and only the
+   * first is worth pursuing.
+   */
+  readonly bestCycleBps = new Histogram();
   readonly rejects = new Map<RejectReason, number>();
   readonly outcomes = new Map<AttemptOutcome, number>();
 

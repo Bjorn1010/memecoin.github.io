@@ -38,6 +38,17 @@ export function renderRunSummary(
     for (const [outcome, n] of m.outcomes) lines.push(`  ${String(n).padStart(7)}  ${outcome}`);
   }
 
+  if (m.cyclesGrossProfitable === 0 && m.bestCycleBps.count > 0) {
+    // "Zero opportunities" is not a finding on its own. How far short they fell
+    // is the finding, and it is what decides whether to keep looking.
+    const b = m.bestCycleBps;
+    lines.push(
+      `near misses: best cycle per round was p50 ${b.percentile(50).toFixed(1)} bps, ` +
+        `p95 ${b.percentile(95).toFixed(1)} bps, best seen ${b.percentile(100).toFixed(1)} bps ` +
+        `(negative = short of break-even, before Solana costs)`,
+    );
+  }
+
   const landRate = m.landRate;
   lines.push(
     `land rate: ${landRate === null ? "n/a (nothing sent)" : `${(landRate * 100).toFixed(1)}% over ${m.sent} sends`}`,

@@ -80,6 +80,56 @@ at startup; the same test proves the mixed cycle fits with one. The builder
 refuses an oversized transaction with an error naming the remedy, and the engine
 warns loudly at startup when no table is configured.
 
+### 4b. A foreign program's account decoded as a Raydium pool — **FIXED**
+
+**Mechanism.** An Anchor discriminator is `sha256("account:<TypeName>")[0..8]` —
+derived from the type's NAME and nothing else. Every program that defines an
+account called `PoolState` produces byte-for-byte identical leading bytes. The
+decoders checked the discriminator but not the owning program.
+
+**Impact.** Severe. A foreign account can be registered as a pool, its bytes
+read as reserves, mints and vault addresses, and paired into a cycle that looks
+profitable because its numbers are invented. Execution would fail — Raydium
+rejects an account it does not own — but only after paying to find out, and
+meanwhile the fabricated pool pollutes the screener and the opportunity search.
+Token accounts are the sharper version of the same hole: they carry no
+discriminator at all, so the owner is the ONLY thing distinguishing a real vault
+from any other 165-byte account, and reserves are read straight out of them.
+
+**Probability.** Observed. Mainnet account
+`HrWp3QR3hNeVy6tEZtcpsjwEiGgKJuL1NDP84EaaU2Nh` is 1544 bytes, owned by program
+`REALQqNEomY6cQGZJUGwywTBD2UmDT32rZcNnfxQ5N2`, and opens with Raydium's exact
+PoolState discriminator. It decoded cleanly into fabricated state.
+
+**Detection.** It surfaced as a puzzle rather than an error: `verify:quoters`
+reported an `amm_config` at an address that does not exist on chain, which is
+impossible for a real pool. Chasing that contradiction rather than dismissing it
+as an RPC hiccup is what found it.
+
+**Mitigation.** Every decoder now takes the owning program and refuses anything
+that does not match, checked BEFORE the discriminator. `test/feed/decoderOwnership.test.ts`
+pins it with the real collision as its fixture.
+
+### 4c. Raydium CLMM swap events were parsed as CP-Swap events — **FIXED**
+
+**Mechanism.** The root cause of 4b, one level up. An Anchor *event*
+discriminator is also derived from the type name, and Raydium's CP-Swap and its
+CLMM both emit an event called `SwapEvent`. Reading every `Program data:` line
+in a transaction and matching on the discriminator alone parsed CLMM swaps as
+CP-Swap swaps, producing a pool id that is a real address belonging to the wrong
+program, with every other field read at the wrong offset.
+
+**Impact.** The quoter verification tool — the thing that proves the bot's
+arithmetic is right — was silently fed garbage inputs. A false mismatch would
+have sent someone hunting a non-existent math bug; a false *match* would have
+been worse.
+
+**Mitigation.** `eventPayloadsFromLogs` now takes the program id and tracks
+Solana's `invoke` / `success` log framing to attribute each line to the program
+that actually emitted it. The effect was immediate and measurable: verification
+went from 8 Raydium checks with 2 unexplained skips to **16 checks and zero
+skips**, all exact.
+
 ---
 
 ## Money-losing bugs found by review

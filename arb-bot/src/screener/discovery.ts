@@ -105,7 +105,7 @@ export async function discoverPoolsForMint(
     const candidate = candidates[i]!;
     const acc = accounts[i];
     if (!acc) continue;
-    const pool = toRegistration(candidate.family, acc.address, acc.data, baseMint, now);
+    const pool = toRegistration(candidate.family, acc.address, acc.data, acc.owner, baseMint, now);
     if (pool) out.push(pool);
   }
   return out;
@@ -135,7 +135,7 @@ export async function discoverPoolsForMints(
     const candidate = candidates[i]!;
     const acc = accounts[i];
     if (!acc) continue;
-    const pool = toRegistration(candidate.family, acc.address, acc.data, baseMint, now);
+    const pool = toRegistration(candidate.family, acc.address, acc.data, acc.owner, baseMint, now);
     if (!pool) continue;
     const list = byMint.get(candidate.mint);
     if (list) list.push(pool);
@@ -148,12 +148,13 @@ function toRegistration(
   family: "raydium-cpmm" | "pump-swap",
   address: string,
   data: Buffer,
+  owner: string,
   baseMint: string,
   now: number,
 ): DiscoveredPool | null {
   try {
     if (family === "raydium-cpmm") {
-      const pool = decodeRaydiumPoolState(data);
+      const pool = decodeRaydiumPoolState(data, owner);
       // A pool that does not actually trade the base asset is not ours.
       if (pool.token0Mint !== baseMint && pool.token1Mint !== baseMint) return null;
       return {
@@ -171,7 +172,7 @@ function toRegistration(
         registeredAt: now,
       };
     }
-    const pool = decodePumpPool(data);
+    const pool = decodePumpPool(data, owner);
     if (pool.baseMint !== baseMint && pool.quoteMint !== baseMint) return null;
     return {
       poolId: address,
@@ -221,7 +222,7 @@ export async function deepScanPoolsForMint(
       RpcPriority.P3_Screener,
     );
     for (const a of accounts) {
-      const reg = toRegistration("raydium-cpmm", a.address, a.data, baseMint, now);
+      const reg = toRegistration("raydium-cpmm", a.address, a.data, a.owner, baseMint, now);
       if (reg) out.push(reg);
     }
   }
@@ -235,7 +236,7 @@ export async function deepScanPoolsForMint(
     RpcPriority.P3_Screener,
   );
   for (const a of pumpAccounts) {
-    const reg = toRegistration("pump-swap", a.address, a.data, baseMint, now);
+    const reg = toRegistration("pump-swap", a.address, a.data, a.owner, baseMint, now);
     if (reg) out.push(reg);
   }
 

@@ -238,8 +238,12 @@ export class PoolStateStore {
     if (!reg.configAccount) throw new Error("raydium pool registered without an AmmConfig");
     const configAcc = this.require(reg.configAccount, "amm config");
 
-    const pool: RaydiumPoolStateRaw = decodeRaydiumPoolState(poolAcc.data);
-    const ammConfig: RaydiumCpmmAmmConfig = decodeRaydiumAmmConfig(reg.configAccount, configAcc.data);
+    const pool: RaydiumPoolStateRaw = decodeRaydiumPoolState(poolAcc.data, poolAcc.owner);
+    const ammConfig: RaydiumCpmmAmmConfig = decodeRaydiumAmmConfig(
+      reg.configAccount,
+      configAcc.data,
+      configAcc.owner,
+    );
 
     // The registration cached which vault is which; verify against the pool
     // account every time rather than trusting a cache that may predate a
@@ -250,8 +254,8 @@ export class PoolStateStore {
       throw new Error(`pool ${reg.poolId} vault0 ${pool.token0Vault} is not a registered vault`);
     }
 
-    const v0 = decodeTokenAccount(vault0Acc.data);
-    const v1 = decodeTokenAccount(vault1Acc.data);
+    const v0 = decodeTokenAccount(vault0Acc.data, vault0Acc.owner);
+    const v1 = decodeTokenAccount(vault1Acc.data, vault1Acc.owner);
     if (v0.mint !== pool.token0Mint || v1.mint !== pool.token1Mint) {
       throw new Error(
         `vault mints (${v0.mint}/${v1.mint}) do not match pool mints (${pool.token0Mint}/${pool.token1Mint})`,
@@ -293,17 +297,22 @@ export class PoolStateStore {
     const globalAcc = this.require(this.deps.pumpGlobalConfigAddress, "pump global config");
     const feeAcc = this.require(this.deps.pumpFeeConfigAddress, "pump fee config");
 
-    const pool: PumpPoolRaw = decodePumpPool(poolAcc.data);
+    const pool: PumpPoolRaw = decodePumpPool(poolAcc.data, poolAcc.owner);
     const globalConfig: PumpGlobalConfig = decodePumpGlobalConfig(
       this.deps.pumpGlobalConfigAddress,
       globalAcc.data,
+      globalAcc.owner,
     );
-    const feeConfig: PumpFeeConfig = decodePumpFeeConfig(this.deps.pumpFeeConfigAddress, feeAcc.data);
+    const feeConfig: PumpFeeConfig = decodePumpFeeConfig(
+      this.deps.pumpFeeConfigAddress,
+      feeAcc.data,
+      feeAcc.owner,
+    );
 
     const baseAcc = this.require(pool.poolBaseTokenAccount, "pool base token account");
     const quoteAcc = this.require(pool.poolQuoteTokenAccount, "pool quote token account");
-    const base = decodeTokenAccount(baseAcc.data);
-    const quote = decodeTokenAccount(quoteAcc.data);
+    const base = decodeTokenAccount(baseAcc.data, baseAcc.owner);
+    const quote = decodeTokenAccount(quoteAcc.data, quoteAcc.owner);
     if (base.mint !== pool.baseMint || quote.mint !== pool.quoteMint) {
       throw new Error(
         `pool token account mints (${base.mint}/${quote.mint}) do not match pool mints (${pool.baseMint}/${pool.quoteMint})`,

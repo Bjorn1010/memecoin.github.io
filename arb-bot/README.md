@@ -183,6 +183,13 @@ match**, exiting non-zero otherwise. Run it before every live session.
 `npm test` additionally fuzzes the PumpSwap quoter against pump.fun's own SDK
 over 12 000 randomised states, so a math change on their side breaks the build.
 
+One subtlety worth knowing, because it bit this codebase: Anchor derives both
+account and event discriminators from the TYPE NAME alone, so unrelated programs
+collide by construction. Raydium's CP-Swap and its CLMM both define `PoolState`
+and both emit `SwapEvent` with identical leading bytes. Every decoder here
+therefore verifies the owning program, and event parsing is attributed via the
+log's `invoke`/`success` framing. See `ADVERSARIAL_REVIEW.md` §4b and §4c.
+
 ---
 
 ## How the money is counted

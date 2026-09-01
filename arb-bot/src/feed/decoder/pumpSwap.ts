@@ -34,7 +34,22 @@ export const PUMP_POOL_MIN_LEN = 245;
 /** Length WITH it. Live accounts are larger still (reserve space). */
 export const PUMP_POOL_LEN_WITH_VIRTUAL = 261;
 
-function requireDiscriminator(data: Buffer, expected: Buffer, what: string): void {
+/**
+ * Owner AND discriminator. An Anchor discriminator is derived from the account
+ * type's NAME, so two unrelated programs defining `Pool` produce identical
+ * leading bytes; only the owner distinguishes them. See the note in
+ * decoder/raydiumCpmm.ts for the mainnet account that proves this is real.
+ */
+function requireOwnerAndDiscriminator(
+  data: Buffer,
+  owner: string,
+  expectedOwner: string,
+  expected: Buffer,
+  what: string,
+): void {
+  if (owner !== expectedOwner) {
+    throw new DecodeError(what, `account is owned by ${owner}, not ${expectedOwner}`);
+  }
   if (data.length < 8) throw new DecodeError(what, `account is ${data.length} bytes`);
   if (!data.subarray(0, 8).equals(expected)) {
     throw new DecodeError(
@@ -93,8 +108,14 @@ export interface PumpPoolRaw {
  */
 const MAX_PLAUSIBLE_VIRTUAL_RESERVES = 1_000_000_000n * 1_000_000_000n; // 1e9 SOL
 
-export function decodePumpPool(data: Buffer): PumpPoolRaw {
-  requireDiscriminator(data, PUMP_POOL_DISCRIMINATOR, "PumpSwap Pool");
+export function decodePumpPool(data: Buffer, owner: string): PumpPoolRaw {
+  requireOwnerAndDiscriminator(
+    data,
+    owner,
+    PUMP_SWAP_PROGRAM_ID,
+    PUMP_POOL_DISCRIMINATOR,
+    "PumpSwap Pool",
+  );
   if (data.length < PUMP_POOL_MIN_LEN) {
     throw new DecodeError(
       "PumpSwap Pool",
@@ -139,8 +160,18 @@ const GLOBAL = {
   coinCreatorFeeBasisPoints: 313,
 } as const;
 
-export function decodePumpGlobalConfig(address: string, data: Buffer): PumpGlobalConfig {
-  requireDiscriminator(data, PUMP_GLOBAL_CONFIG_DISCRIMINATOR, "PumpSwap GlobalConfig");
+export function decodePumpGlobalConfig(
+  address: string,
+  data: Buffer,
+  owner: string,
+): PumpGlobalConfig {
+  requireOwnerAndDiscriminator(
+    data,
+    owner,
+    PUMP_SWAP_PROGRAM_ID,
+    PUMP_GLOBAL_CONFIG_DISCRIMINATOR,
+    "PumpSwap GlobalConfig",
+  );
   if (data.length < GLOBAL.coinCreatorFeeBasisPoints + 8) {
     throw new DecodeError("PumpSwap GlobalConfig", `account is ${data.length} bytes`);
   }
@@ -167,8 +198,18 @@ export function decodePumpGlobalConfig(address: string, data: Buffer): PumpGloba
  * with `Fees = { lp u64, protocol u64, creator u64 }` and
  * `FeeTier = { market_cap_lamports_threshold u128, fees Fees }`.
  */
-export function decodePumpFeeConfig(address: string, data: Buffer): PumpFeeConfig {
-  requireDiscriminator(data, PUMP_FEE_CONFIG_DISCRIMINATOR, "pump FeeConfig");
+export function decodePumpFeeConfig(
+  address: string,
+  data: Buffer,
+  owner: string,
+): PumpFeeConfig {
+  requireOwnerAndDiscriminator(
+    data,
+    owner,
+    PUMP_FEE_PROGRAM_ID,
+    PUMP_FEE_CONFIG_DISCRIMINATOR,
+    "pump FeeConfig",
+  );
   let o = 8;
   o += 1; // bump
   o += 32; // admin

@@ -438,6 +438,16 @@ export class ArbEngine {
         if (evaluated.quoteError) this.bumpActivity(cycle.buyPoolId, (a) => a.quoteErrors++);
         if (evaluated.rejected) {
           this.deps.metrics.reject(evaluated.rejected);
+          // Record how far short it fell, so a run that finds nothing still
+          // says whether the gaps were nearly there or nowhere near.
+          if (
+            evaluated.rejected === "not-profitable-gross" &&
+            evaluated.sizing.optimalAmountIn > 0n
+          ) {
+            this.deps.metrics.bestCycleBps.record(
+              bpsOf(evaluated.sizing.expectedGrossProfit, evaluated.sizing.optimalAmountIn),
+            );
+          }
           continue;
         }
         if (!evaluated.sized) continue;
@@ -993,7 +1003,7 @@ export class ArbEngine {
 
     let residualTokens: bigint;
     try {
-      residualTokens = decodeTokenAccount(info.data).amount;
+      residualTokens = decodeTokenAccount(info.data, info.owner).amount;
     } catch {
       return; // an unreadable account is handled by the next refresh
     }
@@ -1169,7 +1179,7 @@ export class ArbEngine {
       const info = await this.deps.rpc.getAccount(account.toBase58(), RpcPriority.P0_Critical);
       if (info) {
         try {
-          this.walletState.baseTokenLamports = decodeTokenAccount(info.data).amount;
+          this.walletState.baseTokenLamports = decodeTokenAccount(info.data, info.owner).amount;
         } catch {
           this.walletState.baseTokenLamports = 0n;
         }

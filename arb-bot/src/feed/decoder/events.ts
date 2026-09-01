@@ -21,13 +21,46 @@ export const RAYDIUM_SWAP_EVENT_DISCRIMINATOR = Buffer.from([64, 198, 205, 232, 
 export const PUMP_BUY_EVENT_DISCRIMINATOR = Buffer.from([103, 244, 82, 31, 44, 245, 119, 119]);
 export const PUMP_SELL_EVENT_DISCRIMINATOR = Buffer.from([62, 47, 55, 10, 165, 3, 220, 42]);
 
-/** Every `Program data:` payload in a transaction's logs, decoded from base64. */
-export function eventPayloadsFromLogs(logs: readonly string[]): Buffer[] {
+/**
+ * `Program data:` payloads emitted by ONE specific program.
+ *
+ * Attribution is not optional. An Anchor event discriminator is
+ * `sha256("event:<TypeName>")[0..8]`, so Raydium's CP-Swap and its CLMM — two
+ * different programs — both emit an event called `SwapEvent` with byte-for-byte
+ * identical leading bytes. Reading every `Program data:` line in a transaction
+ * and matching on the discriminator alone therefore parses CLMM swaps as
+ * CP-Swap swaps, yielding a pool id that is a real address belonging to the
+ * wrong program and field values read at the wrong offsets.
+ *
+ * Solana's logs frame each invocation with `Program <id> invoke [depth]` and a
+ * matching `success`/`failed` line, so a `Program data:` line belongs to
+ * whichever program is on top of that stack.
+ */
+export function eventPayloadsFromLogs(
+  logs: readonly string[],
+  programId: string,
+): Buffer[] {
   const out: Buffer[] = [];
+  const stack: string[] = [];
+
   for (const line of logs) {
+    const invoke = /^Program (\S+) invoke \[\d+\]$/.exec(line);
+    if (invoke) {
+      stack.push(invoke[1]!);
+      continue;
+    }
+    if (/^Program \S+ (success|failed)/.test(line)) {
+      stack.pop();
+      continue;
+    }
+
     const marker = "Program data: ";
     const i = line.indexOf(marker);
     if (i < 0) continue;
+    // Only the program we asked about; anything else is a different protocol
+    // that happens to be in the same transaction.
+    if (stack[stack.length - 1] !== programId) continue;
+
     const b64 = line.slice(i + marker.length).trim();
     try {
       out.push(Buffer.from(b64, "base64"));

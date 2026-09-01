@@ -97,7 +97,13 @@ export async function simulateCycle(args: SimulateCycleArgs): Promise<Simulation
   const account = value.accounts?.[0];
   if (account && Array.isArray(account.data) && typeof account.data[0] === "string") {
     try {
-      baseBalanceAfter = decodeTokenAccount(Buffer.from(account.data[0], "base64")).amount;
+      // The owner comes from the simulation result, not from an assumption: the
+      // decoder refuses anything not owned by a token program, so a wrong
+      // account here fails loudly instead of yielding a fabricated balance.
+      baseBalanceAfter = decodeTokenAccount(
+        Buffer.from(account.data[0], "base64"),
+        account.owner,
+      ).amount;
     } catch {
       baseBalanceAfter = null;
     }
