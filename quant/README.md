@@ -231,15 +231,35 @@ quasi nul en horaire, et les coûts consomment plusieurs fois ce qui reste. Le s
 fait exactement son travail : il a refusé de valider quelque chose qui ne marche pas.
 
 Le turnover est le coupable principal (97×/an). La direction de recherche évidente est
-la fréquence plus basse — passer en 4h ou en journalier divise le turnover d'un ordre
-de grandeur pour un edge brut comparable :
+donc la fréquence plus basse. Test unique, en journalier :
 
 ```bash
-qt research BTCUSDT --resample 1D --n-trials 25
+qt research BTCUSDT --resample 1D --n-trials 22
 ```
 
-**Attention en explorant** : chaque configuration testée doit être comptée dans
-`--n-trials`. C'est ce qui empêche la recherche de devenir du data-mining déguisé.
+| | ensemble 1h | ensemble 1D |
+|---|---|---|
+| Turnover annuel | 97× | **6,9×** |
+| CAGR | −4,8 % | −2,0 % |
+| Sharpe | −1,68 | −0,87 |
+| Max drawdown | −18,1 % | −5,4 % |
+| Sharpe dégonflé | 0,000 | 0,003 |
+
+L'hypothèse se confirme : diviser le turnover par 14 réduit la perte de moitié. Mais
+l'edge brut reste négatif — la fréquence n'était pas le seul problème, et le verdict ne
+change pas. C'est la deuxième configuration testée, et elle est comptée comme telle.
+
+Deux mises en garde sur ce tableau :
+
+- **Les deux colonnes ne couvrent pas la même période.** Le warm-up des features est de
+  720 barres, calibré pour de l'horaire ; en journalier il consomme 2 ans d'un
+  échantillon de 4 ans, et l'analyse démarre donc en 2023. Pour de la recherche
+  journalière sérieuse, il faut télécharger l'historique complet :
+  `qt ingest --symbols BTCUSDT --interval 1d --start 2017-08-01`.
+- **Comptez vos essais.** Chaque configuration évaluée doit entrer dans `--n-trials`,
+  y compris celles abandonnées parce qu'elles avaient l'air mauvaises. C'est
+  exactement ce qui sépare la recherche du data-mining, et c'est aussi la règle la plus
+  facile à enfreindre sans s'en rendre compte.
 
 ---
 

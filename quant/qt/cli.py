@@ -167,7 +167,10 @@ def research(
 
     fm = F.build_features(bars, symbol=symbol)
     sig = A.compute_all(bars, fm.X, warn_missing=False)
-    fwd = np.log(bars["close"]).diff(24).shift(-24).reindex(fm.X.index)
+    # Forward-return horizon for the IC: roughly one day of bars, whatever the
+    # frequency. Hardcoding 24 would mean a 24-day horizon on daily bars.
+    h = max(int(round(86_400 / max(bar_seconds, 1.0))), 1)
+    fwd = np.log(bars["close"]).diff(h).shift(-h).reindex(fm.X.index)
     _table(A.alpha_report(sig, fwd, bars_per_year)[["alpha", "ic", "sharpe_gross", "hit_rate", "coverage"]],
            "alpha diagnostics (in-sample — orientation only)")
 

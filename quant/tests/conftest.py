@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from qt.data.schemas import epoch_ms
+
 
 def make_bars(n: int = 2000, seed: int = 7, start: str = "2023-01-01", freq: str = "1h") -> pd.DataFrame:
     """A synthetic OHLCV series with realistic-ish structure.
@@ -34,8 +36,11 @@ def make_bars(n: int = 2000, seed: int = 7, start: str = "2023-01-01", freq: str
 
     df = pd.DataFrame(
         {
-            "ts": (index.astype("int64") // 10**6),
-            "start_ts": (index.astype("int64") // 10**6) - 3_600_000,
+            # Via epoch_ms, not `index.astype("int64") // 10**6`: pd.date_range
+            # returns a microsecond-resolution index on pandas 3, so that expression
+            # yields seconds and every downstream ts is wrong by 1000x.
+            "ts": epoch_ms(index).to_numpy(),
+            "start_ts": epoch_ms(index).to_numpy() - 3_600_000,
             "open": open_,
             "high": np.maximum.reduce([high, open_, close]),
             "low": np.minimum.reduce([low, open_, close]),

@@ -341,3 +341,44 @@ def test_frac_diff_is_causal_and_reduces_nonstationarity():
 
     # And it is much less persistent than the raw level.
     assert fd.dropna().autocorr(1) < walk.autocorr(1)
+
+
+# --------------------------------------------------- timestamp resolution guard
+@pytest.mark.parametrize("rule", ["4h", "1D"])
+def test_resampling_preserves_epoch_milliseconds(bars, rule):
+    """Regression: pandas keeps a DatetimeIndex's own unit, so `astype("int64")` is
+    NOT nanoseconds for a ms- or us-backed index. Dividing by 1e6 there silently
+    produced timestamps ~10^6 times too small, which surfaced as absurd Sharpe
+    ratios rather than as an error. See qt.data.schemas.epoch_ms.
+    """
+    from qt.bars import bars_from_klines
+
+    out = bars_from_klines(bars, rule)
+    assert not out.empty
+    # A plausible epoch-ms value for a date in this century.
+    assert out["ts"].min() > 1_500_000_000_000
+    assert out["ts"].max() < 3_000_000_000_000
+    expected_step = int(pd.Timedelta(rule).total_seconds() * 1000)
+    assert int(out["ts"].diff().median()) == expected_step
+    assert (out["ts"] - out["start_ts"] == expected_step).all()
+
+
+def test_resampling_preserves_signed_flow(bars):
+    """Downsampled bars must keep buy/sell volume, or every flow feature goes NaN."""
+    from qt.bars import bars_from_klines
+
+    out = bars_from_klines(bars, "4h")
+    assert out["buy_volume"].notna().any()
+    assert np.isclose(out["buy_volume"] + out["sell_volume"], out["volume"]).all()
+
+
+def test_epoch_ms_is_resolution_independent():
+    from qt.data.schemas import epoch_ms
+
+    target = 1_609_545_600_000
+    from_ms = pd.to_datetime(pd.Series([target]), unit="ms", utc=True)
+    from_str = pd.to_datetime(pd.Series(["2021-01-02 00:00:00"]), utc=True)
+    assert int(epoch_ms(from_ms).iloc[0]) == target
+    assert int(epoch_ms(from_str).iloc[0]) == target
+    # A tz-naive index is assumed UTC rather than silently shifted.
+    assert int(epoch_ms(pd.DatetimeIndex(["2021-01-02"])).iloc[0]) == target

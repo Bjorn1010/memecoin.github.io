@@ -22,6 +22,8 @@ from typing import Literal
 import numpy as np
 import pandas as pd
 
+from ..data import schemas
+
 BAR_COLUMNS = [
     "ts",  # close timestamp (ms) — the instant the bar's information is complete
     "start_ts",
@@ -194,13 +196,21 @@ def bars_from_klines(klines: pd.DataFrame, rule: str = "4h") -> pd.DataFrame:
         "quote_volume": "sum",
         "trades": "sum",
     }
-    if "taker_buy_base" in df.columns:
-        agg["taker_buy_base"] = "sum"
+    # Signed flow must survive the resample, otherwise every microstructure feature
+    # silently goes NaN on downsampled bars. Accept either the archive's column name
+    # or the bar frame's, so this works on klines and on already-built bars alike.
+    flow_col = None
+    for candidate in ("taker_buy_base", "buy_volume"):
+        if candidate in df.columns and df[candidate].notna().any():
+            agg[candidate] = "sum"
+            flow_col = candidate
+            break
     res = df.resample(rule, label="right", closed="right").agg(agg).dropna(subset=["close"])
+    ts_ms = schemas.epoch_ms(res.index).to_numpy()
     out = pd.DataFrame(
         {
-            "ts": (res.index.astype("int64") // 10**6),
-            "start_ts": (res.index.astype("int64") // 10**6) - _rule_ms(rule),
+            "ts": ts_ms,
+            "start_ts": ts_ms - _rule_ms(rule),
             "open": res["open"].to_numpy(),
             "high": res["high"].to_numpy(),
             "low": res["low"].to_numpy(),
@@ -216,8 +226,8 @@ def bars_from_klines(klines: pd.DataFrame, rule: str = "4h") -> pd.DataFrame:
             "trades": res["trades"].to_numpy(),
         }
     )
-    if "taker_buy_base" in res.columns:
-        out["buy_volume"] = res["taker_buy_base"].to_numpy()
+    if flow_col is not None and flow_col in res.columns:
+        out["buy_volume"] = res[flow_col].to_numpy()
         out["sell_volume"] = out["volume"] - out["buy_volume"]
     else:
         out["buy_volume"] = np.nan
