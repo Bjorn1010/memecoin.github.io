@@ -32,6 +32,7 @@ from ..risk.limits import RiskEngine
 from ..risk.sizing import volatility_target_weight
 from .broker import PaperBroker
 from .feed import LiveFeed
+from .health import HealthMonitor, console_alert
 from .state import Store
 from .strategy import Strategy
 
@@ -54,6 +55,10 @@ class LoopConfig:
     risk: RiskLimits = field(default_factory=RiskLimits)
     persist: bool = True
     verbose: bool = True
+    # A feed silent for longer than this is treated as dead rather than as calm. Set
+    # it to several bar intervals: a 1m feed that says nothing for 5 minutes is broken.
+    stale_after_seconds: float = 300.0
+    alert_on_health_change: bool = True
 
     def __post_init__(self) -> None:
         seconds = pd.Timedelta(self.interval).total_seconds()
@@ -93,6 +98,10 @@ class PaperTradingLoop:
             self.run_id, self.config.starting_equity, self.config.costs, self.store
         )
         self.risk = RiskEngine(self.config.risk, self.config.starting_equity)
+        self.health = HealthMonitor(
+            stale_after_seconds=self.config.stale_after_seconds,
+            on_status_change=console_alert if self.config.alert_on_health_change else None,
+        )
         self.history: dict[str, pd.DataFrame] = {}
         self.last_prices: dict[str, float] = {}
         self.n_bars = 0
@@ -167,6 +176,7 @@ class PaperTradingLoop:
     def on_bar(self, bar: dict) -> None:
         symbol = bar["symbol"]
         ts = int(bar["ts"])
+        self.health.record_data()
         self._append(symbol, bar)
         self.last_prices[symbol] = float(bar["close"])
 
@@ -184,6 +194,16 @@ class PaperTradingLoop:
             if fills and self.config.verbose:
                 print(f"[loop] HALTED ({halt}) — flattened {len(fills)} position(s)")
             self._persist_equity(ts, halted=True)
+            return
+
+        # A degraded feed blocks NEW risk but never forces a liquidation: flattening
+        # on stale prices is its own way to lose money. Existing positions stay under
+        # the risk engine's normal limits.
+        if not self.health.trading_allowed:
+            status = self.health.status()
+            if self.config.verbose:
+                print(f"[loop] feed unhealthy ({status.reason}) — taking no new risk")
+            self._persist_equity(ts, halted=False)
             return
 
         raw_signal = self._safe_signal(symbol)
@@ -310,6 +330,7 @@ class PaperTradingLoop:
             "broker": self.broker.snapshot(self.last_prices),
             "risk": self.risk.status(),
             "diagnostics": self.strategy.diagnostics(),
+            "health": self.health.report(),
             "errors": self.errors[-10:],
             "n_errors": len(self.errors),
             "paper_only": True,

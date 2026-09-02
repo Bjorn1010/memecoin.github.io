@@ -24,3 +24,9 @@ from .stationarity import (  # noqa: F401
     stationarity_report,
     variance_ratio_test,
 )
+from .regime_switching import (  # noqa: F401
+    RegimeFit,
+    fit_regimes,
+    regime_conditional_performance,
+    regime_probabilities,
+)

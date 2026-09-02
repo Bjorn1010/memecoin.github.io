@@ -165,7 +165,7 @@ class Store:
         with self.tx() as c:
             c.execute(
                 "INSERT OR REPLACE INTO runs(run_id, started_at, config_json, status, note) VALUES (?,?,?,?,?)",
-                (run_id, int(pd.Timestamp.utcnow().value // 10**6), json.dumps(config, default=str), "running", note),
+                (run_id, int(pd.Timestamp.now("UTC").value // 10**6), json.dumps(config, default=str), "running", note),
             )
 
     def finish_run(self, run_id: str, status: str = "stopped") -> None:

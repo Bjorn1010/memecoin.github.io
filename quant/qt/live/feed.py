@@ -160,7 +160,7 @@ class PollingCandleFeed(LiveFeed):
         self._last_emitted: dict[str, int] = defaultdict(int)
 
     def _fetch(self, symbol: str) -> pd.DataFrame:
-        lookback = pd.Timestamp.utcnow() - pd.Timedelta(hours=6)
+        lookback = pd.Timestamp.now("UTC") - pd.Timedelta(hours=6)
         if self.venue == "hyperliquid":
             return hyperliquid.candles(symbol, self.interval, start=lookback)
         if self.venue == "coinbase":
@@ -170,7 +170,7 @@ class PollingCandleFeed(LiveFeed):
         raise ValueError(f"unknown venue {self.venue!r}")
 
     async def bars(self) -> AsyncIterator[dict]:
-        now_ms = int(pd.Timestamp.utcnow().value // 10**6)
+        now_ms = int(pd.Timestamp.now("UTC").value // 10**6)
         while True:
             for symbol in self.symbols:
                 try:
@@ -180,7 +180,7 @@ class PollingCandleFeed(LiveFeed):
                     continue
                 if df.empty:
                     continue
-                now_ms = int(pd.Timestamp.utcnow().value // 10**6)
+                now_ms = int(pd.Timestamp.now("UTC").value // 10**6)
                 for _, row in df.iterrows():
                     ts = int(row["ts"])
                     # Only closed candles, and only ones not already emitted.

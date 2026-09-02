@@ -565,5 +565,162 @@ def vol_surface(
     )
 
 
+# ------------------------------------------------------- deep history & sizing
+@app.command()
+def deep_history(
+    symbols: str = typer.Option("BTCUSDT,ETHUSDT,BNBUSDT,XRPUSDT,ADAUSDT,LTCUSDT,DOGEUSDT,SOLUSDT,AVAXUSDT,LINKUSDT"),
+    interval: str = typer.Option("1d"),
+    bitstamp: bool = typer.Option(True, help="also pull Bitstamp, which reaches back to 2011"),
+    macro: bool = typer.Option(True, help="also pull cross-asset context from Stooq"),
+) -> None:
+    """Download EVERY bar each venue has, back to each symbol's listing date.
+
+    The default 'from 2021' is a quiet methodological choice and a bad one: a model
+    validated on 2021-2024 has seen exactly one regime transition.
+    """
+    from .data import Catalog, coverage_report, ingest_deep_crypto, ingest_full_history, ingest_macro
+
+    CONFIG.ensure_dirs()
+    cat = Catalog()
+    syms = [x.strip().upper() for x in symbols.split(",") if x.strip()]
+
+    console.print(f"[cyan]probing listing dates and downloading[/cyan] {len(syms)} symbols at {interval}")
+    _table(ingest_full_history(cat, syms, interval=interval), "Binance, from listing")
+
+    if bitstamp:
+        console.print("[cyan]Bitstamp[/cyan] — the deepest free crypto history (2011+)")
+        _table(ingest_deep_crypto(cat, interval=interval), "Bitstamp")
+    if macro:
+        console.print("[cyan]Stooq[/cyan] — cross-asset context")
+        _table(ingest_macro(cat), "macro")
+
+    _table(coverage_report(cat), "coverage — read the `years` column before trusting a backtest")
+
+
+@app.command()
+def import_tradingview(
+    path: str = typer.Argument(..., help="a CSV exported from a TradingView chart, or a directory"),
+    interval: str = typer.Option("1d"),
+) -> None:
+    """Import chart data you exported from your own TradingView account.
+
+    TradingView publishes no free historical API — it licenses most of its data and
+    cannot redistribute it. Exporting from your own charts is the legitimate route;
+    for depth, `qt deep-history` reaches further than TradingView's own coverage.
+    """
+    from pathlib import Path as _Path
+
+    from .data import Catalog
+    from .data.sources import tradingview as tv
+
+    cat = Catalog()
+    target = _Path(path)
+    if target.is_dir():
+        _table(tv.import_directory(target, cat, interval=interval), "imported")
+    else:
+        df = tv.read_csv(target, catalog=cat, interval=interval)
+        console.print(f"[green]imported[/green] {len(df)} bars from {target.name}")
+
+
+@app.command()
+def sizing(
+    win_rate: float = typer.Option(0.50, help="probability of a winning bet"),
+    payoff: float = typer.Option(1.0, help="average win divided by average loss"),
+    n_bets: int = typer.Option(1000),
+    n_paths: int = typer.Option(2000),
+) -> None:
+    """Measure what every bet-sizing progression actually does. Martingale included.
+
+    Read `ruin_rate` and `p05_final`, not the median — every progression looks fine at
+    the median, and the gap between the median and the 5th percentile is the subject.
+    """
+    from . import sizing as Z
+
+    console.print("[bold]Martingale capital requirement[/bold] (100-unit base)")
+    table = Z.martingale_capital_table(base_unit=100.0, max_losses=12)
+    _table(
+        table[["n_consecutive_losses", "next_stake", "capital_required",
+               "probability_at_50pct", "days_until_expected_at_20_per_day"]],
+        "capital needed vs how often you need it",
+    )
+
+    edge = win_rate * payoff - (1 - win_rate)
+    console.print(
+        f"\n[bold]Monte Carlo[/bold]: win rate {win_rate:.0%}, payoff {payoff}, "
+        f"edge per bet {edge:+.4f} over {n_bets} bets x {n_paths} paths"
+    )
+    res = Z.compare_progressions(win_rate=win_rate, payoff=payoff, n_bets=n_bets, n_paths=n_paths)
+    _table(res.reset_index().round(4), "progressions")
+
+    k = Z.kelly_fraction(win_rate, payoff)
+    if k["full_kelly"] and k["full_kelly"] > 0:
+        console.print(
+            f"\n[bold]Kelly[/bold]: full {k['full_kelly']:.3f}, quarter {k['fractional_kelly']:.3f} "
+            f"(keeps {k['growth_retained']:.0%} of the growth)"
+        )
+        _table(Z.sizing_report(win_rate, payoff).round(4), "how much to bet")
+    else:
+        console.print(
+            "\n[yellow]No edge: Kelly is zero or negative. No sizing rule creates edge — "
+            "sizing scales outcomes, it does not manufacture them.[/yellow]"
+        )
+
+
+@app.command()
+def regimes(
+    symbol: str = typer.Argument("BTCUSDT"),
+    interval: str = typer.Option("1h"),
+    venue: str = typer.Option("binance"),
+    n_states: int = typer.Option(2),
+) -> None:
+    """Fit a Markov-switching model and show what the market's regimes actually are."""
+    import numpy as np
+
+    from . import econometrics as E
+
+    bars = _load_bars(symbol, venue, interval)
+    ret = np.log(bars["close"]).diff().dropna()
+    console.print(f"[cyan]{symbol}[/cyan] {len(ret)} returns")
+
+    fit = E.fit_regimes(ret, n_states=n_states)
+    _table(fit.summary().reset_index().rename(columns={"index": "state"}).round(6),
+           f"{n_states} fitted regimes")
+    _table(fit.transition_matrix.round(4).reset_index().rename(columns={"index": "from"}),
+           "transition matrix")
+    console.print(
+        f"converged={fit.converged}  loglik={fit.loglikelihood:.0f}  "
+        f"current state={fit.labels.get(fit.current_state(), fit.current_state())}"
+    )
+
+
+@app.command()
+def allocate_backtest(
+    symbols: str = typer.Option("BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT,ADAUSDT,AVAXUSDT,LINKUSDT,DOGEUSDT,LTCUSDT"),
+    interval: str = typer.Option("1h"),
+    venue: str = typer.Option("binance"),
+    lookback: int = typer.Option(720),
+    rebalance_every: int = typer.Option(168),
+) -> None:
+    """Trade every portfolio optimiser through the engine, with costs.
+
+    The column that decides the winner is not `sharpe` but `turnover_annual` next to
+    `cost_share_of_gross`. An optimiser that wins before costs and churns has not won.
+    """
+    from .backtest import AllocationSpec, BacktestConfig, compare_allocations
+
+    syms = [x.strip().upper() for x in symbols.split(",") if x.strip()]
+    prices = {}
+    for sym in syms:
+        prices[sym.replace("USDT", "")] = _load_bars(sym, venue, interval)
+
+    bar_seconds = float(pd.Series(next(iter(prices.values()))["ts"]).diff().median()) / 1000.0
+    bars_per_year = 365 * 24 * 3600 / max(bar_seconds, 1.0)
+
+    console.print(f"[cyan]panel[/cyan] {len(prices)} assets x {len(next(iter(prices.values())))} bars")
+    spec = AllocationSpec(lookback=lookback, rebalance_every=rebalance_every)
+    table = compare_allocations(prices, spec=spec, config=BacktestConfig(bars_per_year=bars_per_year))
+    _table(table.reset_index().round(4), "allocators, traded, after costs")
+
+
 if __name__ == "__main__":
     app()

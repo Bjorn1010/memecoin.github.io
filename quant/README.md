@@ -47,7 +47,18 @@ Sources vérifiées comme accessibles et normalisées vers un schéma unique (`q
 | **Coinbase** | WebSocket trades (avec côté agresseur), candles REST | Le flux live du paper trading |
 | **Kraken** | OHLC et spread récents | Contrôle de cohérence des prix entre venues |
 | **Deribit** | DVOL (l'indice de vol implicite crypto) | Prime de risque de variance, un régime-detector propre |
+| **Bitstamp** | **BTC quotidien depuis le 19/08/2011 — 15,0 ans** | L'historique crypto gratuit le plus profond qui existe. Couvre les cycles 2013 et 2017, dont la microstructure (pas de perpétuels, pas de flux institutionnel, carnets bien plus fins) fait un test nettement plus dur que tout ce qui suit 2020 |
 | **Stooq** | EOD actions, indices, VIX, DXY, or, crédit | Contexte cross-asset — une des rares sources d'information *orthogonale* |
+| ~~TradingView~~ | **aucune API historique gratuite** | Vérifié : recherche de symboles 403, endpoints de données 404, seul le screener répond et ne renvoie qu'un instantané. TradingView **licencie** la majorité de ses données et n'a pas le droit de les redistribuer. Ce qui est implémenté : l'import des CSV que vous exportez depuis vos propres graphiques |
+
+```bash
+qt deep-history            # sonde la date de listing de chaque symbole et prend TOUT
+qt import-tradingview mes_exports/   # vos propres exports CSV
+```
+
+Le défaut « télécharger depuis 2021 » est un choix méthodologique silencieux et mauvais :
+un modèle validé sur 2021-2024 n'a vu **qu'une seule transition de régime**. La colonne
+`years` de `coverage_report` est à lire avant de faire confiance à un Sharpe.
 
 Le lac de données est en Parquet immuable + DuckDB pour la recherche :
 
@@ -74,6 +85,7 @@ qt/
 ├── derivatives/    Black-Scholes, grecques, SVI, Heston, sauts de Merton
 ├── execution/      Almgren-Chriss, TWAP/VWAP/POV, shortfall, Avellaneda-Stoikov
 ├── strategies/     arbitrage statistique (cointégration + Kalman + OU + coûts)
+├── sizing/         martingale et sa famille, Kelly, optimal f, risque de ruine
 ├── backtest/       moteur événementiel, modèle de coûts, métriques, walk-forward
 ├── risk/           vol targeting, Kelly fractionnel, limites dures, coupe-circuits
 ├── live/           boucle de paper trading, broker simulé, feeds, état SQLite
@@ -284,6 +296,34 @@ analytiquement** — pas seulement « ça s'exécute » :
 | Dérivés | Black-Scholes + grecques, vol implicite, SVI, swap de variance, Heston, sauts de Merton | **Heston → Black-Scholes exactement quand la vol-de-vol → 0** ; swap de variance = vol plate sur smile plat ; parité call-put |
 | Exécution | Almgren-Chriss, frontière efficiente, TWAP/VWAP/POV, implementation shortfall, Avellaneda-Stoikov | **aversion nulle → TWAP exactement** ; le skew d'inventaire borne la position |
 
+### La martingale, mesurée plutôt que débattue
+
+Vous avez demandé à explorer la martingale. Elle est implémentée — avec l'anti-martingale,
+D'Alembert, Fibonacci, la fraction fixe et le ratio fixe — et surtout **mesurée** :
+
+```bash
+qt sizing --win-rate 0.55
+```
+
+Monte Carlo, 1 000 paris, 2 000 chemins, pièce équilibrée :
+
+| | Martingale | Fraction fixe |
+|---|---|---|
+| Taux de ruine | **79 %** | **0 %** |
+| Médiane finale | **0** | 94 181 |
+| Moyenne finale | 107 628 | 99 704 |
+
+La moyenne dépasse le capital initial pendant que la médiane est à zéro. **C'est
+exactement le mécanisme qui trompe.**
+
+Et avec un edge **authentique** de 55 % : la martingale ruine encore **46,5 %** des
+comptes, contre **0 %** pour la mise plate ou la fraction fixe. L'edge ne sauve pas, il
+déplace la date.
+
+Deux autres chiffres du même module :
+- À **plein Kelly**, la probabilité d'un drawdown de 20 % est de **1,0 — la certitude**.
+- À **2,5× Kelly**, une stratégie avec un edge réel finit à **3,5 %** du capital.
+
 ### Trois résultats mesurés qui valent d'être lus
 
 **1. Un portefeuille équipondéré de 10 crypto a 1,02 « pari effectif ».**
@@ -329,16 +369,25 @@ autres du même genre est dans [`docs/methods.md`](docs/methods.md).
 | `qt allocate` | comparaison des optimiseurs + décomposition du risque + stress tests |
 | `qt execution` | frontière efficiente d'Almgren-Chriss |
 | `qt vol-surface` | ajustement SVI / Heston / Merton d'un smile |
+| `qt deep-history` | télécharge tout l'historique disponible, jusqu'à la date de listing |
+| `qt import-tradingview` | importe vos propres exports CSV TradingView |
+| `qt sizing` | mesure martingale, Kelly, optimal f et risque de ruine |
+| `qt regimes SYM` | régimes markoviens : combien de marchés y a-t-il vraiment |
+| `qt allocate-backtest` | trade chaque optimiseur à travers le moteur, avec coûts |
 
 ## Tests
 
 ```bash
-.venv/bin/python -m pytest tests/ -q     # 75 tests, ~45 s
+.venv/bin/python -m pytest tests/ -q     # 100 tests, ~65 s
 ```
 
 `tests/test_no_lookahead.py` contient les tests qui comptent : causalité de tout le
 registre de features, convention d'exécution du moteur, purge de la CV, et alignement
 features/labels.
+
+`tests/test_sizing_and_regimes.py` teste la martingale contre son arithmétique plutôt
+que contre une opinion, et vérifie que les probabilités de régime et les poids de
+portefeuille restent causaux.
 
 `tests/test_quant_methods.py` teste le toolkit quant contre des cas dont la réponse est
 connue analytiquement — un modèle qui « tourne » sans erreur mais renvoie un chiffre faux
@@ -370,6 +419,11 @@ un dashboard qui pourrait modifier des positions est un accident en attente.
   (`agg_trades`) mais que le moteur ne consomme pas encore.
 - Le funding est appliqué depuis la série réalisée quand elle est fournie ; sinon il
   vaut zéro, ce qui **flatte** les positions longues sur perps.
+- **TradingView n'est pas une source de données** ici, et ne peut pas l'être : aucune
+  API historique gratuite n'existe. Bitstamp va plus loin de toute façon (2011 contre la
+  couverture crypto de TradingView).
+- Les progressions type martingale sont implémentées **pour être mesurées**, pas
+  recommandées. Le module montre pourquoi : 46,5 % de ruine même avec un edge gagnant.
 - Les résultats ci-dessus sont un point de départ, pas une stratégie. Ils disent
   « ceci ne marche pas », ce qui est utile et n'est pas la même chose que « voici ce qui
   marche ».

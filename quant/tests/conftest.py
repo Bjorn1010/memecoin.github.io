@@ -88,3 +88,13 @@ def tmp_catalog(tmp_path):
     from qt.data import Catalog
 
     return Catalog(tmp_path / "lake")
+
+
+def make_panel(n: int = 1500, seed: int = 8, symbols=("A", "B", "C")) -> dict[str, pd.DataFrame]:
+    """A small multi-asset panel for portfolio tests."""
+    return {name: make_bars(n=n, seed=seed + i) for i, name in enumerate(symbols)}
+
+
+@pytest.fixture
+def panel() -> dict[str, pd.DataFrame]:
+    return make_panel()

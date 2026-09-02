@@ -10,3 +10,11 @@ from .metrics import (  # noqa: F401
     trade_statistics,
 )
 from .walkforward import WalkForwardResult, WalkForwardSpec, rule_backtest, walk_forward  # noqa: F401
+from .portfolio_backtest import (  # noqa: F401
+    ALLOCATORS,
+    AllocationSpec,
+    PortfolioBacktestResult,
+    build_weights,
+    compare_allocations,
+    run_portfolio_backtest,
+)

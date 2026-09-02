@@ -245,6 +245,183 @@ rentabilité, non. Le screen avait raison.
 
 ---
 
+
+---
+
+## 6. Dimensionnement des mises — `qt/sizing/`
+
+### Les progressions (`progressions.py`)
+
+Ces systèmes se discutent d'habitude au lieu de se calculer. C'est une erreur dans les
+deux sens : la martingale n'est ni l'argent gratuit que vantent ses partisans, ni
+l'impossibilité mathématique que dénoncent ses détracteurs. C'est une **transformation
+calculable** d'une distribution de rendements, et la chose honnête est de l'implémenter
+et de la mesurer.
+
+| Progression | Après une PERTE | Après un GAIN | Caractère |
+|---|---|---|---|
+| Martingale | double | reset | beaucoup de petits gains, ruine rare |
+| Anti-martingale (Paroli) | reset | double | beaucoup de petites pertes, gros gain rare |
+| D'Alembert | +1 unité | −1 unité | martingale linéaire, même forme |
+| Fibonacci | avance d'un rang | recule de deux | plus douce encore, même forme |
+| **Fraction fixe** | **% constant du capital** | **% constant** | **aucun état de ruine** |
+| Ratio fixe | croît avec le profit cumulé | idem | compromis de Jones |
+
+**Ce que dit vraiment la mathématique, mesuré par Monte Carlo (1000 paris, 2000 chemins) :**
+
+Pièce équilibrée, aucun edge :
+
+| | Martingale | Fraction fixe |
+|---|---|---|
+| Taux de ruine | **79 %** | **0 %** |
+| Médiane finale | **0** | 94 181 |
+| Moyenne finale | 107 628 | 99 704 |
+| % de comptes profitables | 20,8 % | 44,6 % |
+
+La moyenne dépasse le capital de départ pendant que la médiane est à zéro. **C'est
+exactement le mécanisme qui trompe** : agrégée sur beaucoup de comptes, la moyenne
+paraît saine grâce à quelques survivants énormes ; le compte typique est liquidé.
+
+Avec un edge **authentique** de 55 % :
+
+| Progression | Taux de ruine |
+|---|---|
+| Plate | 0 % |
+| Fraction fixe | 0 % |
+| D'Alembert | 15,9 % |
+| **Martingale** | **46,5 %** |
+
+**La martingale tue encore 46 % des comptes avec un vrai edge gagnant.** L'edge ne
+sauve pas — il déplace seulement la date. Et avec un edge négatif de 48 % (réaliste
+après coûts), la martingale ruine 88,9 % des comptes et D'Alembert 96,2 %.
+
+**Le tableau du capital requis** (`martingale_capital_table`) est de l'arithmétique, pas
+une opinion : survivre à n pertes consécutives exige 2ⁿ−1 unités, avec une probabilité
+de 2⁻ⁿ. Le capital croît géométriquement, la probabilité décroît au même rythme, et leur
+produit — le coût espéré — ne diminue pas. Onze pertes d'affilée exigent 2 047 unités et
+surviennent environ tous les 2 048 séquences, soit tous les **102 jours** à 20 trades
+par jour.
+
+### Ruine, Kelly et optimal f (`ruin.py`)
+
+**⚠ mesuré** : à **plein Kelly** (10 % par pari sur un edge de 55 %), la probabilité de
+subir un drawdown de 20 % est de **1,0 — la certitude**. À 2,5× Kelly, une stratégie
+avec un edge réel finit à **3,5 % du capital initial** : le sur-pari transforme un edge
+gagnant en ruine, parce qu'au-delà du pic de Kelly la croissance composée devient
+négative.
+
+Kelly fractionnel au quart conserve **44 % de la croissance** pour un quart de la mise.
+C'est pourquoi c'est le choix standard.
+
+**Sans edge, la ruine est certaine quelle que soit la taille des mises.** La taille
+change le délai, pas l'issue. Aucune règle de dimensionnement ne crée d'edge — elle met
+à l'échelle des résultats, elle n'en fabrique pas.
+
+---
+
+## 7. Changement de régime markovien — `qt/econometrics/regime_switching.py`
+
+Les régimes par quantiles glissants (`features/regime.py`) sont rapides et causaux mais
+ne donnent ni probabilité d'état, ni durée attendue, ni détection de transition avant
+confirmation par le prix. Le modèle de Markov estime tout cela.
+
+**Mesuré sur BTC horaire, 2 états :** calme à **27,3 % de vol annualisée** (persistance
+12,8 barres) et turbulent à **103,6 %** (persistance 6,2 barres).
+
+**3 états :** calme 15,8 %, normal 41,5 %, **crise 130,7 % avec moyenne négative**.
+
+**⚠ deux pièges décisifs :**
+1. **Probabilités filtrées, jamais lissées.** `smoothed_marginal_probabilities` est ce
+   que statsmodels trace par défaut et utilise **tout l'échantillon à chaque point**.
+   Un backtest piloté par là sera extraordinaire et sans valeur. Ce module n'expose que
+   les probabilités filtrées.
+2. **Réajuster sur fenêtres glissantes.** Un modèle ajusté une fois sur tout
+   l'échantillon connaît l'histoire complète quand il étiquette 2021.
+
+**⚠** Les états sortent dans un ordre arbitraire et peuvent permuter entre deux
+réajustements. Les labels sont donc attribués **par propriété** (volatilité) et non par
+indice, sinon conditionner sur « l'état 0 » signifie autre chose chaque semaine.
+
+---
+
+## 8. Backtest de portefeuille multi-actifs — `qt/backtest/portfolio_backtest.py`
+
+Jusqu'ici les optimiseurs produisaient des poids que rien ne consommait. Toute la
+différence entre optimiseurs se joue dans le **turnover**, et elle n'apparaît qu'une
+fois les coûts payés.
+
+**Mesuré sur 10 crypto, 2021-2024, rééquilibrage hebdomadaire, coûts réels :**
+
+| Méthode | Sharpe | Turnover/an | Coûts/brut | Trades | Paris effectifs |
+|---|---|---|---|---|---|
+| max_diversification | **0,98** | 5,6× | 1,5 % | 190 | 1,38 |
+| equal_weight | 0,78 | 5,3× | **0,7 %** | **88** | 1,07 |
+| hrp | 0,62 | 6,0× | 1,4 % | 146 | 1,30 |
+| inverse_vol | 0,57 | 5,0× | 1,2 % | 101 | 1,17 |
+| risk_parity | 0,51 | 5,6× | 1,3 % | 103 | 1,16 |
+| **min_variance** | **0,44** | 5,3× | **3,9 %** | **213** | 2,07 |
+
+Deux résultats :
+
+1. **L'équipondéré bat risk parity, inverse-vol, min-variance et HRP.** C'est le
+   résultat de DeMiguel, Garlappi & Uppal, confirmé sur ces données.
+2. **La variance minimale est la pire tout en payant 6× plus de coûts** (213 trades
+   contre 88). Elle gagne sur le papier et perd une fois tradée — exactement le mode
+   d'échec par churn documenté dans le module.
+
+**⚠** La covariance est estimée sur fenêtre glissante uniquement. L'ajuster sur tout
+l'échantillon — ce que fait presque toute comparaison publiée d'optimiseurs — rend la
+variance minimale spectaculaire pour une raison évidente.
+
+---
+
+## 9. Profondeur d'historique — `qt/data/history.py`, `bitstamp.py`, `tradingview.py`
+
+**TradingView ne publie aucune API de données historiques gratuite, et ne le peut pas** :
+il licencie la majorité de ses données auprès des bourses sous des accords interdisant
+la redistribution. Vérifié : recherche de symboles 403, endpoints de données 404, et le
+seul endpoint ouvert (`scanner`) renvoie des instantanés de screener sans historique.
+
+Ce qui est légitime et implémenté : import des CSV que vous exportez depuis vos propres
+graphiques, et lecture du screener en tant qu'instantané assumé.
+
+Ce qui est **plus profond** que TradingView, et gratuit :
+
+| Source | Profondeur mesurée |
+|---|---|
+| **Bitstamp** | **BTC quotidien depuis le 19/08/2011 — 15,0 ans, 5 495 barres** |
+| Binance Vision | depuis août 2017, le premier mois d'existence de BTCUSDT |
+| Coinbase | 2015+ |
+| Stooq | décennies d'actions et d'indices |
+
+`find_first_month` sonde l'archive **par bissection** pour trouver la vraie date de
+listing de chaque symbole : ~7 requêtes au lieu de ~100. Dates trouvées : BTCUSDT
+2017-08, DOGEUSDT 2019-07, SOLUSDT 2020-08, AVAXUSDT 2020-09.
+
+**⚠** Le défaut « télécharger depuis 2021 » est un choix méthodologique silencieux et
+mauvais : un modèle validé sur 2021-2024 n'a vu **qu'une seule transition de régime**.
+`coverage_report` affiche une colonne `years` et les cycles couverts, à lire avant de
+faire confiance à un Sharpe.
+
+---
+
+## 10. Résilience du flux — `qt/live/health.py`
+
+Ce qui met fin aux sessions de paper trading n'est pas un mauvais signal, c'est un
+WebSocket tombé à 3h du matin et un processus qui reste neuf heures avec une position
+en croyant au dernier prix vu.
+
+- Reconnexion à backoff exponentiel **avec jitter** — sans jitter, tous les clients se
+  reconnectent au même instant après un redémarrage de la venue et se font tous refuser.
+- **Détection de silence** : une connexion ouverte mais muette est plus dangereuse
+  qu'une connexion fermée, parce que rien ne lève d'exception.
+- **Contrôle croisé entre venues** : un prix qui diverge de plus de la tolérance d'une
+  venue indépendante est presque toujours un mauvais print, pas un arbitrage.
+
+Principe : **un système en mauvaise santé ne prend aucun risque nouveau.** Mais il ne
+liquide pas non plus — solder sur des prix périmés est une autre façon de perdre.
+
+
 ## Le fil conducteur
 
 Chaque piège listé ci-dessus produit un résultat **plus flatteur** que la vérité. Aucun ne
@@ -259,6 +436,11 @@ lève d'exception ; tous produisent des chiffres confiants et faux :
 | Optimum au bord de grille présenté comme résultat | « +104 % annualisé » sur une paire non tradable |
 | Secondes mélangées aux pas dans Almgren-Chriss | λ sans effet, liquidation toujours immédiate |
 | Pondération IC sur échantillon complet | Poids de janvier connaissant décembre suivant |
+| Valeurs critiques ADF au lieu d'Engle-Granger | 14 faux positifs sur 20 |
+| Probabilités de régime lissées au lieu de filtrées | Le modèle voit tout l'échantillon à chaque point |
+| Covariance ajustée sur tout l'échantillon | Min-variance devient spectaculaire |
+| `pd.Timestamp(x, tz="UTC")` sur un objet déjà tz-aware | Exception seulement quand l'argument optionnel est omis |
+| Martingale jugée sur la moyenne | Moyenne à 107 628, médiane à 0 |
 
 C'est la raison d'être des 75 tests : ils ne vérifient pas que le code s'exécute, ils
 vérifient qu'il donne la **bonne réponse** dans les cas où elle est connue analytiquement.
