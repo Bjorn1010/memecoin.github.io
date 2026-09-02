@@ -215,11 +215,22 @@ def test_equity_is_marked_to_market_between_cycles(seeded, spec):
                           equity=100_000.0)
 
     equity, drawdown, held = mark_to_market(store, "mtm", prices, spec)
-    realised = float(prices[prices.columns[0]].iloc[-1] / prices[prices.columns[0]].loc[mid] - 1.0)
 
-    assert held == {prices.columns[0]: 0.5}
+    # Entered one bar AFTER the decision, not at its close. A decision made from bar t's
+    # close cannot fill at that close; crediting it anyway is a one-bar look-ahead worth
+    # a full point of CAGR, which is what replaying this cycle over 2012-2026 revealed.
+    column = prices.columns[0]
+    entry = prices.index[list(prices.index).index(mid) + 1]
+    realised = float(prices[column].iloc[-1] / prices[column].loc[entry] - 1.0)
+    optimistic = float(prices[column].iloc[-1] / prices[column].loc[mid] - 1.0)
+
+    assert held == {column: 0.5}
     assert equity != pytest.approx(100_000.0), "equity never moved — the book is not valued"
     assert equity == pytest.approx(100_000.0 * (1 + 0.5 * realised), rel=1e-9)
+    if abs(realised - optimistic) > 1e-9:
+        assert equity != pytest.approx(100_000.0 * (1 + 0.5 * optimistic), rel=1e-9), (
+            "the book was credited from the decision bar's close — a one-bar look-ahead"
+        )
     assert drawdown <= 0.0
 
 
@@ -252,3 +263,71 @@ def test_a_first_cycle_starts_at_the_seed_equity(seeded, spec):
     assert equity == spec.starting_equity
     assert drawdown == 0.0
     assert held == {}
+
+
+def test_live_and_backtest_paths_agree(seeded, spec):
+    """The two implementations of the same idea must not drift apart.
+
+    A project with both a backtest and a live path always grows a difference between
+    them, and it is always found months later when the live curve stops resembling the
+    research. This replays the live cycle over history and compares.
+
+    Agreement is not identity: the live path charges a flat spread on turnover while the
+    engine models spread and impact per fill, so a small gap is the cost models
+    differing. A large gap means the *decisions* differ, which is the failure worth
+    catching.
+    """
+    from qt.backtest import BacktestConfig
+    from qt.backtest.engine import run_backtest
+    from qt.config import CostModel
+    from qt.live.orchestrator import drawdown_scale, mark_to_market
+
+    cat, _ = seeded
+    prices = load_prices(cat, spec)
+    bars = {}
+    for symbol in prices.columns:
+        frame = cat.read_indexed("eod", "yahoo", symbol).loc[prices.index]
+        bars[symbol] = frame
+
+    weights = target_weights(prices, spec)
+    assert not weights.empty
+
+    # --- live path, walked forward one rebalance at a time
+    replay_store = Store(":memory:") if False else None
+    equity = spec.starting_equity
+    previous: dict[str, float] = {}
+    curve = []
+    schedule = weights.index[::spec.trend.rebalance_every]
+    positions = list(prices.index)
+    for i, stamp in enumerate(schedule[:-1]):
+        nxt = schedule[i + 1]
+        allowed = weights.loc[stamp]
+        turnover = sum(abs(float(allowed.get(s, 0.0)) - previous.get(s, 0.0))
+                       for s in set(allowed.index) | set(previous))
+        equity -= equity * turnover * (spec.half_spread_bps / 1e4)
+        # Enter one bar late: a decision made from bar t's close fills at t+1, which is
+        # what the engine's execution_lag_bars=1 models.
+        entry = positions[positions.index(stamp) + 1]
+        step = prices.loc[nxt] / prices.loc[entry] - 1.0
+        equity += equity * float((allowed * step).sum())
+        previous = {s: float(v) for s, v in allowed.items()}
+        curve.append(equity)
+
+    live_total = curve[-1] / spec.starting_equity - 1.0
+
+    # --- backtest over the same weights and window
+    cfg = BacktestConfig(
+        bars_per_year=252,
+        costs=CostModel(taker_fee_bps=0.0, maker_fee_bps=0.0,
+                        half_spread_bps=spec.half_spread_bps),
+        allow_short=True, signal_is_weight=True,
+        max_weight_per_symbol=spec.max_weight,
+    )
+    window = weights.loc[schedule[0]:schedule[-1]]
+    bt = run_backtest({s: b.loc[b.index.intersection(window.index)] for s, b in bars.items()},
+                      window, cfg)
+    bt_total = float(bt.equity.iloc[-1] / bt.equity.iloc[0] - 1.0)
+
+    assert abs(live_total - bt_total) < 0.05, (
+        f"live {live_total:.4f} vs backtest {bt_total:.4f} — the paths have drifted"
+    )

@@ -9,12 +9,60 @@ décision.
 cd quant
 python3 -m venv .venv && .venv/bin/pip install -e .
 
+# le bot autonome : marchés actions, obligations, matières premières, dollar
+.venv/bin/qt equities                  # 15 ETF, SPY depuis 1993, QQQ depuis 1999
+.venv/bin/qt bot --cycles 1            # un cycle complet : rafraîchir, décider, enregistrer
+.venv/bin/qt bot-status                # ce que le livre détient et comment il se comporte
+
+# recherche
 .venv/bin/qt ingest --symbols BTCUSDT,ETHUSDT --interval 1h --start 2021-01-01
 .venv/bin/qt research BTCUSDT          # ensemble de règles vs buy-and-hold, coûts réels
 .venv/bin/qt walkforward BTCUSDT       # ML réentraîné en marche avant
-.venv/bin/qt replay BTCUSDT --bars 500 # rejoue l'historique dans la boucle live
 .venv/bin/qt serve                     # API + dashboard sur :8000
 ```
+
+---
+
+## Le bot autonome
+
+Un livre multi-actifs de 15 ETF — Nasdaq, S&P, small caps, international, émergents,
+obligations d'État et crédit, or, argent, pétrole, matières premières, dollar,
+immobilier — piloté par un signal de tendance multi-horizons mélangé à une allocation
+risk parity.
+
+Un cycle fait six choses, et l'ordre compte :
+
+1. **Rafraîchit** les données. Échoue en douceur — une panne de source fait trader la
+   vue de la veille, elle n'arrête pas un livre bâti sur vingt ans d'historique.
+2. **Vérifie la fraîcheur.** Le seul arrêt dur. Trader un flux silencieusement figé,
+   c'est traverser un krach en croyant que rien ne bouge.
+3. **Valorise** le livre détenu et facture l'écart de fourchette sur la rotation.
+4. **Calcule** les poids — le même code que le backtest, appelé de la même façon.
+5. **Applique le risque** : cible de volatilité, plafonds, disjoncteur de drawdown qui
+   réduit sans jamais liquider.
+6. **Enregistre** le signal, le poids demandé, le poids autorisé, et pourquoi ils diffèrent.
+
+Il ne lève jamais d'exception : un cycle qui plante arrête le démon, et un démon arrêté
+n'est pas autonome. Les échecs deviennent un statut et une raison, enregistrés.
+
+Déploiement : une entrée cron appelant `qt bot --cycles 1`, pas un processus permanent.
+Voir [`docs/deploiement.md`](docs/deploiement.md).
+
+**Toujours du paper trading.** Aucun adaptateur de courtier, aucun identifiant, aucun
+chemin de passage d'ordre n'existe dans ce dépôt.
+
+### Résultats mesurés (2010-2026, tous ramenés à 10 % de volatilité, après coûts)
+
+| Stratégie | Sharpe | CAGR | Drawdown max |
+|---|---|---|---|
+| **risk parity + tendance 70 %** | **1,10** | 3,5 % | −9,6 % |
+| risk parity seul | 0,79 | 5,6 % | −19,4 % |
+| buy-and-hold SPY | 0,86 | 14,1 % | −33,7 % |
+
+Sharpe déflaté sur 12 configurations avec dispersion réelle : **0,999**.
+
+SPY fait plus de CAGR — à 17 % de volatilité et un drawdown de 34 %. Le tableau compare
+à risque égal ; c'est le seul angle honnête.
 
 ---
 

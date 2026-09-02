@@ -456,6 +456,35 @@ lève d'exception ; tous produisent des chiffres confiants et faux :
 | Scalaire de levier recalculé chaque barre | Pompe à rotation : 7,1× → 26,7× par an, 9,5 % du brut parti en exécution, pour un contrôle du risque identique |
 | `warnings.filterwarnings("ignore", RuntimeWarning)` global | Masque toutes les divisions par zéro et valeurs invalides de numpy sur l'ensemble du système. C'est exactement ainsi que le `log()` d'un spread négatif est passé inaperçu |
 
+## Le chemin live contre le backtest
+
+Deux implémentations de la même idée dérivent toujours, et la dérive se découvre en
+production des mois plus tard. `scripts/replay_live.py` rejoue l'orchestrateur cycle par
+cycle sur l'historique — 716 cycles, 2012-2026 — en ne lui montrant que le passé à chaque
+pas, puis compare à un backtest de la même fenêtre.
+
+Il a immédiatement trouvé un biais :
+
+| | CAGR | Drawdown max |
+|---|---|---|
+| Replay live, avant correction | **4,38 %** | −10,8 % |
+| Backtest | 3,38 % | −8,1 % |
+| Replay live, après correction | 3,67 % | −10,6 % |
+
+Le cycle se créditait du rendement **depuis la clôture sur laquelle il avait décidé**.
+Un ordre passé après cette clôture s'exécute à la séance suivante. Un point entier de
+CAGR d'avantage temporel qu'aucun ordre n'aurait pu capturer — et le backtest utilisait
+déjà `execution_lag_bars=1` depuis toujours, donc c'est bien le chemin live qui était
+faux.
+
+L'écart résiduel de 0,30 point est la différence de modèle de coûts : le chemin live
+facture un spread forfaitaire sur la rotation, le moteur modélise spread et impact par
+exécution. Le seuil du script est fixé à 1 point pour détecter tout retour du biais.
+
+| Erreur | Effet mesuré |
+|---|---|
+| Valorisation depuis la barre de décision | +1,01 pt de CAGR de pure avance temporelle. Invisible sans rejouer le chemin live contre le backtest |
+
 ## Les quatre styles quant : ce qui marche et ce qui ne marche pas
 
 Livre de 15 ETF, 2007-2026, chaque configuration ramenée à 10 % de volatilité et
