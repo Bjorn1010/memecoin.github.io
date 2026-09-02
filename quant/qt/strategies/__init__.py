@@ -9,3 +9,11 @@ from .statarb import (  # noqa: F401
     pair_signal,
     screen_and_analyse,
 )
+from .trend import (  # noqa: F401
+    TrendResult,
+    TrendSpec,
+    build_trend,
+    combine_trend_and_allocator,
+    trend_score,
+    trend_weights,
+)

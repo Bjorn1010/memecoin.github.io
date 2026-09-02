@@ -101,10 +101,19 @@ def deflated_sharpe_ratio(
     if trial_sharpes is not None and len(trial_sharpes) > 1:
         sr_variance = float(pd.Series(trial_sharpes).var(ddof=1))
         n_trials = max(n_trials, len(trial_sharpes))
-    sr_variance = 0.0 if sr_variance is None else float(sr_variance)
+
+    # Without a dispersion estimate there is no deflation to perform. Defaulting
+    # sr_variance to zero makes expected_max_sharpe return zero, so the "deflated"
+    # figure silently equals the plain PSR against zero — and the verdict then announced
+    # "significant after deflation" for a number that had never been deflated. That is
+    # the most dangerous output this module can produce, because it is the one a reader
+    # trusts most. Report the gap instead of papering over it.
+    undeflated = sr_variance is None
+    sr_variance = 0.0 if undeflated else float(sr_variance)
+
     benchmark = expected_max_sharpe(n_trials, sr_variance)
     dsr = probabilistic_sharpe_ratio(returns, benchmark, periods_per_year)
-    return {
+    result = {
         "sharpe": sharpe_ratio(returns, periods_per_year),
         "n_trials": int(n_trials),
         "sr_variance": sr_variance,
@@ -113,6 +122,13 @@ def deflated_sharpe_ratio(
         "deflated_sharpe": dsr,
         "verdict": _verdict(dsr),
     }
+    if undeflated and n_trials > 1:
+        result["deflated_sharpe"] = float("nan")
+        result["verdict"] = (
+            f"NOT DEFLATED — pass sr_variance or trial_sharpes for {n_trials} trials; "
+            "psr_vs_zero below ignores selection entirely"
+        )
+    return result
 
 
 def _verdict(dsr: float) -> str:

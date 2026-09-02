@@ -583,6 +583,56 @@ def vol_surface(
     )
 
 
+# ------------------------------------------------------------- autonomous bot
+@app.command()
+def bot(
+    cycles: int = typer.Option(1, help="cycles to run; 0 means run forever"),
+    interval_hours: float = typer.Option(24.0),
+    refresh: bool = typer.Option(True, help="pull fresh data before deciding"),
+    blend: float = typer.Option(0.7, help="weight on trend vs the static allocator"),
+    target_vol: float = typer.Option(0.10, help="annualised portfolio volatility target"),
+    run_id: str = typer.Option("daily"),
+) -> None:
+    """Run the autonomous daily book: refresh, decide, size, record. Paper only.
+
+    One cycle per invocation is the better deployment shape — put it in cron and the
+    operating system restarts it, with no in-memory state to lose. `--cycles 0` runs a
+    long-lived loop instead, for when you want to watch it.
+    """
+    from .live.orchestrator import DailySpec, format_report, run_cycle, start_run, status_report
+
+    spec = DailySpec(trend_blend=blend, target_vol=target_vol)
+    store = start_run(spec, run_id=run_id)
+
+    if cycles == 0:
+        from .live.orchestrator import run_forever
+
+        console.print("[cyan]running forever[/cyan] — ctrl-c to stop")
+        run_forever(spec, run_id=run_id, interval_hours=interval_hours,
+                    on_cycle=lambda r: console.print(format_report(r.to_dict())))
+        return
+
+    for _ in range(max(cycles, 1)):
+        result = run_cycle(spec, store=store, run_id=run_id, do_refresh=refresh)
+        colour = {"ok": "green", "halted": "yellow", "stale": "yellow"}.get(result.status, "red")
+        console.print(f"[{colour}]{result.status}[/{colour}] {result.reason or ''}")
+        if result.weights:
+            rows = pd.DataFrame(
+                [{"symbol": k, "weight": v} for k, v in
+                 sorted(result.weights.items(), key=lambda kv: -abs(kv[1]))]
+            )
+            _table(rows, f"book — gross {result.gross:.2f}, data {result.data_age_days:.1f}d old")
+    console.print(format_report(status_report(run_id, store)))
+
+
+@app.command()
+def bot_status(run_id: str = typer.Option("daily")) -> None:
+    """What the autonomous book currently holds and how it has behaved."""
+    from .live.orchestrator import format_report, status_report
+
+    console.print(format_report(status_report(run_id)))
+
+
 # --------------------------------------------------------------- equities/ETF
 @app.command()
 def equities(
