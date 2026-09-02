@@ -194,3 +194,79 @@ def dividend_drag(df: pd.DataFrame) -> float:
     raw = float(df["close"].iloc[-1]) / float(df["close"].iloc[0])
     adj = float(df["adj_close"].iloc[-1]) / float(df["adj_close"].iloc[0])
     return (adj ** (1 / years)) - (raw ** (1 / years))
+
+
+# Intraday intervals Yahoo serves, with the window each is capped at. The caps are the
+# binding constraint on any intraday study here: 60 days of 5-minute bars is a single
+# market regime, so a result measured on it says nothing about a different one. That is
+# stated rather than worked around, and every intraday conclusion in this repository
+# carries it.
+INTRADAY_WINDOWS = {
+    "1m": "7d", "2m": "60d", "5m": "60d", "15m": "60d",
+    "30m": "60d", "60m": "730d", "1h": "730d",
+}
+
+
+def intraday(symbol: str, interval: str = "5m", period: str | None = None) -> pd.DataFrame:
+    """Intraday bars for one symbol.
+
+    Sessions are kept apart implicitly: Yahoo returns only trading hours, so consecutive
+    bars can straddle an overnight gap. Anything computing a return across bars must
+    therefore respect the session boundary, or it will book the overnight move as an
+    intraday one — which on an ETF is most of the daily variance and would flatter any
+    intraday strategy enormously. `session_id` marks the boundary for callers.
+    """
+    if interval not in INTRADAY_WINDOWS:
+        raise ValueError(f"unknown interval {interval!r}; known: {sorted(INTRADAY_WINDOWS)}")
+
+    text = get_text(
+        CHART.format(symbol=symbol),
+        params={"range": period or INTRADAY_WINDOWS[interval], "interval": interval},
+        min_gap=0.4,
+    )
+    if not text:
+        return schemas.normalise(pd.DataFrame(), schemas.EOD)
+    try:
+        result = json.loads(text)["chart"]["result"][0]
+    except (KeyError, IndexError, TypeError, json.JSONDecodeError):
+        return schemas.normalise(pd.DataFrame(), schemas.EOD)
+
+    stamps = result.get("timestamp") or []
+    quote = (result.get("indicators", {}).get("quote") or [{}])[0]
+    if not stamps or "close" not in quote:
+        return schemas.normalise(pd.DataFrame(), schemas.EOD)
+
+    index = pd.to_datetime(pd.Series(stamps), unit="s", utc=True)
+    frame = pd.DataFrame({
+        "ts": schemas.epoch_ms(index),
+        "open": quote.get("open"), "high": quote.get("high"),
+        "low": quote.get("low"), "close": quote.get("close"),
+        "volume": quote.get("volume"),
+    })
+    frame = frame.dropna(subset=["close", "ts"]).reset_index(drop=True)
+    if frame.empty:
+        return schemas.normalise(pd.DataFrame(), schemas.EOD)
+
+    # One id per trading day. A strategy must not hold across it and must not measure a
+    # return through it.
+    frame["session_id"] = pd.to_datetime(frame["ts"], unit="ms", utc=True).dt.normalize().astype("int64")
+    return schemas.normalise(frame, schemas.EOD, extra_columns=("session_id",))
+
+
+def ingest_intraday(catalog, symbols, *, interval: str = "5m",
+                    period: str | None = None) -> pd.DataFrame:
+    """Download intraday bars and store them under an interval-tagged dataset."""
+    dataset = f"{schemas.EOD}_{interval}"
+    rows = []
+    for symbol in symbols:
+        df = intraday(symbol, interval=interval, period=period)
+        if not df.empty:
+            catalog.write(dataset, VENUE, symbol, df)
+        idx = pd.to_datetime(df["ts"], unit="ms", utc=True) if not df.empty else pd.Series(dtype="datetime64[ns, UTC]")
+        rows.append({
+            "symbol": symbol, "interval": interval, "rows": len(df),
+            "sessions": int(df["session_id"].nunique()) if not df.empty else 0,
+            "start": idx.min() if len(idx) else pd.NaT,
+            "end": idx.max() if len(idx) else pd.NaT,
+        })
+    return pd.DataFrame(rows)
