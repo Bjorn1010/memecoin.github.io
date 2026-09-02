@@ -62,18 +62,26 @@ qt catalog-sql "SELECT count(*) FROM lake('klines_1h','binance','BTCUSDT')"
 
 ```
 qt/
-├── data/         lac Parquet + DuckDB, 6 adaptateurs de venues, schémas canoniques
-├── bars/         barres tick/volume/dollar/imbalance/run + filtre d'événements CUSUM
-├── features/     ~255 features, toutes causales (prouvé par test)
-├── labels/       triple-barrière, meta-labeling, poids d'échantillons
-├── alphas/       15 alphas, chacun avec sa justification économique + ensemble
-├── models/       LightGBM/sklearn, calibration, MDA, registre versionné
-├── validation/   CV purgée + embargo, CPCV, Sharpe dégonflé, PBO, bootstrap
-├── backtest/     moteur événementiel, modèle de coûts, métriques, walk-forward
-├── risk/         vol targeting, Kelly fractionnel, limites dures, coupe-circuits
-├── live/         boucle de paper trading, broker simulé, feeds, état SQLite
-└── api/          API de monitoring en lecture seule (+ dashboard React)
+├── data/           lac Parquet + DuckDB, 6 adaptateurs de venues, schémas canoniques
+├── bars/           barres tick/volume/dollar/imbalance/run + filtre d'événements CUSUM
+├── features/       ~255 features, toutes causales (prouvé par test)
+├── labels/         triple-barrière, meta-labeling, poids d'échantillons
+├── alphas/         15 alphas, chacun avec sa justification économique + ensemble
+├── models/         LightGBM/sklearn, calibration, MDA, registre versionné
+├── validation/     CV purgée + embargo, CPCV, Sharpe dégonflé, PBO, bootstrap
+├── econometrics/   stationnarité, cointégration, GARCH, Kalman, OU, ruptures
+├── portfolio/      covariance (shrinkage/RMT), 8 optimiseurs, VaR/CVaR, Black-Litterman
+├── derivatives/    Black-Scholes, grecques, SVI, Heston, sauts de Merton
+├── execution/      Almgren-Chriss, TWAP/VWAP/POV, shortfall, Avellaneda-Stoikov
+├── strategies/     arbitrage statistique (cointégration + Kalman + OU + coûts)
+├── backtest/       moteur événementiel, modèle de coûts, métriques, walk-forward
+├── risk/           vol targeting, Kelly fractionnel, limites dures, coupe-circuits
+├── live/           boucle de paper trading, broker simulé, feeds, état SQLite
+└── api/            API de monitoring en lecture seule (+ dashboard React)
 ```
+
+La carte complète des méthodes, avec les pièges mesurés de chacune, est dans
+[`docs/methods.md`](docs/methods.md).
 
 ### Barres — pourquoi pas des bougies 1 minute
 
@@ -263,6 +271,44 @@ Deux mises en garde sur ce tableau :
 
 ---
 
+## Le toolkit quant
+
+Au-delà du pipeline ML, le système implémente les méthodes qu'un quant professionnel
+utilise réellement. Chacune est validée par un test où **la bonne réponse est connue
+analytiquement** — pas seulement « ça s'exécute » :
+
+| Domaine | Méthodes | Test de correctitude |
+|---|---|---|
+| Économétrie | ADF/KPSS, variance ratio, différenciation fractionnaire, cointégration (Engle-Granger + Johansen), GARCH/GJR/EWMA, Kalman, Ornstein-Uhlenbeck, SADF, Chow | GARCH retrouve les paramètres simulés ; OU retrouve θ, μ, σ ; Kalman plus lisse que l'OLS glissant |
+| Portefeuille | covariance échantillon/EWMA/Ledoit-Wolf/débruitée RMT, 8 optimiseurs dont HRP, contributions au risque, VaR/CVaR, Black-Litterman, Fama-MacBeth | risk parity égalise les contributions ; Black-Litterman sans vue = portefeuille de marché ; variance minimale a bien la variance minimale |
+| Dérivés | Black-Scholes + grecques, vol implicite, SVI, swap de variance, Heston, sauts de Merton | **Heston → Black-Scholes exactement quand la vol-de-vol → 0** ; swap de variance = vol plate sur smile plat ; parité call-put |
+| Exécution | Almgren-Chriss, frontière efficiente, TWAP/VWAP/POV, implementation shortfall, Avellaneda-Stoikov | **aversion nulle → TWAP exactement** ; le skew d'inventaire borne la position |
+
+### Trois résultats mesurés qui valent d'être lus
+
+**1. Un portefeuille équipondéré de 10 crypto a 1,02 « pari effectif ».**
+Dix positions, un seul pari. Marchenko-Pastur confirme : une seule valeur propre sur dix
+se distingue du bruit, et le facteur marché explique 67 % de la variance.
+
+```bash
+qt allocate
+```
+
+**2. Sur 45 paires, 8 sont cointégrées et 0 sont tradables.**
+Les demi-vies vont de 41 à 89 jours — c'est un pari directionnel déguisé — et aucun seuil
+d'entrée ne franchit 12 bps de coût aller-retour. En forçant quand même la paire la plus
+cointégrée : Sharpe brut −0,03, net −0,13. Le screen avait raison.
+
+```bash
+qt pairs
+```
+
+**3. Le piège qui a failli tout fausser.** Appliquer les valeurs critiques ADF standard
+aux résidus d'une régression cointégrante donne **14 cointégrations fallacieuses sur 20**
+paires de marches aléatoires indépendantes. Avec les valeurs de MacKinnon, retour au taux
+nominal — et le compte réel passe de 25 paires à 8. Le détail de ce piège et de six
+autres du même genre est dans [`docs/methods.md`](docs/methods.md).
+
 ## Commandes
 
 | commande | rôle |
@@ -278,16 +324,25 @@ Deux mises en garde sur ce tableau :
 | `qt replay SYM` | rejoue l'historique dans la boucle live |
 | `qt serve` | API de monitoring + dashboard |
 | `qt status` | résumé d'une session depuis la base d'état |
+| `qt diagnose SYM` | stationnarité, mémoire, structure de volatilité d'une série |
+| `qt pairs` | screen de cointégration corrigé + viabilité après coûts |
+| `qt allocate` | comparaison des optimiseurs + décomposition du risque + stress tests |
+| `qt execution` | frontière efficiente d'Almgren-Chriss |
+| `qt vol-surface` | ajustement SVI / Heston / Merton d'un smile |
 
 ## Tests
 
 ```bash
-.venv/bin/python -m pytest tests/ -q     # 34 tests, ~25 s
+.venv/bin/python -m pytest tests/ -q     # 75 tests, ~45 s
 ```
 
 `tests/test_no_lookahead.py` contient les tests qui comptent : causalité de tout le
 registre de features, convention d'exécution du moteur, purge de la CV, et alignement
 features/labels.
+
+`tests/test_quant_methods.py` teste le toolkit quant contre des cas dont la réponse est
+connue analytiquement — un modèle qui « tourne » sans erreur mais renvoie un chiffre faux
+est le mode d'échec normal ici, pas l'exception.
 
 ## Dashboard
 

@@ -379,5 +379,191 @@ def status(run_id: Optional[str] = typer.Option(None)) -> None:
         )
 
 
+# ------------------------------------------------------- quantitative methods
+def _load_panel(symbols: str, interval: str, venue: str, resample: Optional[str]) -> pd.DataFrame:
+    """Build a close-price panel from the lake."""
+    syms = [x.strip().upper() for x in symbols.split(",") if x.strip()]
+    closes = {}
+    for sym in syms:
+        bars = _load_bars(sym, venue, interval)
+        closes[sym.replace("USDT", "")] = bars["close"]
+    panel = pd.DataFrame(closes).dropna()
+    if resample:
+        panel = panel.resample(resample).last().dropna()
+    return panel
+
+
+@app.command()
+def diagnose(
+    symbol: str = typer.Argument("BTCUSDT"),
+    interval: str = typer.Option("1h"),
+    venue: str = typer.Option("binance"),
+) -> None:
+    """Econometric diagnosis of one series: stationarity, memory, volatility structure."""
+    import numpy as np
+
+    from . import econometrics as E
+
+    bars = _load_bars(symbol, venue, interval)
+    close = bars["close"]
+    ret = np.log(close).diff().dropna()
+    console.print(f"[cyan]{symbol}[/cyan] {len(close)} bars {close.index.min()} -> {close.index.max()}")
+
+    rep = E.stationarity_report(np.log(close))
+    console.print(f"\n[bold]Stationarity of log price[/bold]: [yellow]{rep['verdict']}[/yellow]")
+    console.print(f"  ADF p={rep['adf']['pvalue']:.4g}  KPSS p={rep['kpss']['pvalue']:.4g}")
+    console.print(f"  {rep['advice']}")
+
+    ffd = E.find_min_ffd(close)
+    console.print(f"\n[bold]Fractional differencing[/bold]: {ffd['advice']}")
+
+    rows = []
+    for q in (2, 4, 8, 24):
+        vr = E.variance_ratio_test(close, q=q)
+        rows.append({"q": q, "variance_ratio": vr.statistic, "pvalue": vr.pvalue,
+                     "reading": vr.interpretation})
+    _table(pd.DataFrame(rows), "variance ratio (>1 trending, <1 mean-reverting)")
+
+    console.print("\n[bold]Conditional volatility models[/bold]")
+    cmp = E.compare_models(ret)
+    keep = [c for c in ("model", "persistence", "half_life_of_shock_bars",
+                        "long_run_annual_vol", "long_run_reliable", "bic") if c in cmp.columns]
+    _table(cmp[keep], "GARCH family (lower BIC is better)")
+
+
+@app.command()
+def pairs(
+    symbols: str = typer.Option("BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT,ADAUSDT,AVAXUSDT,LINKUSDT,DOGEUSDT,LTCUSDT"),
+    interval: str = typer.Option("1h"),
+    venue: str = typer.Option("binance"),
+    resample: Optional[str] = typer.Option("1D", help="coarsen before testing"),
+    cost: float = typer.Option(0.0012, help="round-trip cost as a decimal"),
+    max_half_life: float = typer.Option(60.0, help="in bars of the resampled frequency"),
+) -> None:
+    """Screen every pair for cointegration, then ask whether it is tradeable after costs."""
+    from . import strategies as St
+
+    panel = _load_panel(symbols, interval, venue, resample)
+    console.print(f"[cyan]panel[/cyan] {panel.shape[1]} assets x {len(panel)} bars")
+
+    res = St.screen_and_analyse(panel, round_trip_cost=cost, max_half_life=max_half_life)
+    n_tests = res.attrs.get("n_tests")
+    corrected = res.attrs.get("corrected_alpha")
+    console.print(
+        f"tested {n_tests} pairs -> Bonferroni-corrected alpha = {corrected:.5f}"
+    )
+    cols = [c for c in ("pair", "pvalue", "passes_corrected", "half_life_bars",
+                        "entry_z", "expected_annual_return", "tradeable") if c in res.columns]
+    _table(res[cols].head(15), "pair screen")
+    console.print(
+        f"\n[bold]cointegrated:[/bold] {int(res['passes_corrected'].sum())}  "
+        f"[bold]tradeable after costs:[/bold] {int(res['tradeable'].sum())}"
+    )
+    if int(res["tradeable"].sum()) == 0 and "reasons" in res.columns:
+        console.print("\n[dim]why every candidate was rejected:[/dim]")
+        for reason, count in res["reasons"].value_counts().head(4).items():
+            console.print(f"  [dim]{count:2d}x {str(reason)[:100]}[/dim]")
+
+
+@app.command()
+def allocate(
+    symbols: str = typer.Option("BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT,ADAUSDT,AVAXUSDT,LINKUSDT,DOGEUSDT,LTCUSDT"),
+    interval: str = typer.Option("1h"),
+    venue: str = typer.Option("binance"),
+) -> None:
+    """Compare portfolio optimisers and decompose the risk of the resulting books."""
+    import numpy as np
+
+    from . import portfolio as P
+
+    panel = _load_panel(symbols, interval, venue, None)
+    rets = np.log(panel).diff().dropna()
+    console.print(f"[cyan]panel[/cyan] {rets.shape[1]} assets x {len(rets)} bars")
+
+    rep = P.covariance_report(rets, annualise=365 * 24)
+    _table(rep["table"], "covariance estimators")
+    console.print(
+        f"Ledoit-Wolf shrinkage {rep['shrinkage_intensity']:.3f} | "
+        f"{rep['n_significant_factors']} of {rep['n_assets']} eigenvalues exceed the "
+        f"Marchenko-Pastur noise band | market factor = {rep['market_factor_share']:.1%} of variance"
+    )
+
+    cov, _ = P.ledoit_wolf_covariance(rets, annualise=365 * 24)
+    _table(P.compare_optimisers(rets, cov).reset_index().round(4), "optimisers")
+
+    ew = P.equal_weight(cov.index)
+    rr = P.risk_report(ew, cov, rets, periods_per_year=365 * 24)
+    console.print(
+        f"\n[bold]Equal-weight book:[/bold] {rr['n_positions']} positions, but only "
+        f"[yellow]{rr['effective_n_bets']:.2f} effective bets[/yellow] "
+        f"(diversification ratio {rr['diversification_ratio']:.2f})"
+    )
+    console.print(
+        f"  annual vol {rr['portfolio_vol_annual']:.1%} | VaR95 {rr['var_historical']:.2%} | "
+        f"CVaR {rr['cvar']:.2%} | tail fatness {rr.get('tail_fatness', float('nan')):.2f}x"
+    )
+    st = P.stress_test(ew, rets)
+    if not st.empty:
+        _table(st.round(4), "historical stress scenarios")
+
+
+@app.command()
+def execution(
+    quantity: float = typer.Option(1000.0),
+    n_steps: int = typer.Option(20),
+    volatility: float = typer.Option(1.0, help="price sd per step"),
+    impact: float = typer.Option(1e-3, help="temporary impact per unit per step"),
+) -> None:
+    """Almgren-Chriss optimal execution frontier: expected cost against its variance."""
+    import numpy as np
+
+    from . import execution as X
+
+    frontier = X.efficient_frontier(
+        quantity, n_steps, volatility=volatility, temporary_impact=impact,
+        risk_aversions=np.logspace(-6, -1, 10),
+    )
+    _table(frontier.round(4), "execution efficient frontier")
+    console.print(
+        "[dim]risk aversion 0 gives TWAP; higher aversion front-loads the trade, "
+        "paying more expected cost to remove variance[/dim]"
+    )
+
+
+@app.command()
+def vol_surface(
+    spot: float = typer.Option(100.0),
+    expiry_days: float = typer.Option(90.0),
+    atm_vol: float = typer.Option(0.6),
+    skew: float = typer.Option(-0.18, help="negative = downside skew"),
+) -> None:
+    """Fit SVI, Heston and Merton to a smile and compare what each explains."""
+    import numpy as np
+
+    from . import derivatives as D
+
+    T = expiry_days / 365.0
+    k = np.linspace(-0.4, 0.4, 15)
+    market = atm_vol + 0.35 * k**2 + skew * k
+
+    svi = D.fit_svi(k, market, T)
+    console.print(f"[bold]SVI[/bold]  ATM {svi.implied_vol(0.0):.4f}  skew {svi.skew(0.0):+.4f}")
+    console.print(f"  arbitrage-free: {svi.is_arbitrage_free()['arbitrage_free']}")
+    console.print(f"  variance-swap fair vol (±1.5 wings): {D.variance_swap_strike(svi, width=1.5):.4f}")
+
+    strikes = spot * np.exp(k)
+    heston = D.calibrate_heston(strikes, market, spot, T, 0.0)
+    _table(pd.DataFrame([{k2: round(v, 4) if isinstance(v, float) else v
+                          for k2, v in heston.to_dict().items()}]), "Heston parameters")
+
+    merton = D.calibrate_merton(strikes, market, spot, T, 0.0)
+    _table(pd.DataFrame([{k2: round(v, 4) if isinstance(v, float) else v
+                          for k2, v in merton.to_dict().items()}]), "Merton jump parameters")
+    console.print(
+        "[dim]rho drives skew (Heston); jump intensity drives the short-dated wings "
+        "that a pure diffusion cannot reach[/dim]"
+    )
+
+
 if __name__ == "__main__":
     app()
