@@ -456,6 +456,69 @@ lève d'exception ; tous produisent des chiffres confiants et faux :
 | Scalaire de levier recalculé chaque barre | Pompe à rotation : 7,1× → 26,7× par an, 9,5 % du brut parti en exécution, pour un contrôle du risque identique |
 | `warnings.filterwarnings("ignore", RuntimeWarning)` global | Masque toutes les divisions par zéro et valeurs invalides de numpy sur l'ensemble du système. C'est exactement ainsi que le `log()` d'un spread négatif est passé inaperçu |
 
+## Day trading : l'arithmétique décide avant le signal
+
+Un aller-retour sur Binance spot au tarif retail coûte **12 bps** — 5 bps taker de chaque
+côté plus environ un point de demi-spread. Ce chiffre ne baisse pas quand on trade plus
+souvent, donc le coût annuel d'une fréquence est fixé avant d'écrire le moindre signal :
+
+| Fréquence | Trades/an | Coût annuel |
+|---|---|---|
+| 1 tous les 2 jours | 182 | 21,9 % |
+| 1 par jour | 365 | **43,8 %** |
+| 3 par jour | 1 095 | **131,4 %** |
+| 10 par jour | 3 650 | 438,0 % |
+
+Face à ça, le BTC horaire a un écart-type de 68 bps et un mouvement absolu médian de
+25 bps. Le coût vaut **0,18 écart-type horaire**, soit la moitié du mouvement typique.
+Exigeant mais pas absurde — c'est pourquoi le crypto est un des rares marchés où
+l'intraday retail n'est pas mort d'avance ; en actions le spread représente une part bien
+plus grande de l'amplitude intraday.
+
+Conséquence : **la fréquence est une limite de risque, pas une préférence.**
+
+### Ce que la stratégie a mesuré
+
+Trois jambes courtes (reversal, breakout, order flow), 24 configurations classées sur
+2021-2022 uniquement, la meilleure portée telle quelle sur 2023-2024.
+
+| Jambe | IC de rang (BTC / ETH / SOL) |
+|---|---|
+| reversal | +0,024 / +0,012 / +0,017 |
+| breakout | **−0,041 / −0,019 / −0,016** |
+| flow | −0,029 / +0,001 / −0,007 |
+
+Le breakout est **anti-prédictif sur les trois** et tirait la combinaison vers le bas.
+Plus subtil : le reversal a un IC positif mais un edge conditionnel **négatif dans la
+queue**, là où la stratégie entre effectivement. Les petites dislocations reviennent ;
+les grandes portent de l'information et continuent. La stratégie entrait précisément là
+où l'effet qu'elle exploite s'inverse.
+
+**Aucune des 24 configurations n'a un Sharpe positif, même en échantillon.** La meilleure
+fait −0,744 là où elle a été choisie, −0,141 hors échantillon, DSR **0,000015**.
+
+### Le test qui tranche
+
+| Coûts appliqués | Sharpe hors échantillon | Brut | Trades |
+|---|---|---|---|
+| taker/taker (12 bps, réel) | −0,141 | +0,98 % | 34 |
+| maker/maker (4 bps, ordres limite) | +0,043 | +0,98 % | 34 |
+| **gratuit (0 bps, impossible)** | **−1,876** | **−36,1 %** | 515 |
+
+Même avec une exécution parfaite et gratuite, la stratégie perd. **Le problème n'est pas
+les coûts, c'est qu'il n'y a pas de signal.** Et la ligne à 0 bps enseigne autre chose :
+sans pénalité de coût, la recherche sélectionne la configuration la plus sur-ajustée —
+515 trades au lieu de 34 — qui s'effondre ensuite hors échantillon.
+
+| Erreur qu'un moteur intraday cassé commet | Ce qu'elle rapporte gratuitement |
+|---|---|
+| Exécuter à la clôture qui a produit le signal | Un mouvement entier par trade |
+| Résoudre une barre ambiguë en sa faveur | Transforme chaque stop en cible |
+| Laisser courir au-delà du stop temporel | Un day trade devient une position, et le profil de risque mesuré n'est pas celui exécuté |
+
+Les trois sont testés dans `tests/test_intraday.py`, parce que chacun vaut plus que
+n'importe quel signal.
+
 ## Le chemin live contre le backtest
 
 Deux implémentations de la même idée dérivent toujours, et la dérive se découvre en
