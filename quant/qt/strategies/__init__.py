@@ -17,3 +17,13 @@ from .trend import (  # noqa: F401
     trend_score,
     trend_weights,
 )
+from .styles import (  # noqa: F401
+    StyleResult,
+    StyleSpec,
+    build_styles,
+    carry_signal,
+    cross_sectional_z,
+    defensive_signal,
+    dividend_yields,
+    value_signal,
+)

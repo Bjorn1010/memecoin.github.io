@@ -456,6 +456,47 @@ lève d'exception ; tous produisent des chiffres confiants et faux :
 | Scalaire de levier recalculé chaque barre | Pompe à rotation : 7,1× → 26,7× par an, 9,5 % du brut parti en exécution, pour un contrôle du risque identique |
 | `warnings.filterwarnings("ignore", RuntimeWarning)` global | Masque toutes les divisions par zéro et valeurs invalides de numpy sur l'ensemble du système. C'est exactement ainsi que le `log()` d'un spread négatif est passé inaperçu |
 
+## Les quatre styles quant : ce qui marche et ce qui ne marche pas
+
+Livre de 15 ETF, 2007-2026, chaque configuration ramenée à 10 % de volatilité et
+facturée aux mêmes coûts.
+
+| Style | Sharpe |
+|---|---|
+| **trend seul** | **0,52** |
+| defensive seul | −0,01 |
+| carry seul | −0,15 |
+| value seul | −0,53 |
+| les quatre, neutre au marché | 0,15 |
+| les quatre, directionnel | −0,09 — **DSR 0,0004** |
+
+**Seule la tendance a du contenu ici.** Combiner les quatre à poids égaux détruit environ
+0,6 de Sharpe, et le Sharpe déflaté de la combinaison est 0,0004 : rejeté catégoriquement.
+
+La cause est la **donnée**, pas la théorie :
+
+- Le **carry** réel est la pente de la courbe de futures ou un différentiel de taux.
+  Estimé ici par un rendement de dividende glissant, il est rétrospectif et quasi
+  immobile : il dégénère en « toujours surpondérer HYG et LQD », un biais statique
+  déguisé en signal.
+- La **value** réelle a une ancre fondamentale : rendement bénéficiaire, taux réel,
+  valeur comptable. Un ETF n'en a pas, donc j'utilise un retour à la moyenne sur 5 ans —
+  sans fondement théorique solide entre classes d'actifs, et sans contenu empirique ici.
+- Le **defensive** sur 15 instruments hétérogènes se réduit à « détenir des obligations ».
+
+Les trois exigent soit un univers de nombreux instruments comparables **au sein** d'une
+classe d'actifs, soit des données fondamentales. Ni l'un ni l'autre n'est gratuit. C'est
+la contrainte structurelle de tout ce projet, énoncée plutôt que contournée.
+
+Le module reste implémenté et testé — ce sont des méthodes correctes — mais la
+configuration par défaut ne fait tourner que la tendance, parce que livrer les quatre par
+défaut reviendrait à livrer une configuration mesurée perdante.
+
+| Erreur trouvée en chemin | Effet mesuré |
+|---|---|
+| Normaliser les poids par l'exposition brute | Le livre est **toujours** investi à 1,5, quelle que soit la force du signal. Détruit la propriété la plus précieuse d'un signal — être petit quand il n'a pas d'avis. Coût : **0,6 de Sharpe** (trend passe de −0,22 à 0,52 une fois corrigé) |
+| Un style sans données renvoyant zéro | Zéro est un « aucun avis » confiant : il dilue d'un quart les styles qui ont des données, et le rapport en liste toujours quatre |
+
 ## Le rééquilibrage : le plus gros levier de coût
 
 Même signal, même livre, seule la fréquence change.
