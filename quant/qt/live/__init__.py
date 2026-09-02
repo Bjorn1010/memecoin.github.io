@@ -37,3 +37,11 @@ from .explain import (  # noqa: F401
     verdict,
     volatility_term,
 )
+from .rapport import resume as rapport_resume  # noqa: F401
+from .rapport import (  # noqa: F401
+    alertes,
+    changements,
+    nom,
+    positions,
+    resultat,
+)

@@ -637,6 +637,58 @@ def bot(
 
 
 @app.command()
+def rapport(
+    run_id: str = typer.Option("daily"),
+    refresh: bool = typer.Option(True, help="télécharger les prix du jour avant"),
+) -> None:
+    """Le rapport du jour, en clair : ce que le bot a fait et combien il a gagné.
+
+    C'est la seule commande à lancer tous les jours. Tout le reste est de l'outillage.
+    """
+    from .live.orchestrator import DailySpec, run_cycle, start_run
+    from .live.rapport import resume
+
+    spec = DailySpec()
+    store = start_run(spec, run_id=run_id)
+    cycle = run_cycle(spec, store=store, run_id=run_id, do_refresh=refresh)
+    r = resume(cycle, store, run_id, spec.starting_equity)
+    res = r["resultat"]
+
+    console.print()
+    if res.get("cycles", 0) == 0:
+        console.print("[yellow]Premier cycle — rien à comparer encore.[/yellow]")
+    else:
+        gain = res["gain_total"]
+        couleur = "green" if gain >= 0 else "red"
+        console.print(
+            f"[bold]Capital : {res['capital']:,.0f} €[/bold]   "
+            f"[{couleur}]{gain:+,.0f} € ({res['gain_total_pct']:+.2f}%)[/{couleur}] "
+            f"depuis le {res['debut']}  ·  {res['cycles']} cycles sur {res['jours']:.0f} jours"
+        )
+        if res.get("gain_dernier_cycle"):
+            c2 = "green" if res["gain_dernier_cycle"] >= 0 else "red"
+            console.print(f"Depuis le dernier cycle : "
+                          f"[{c2}]{res['gain_dernier_cycle']:+,.0f} €[/{c2}]")
+
+    console.print(f"Investi à [bold]{r['investi_pct']:.0f}%[/bold] · "
+                  f"liquidités {r['liquidites_pct']:.0f}%\n")
+
+    if not r["changements"].empty:
+        _table(r["changements"], "CE QUI A CHANGÉ AUJOURD'HUI")
+    else:
+        console.print("[dim]Aucun changement notable aujourd'hui — le bot garde ses "
+                      "positions.[/dim]\n")
+
+    _table(r["positions"], "CE QUE LE BOT DÉTIENT")
+
+    if r["alertes"]:
+        console.print()
+        for ligne in r["alertes"]:
+            console.print(f"  {ligne}")
+    console.print()
+
+
+@app.command()
 def signal(
     symbol: Optional[str] = typer.Option(None, help="détailler un instrument, formule par formule"),
     blend: float = typer.Option(0.3, help="poids de la tendance dans le mélange"),
