@@ -98,3 +98,9 @@ def make_panel(n: int = 1500, seed: int = 8, symbols=("A", "B", "C")) -> dict[st
 @pytest.fixture
 def panel() -> dict[str, pd.DataFrame]:
     return make_panel()
+
+
+@pytest.fixture
+def crypto_panel() -> dict[str, pd.DataFrame]:
+    """A panel named with real tickers, so lake-backed context resolves against it."""
+    return make_panel(symbols=("BTCUSDT", "ETHUSDT", "SOLUSDT"))

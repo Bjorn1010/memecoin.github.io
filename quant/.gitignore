@@ -3,8 +3,11 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .ipynb_checkpoints/
-data/
-!data/.gitkeep
+# The data lake only. A bare `data/` also matches qt/data/ — the package's entire data
+# layer, 16 modules — at any depth, so every one of them was silently untracked and the
+# pushed package could not be imported. The leading slash anchors this to the repo root.
+/data/
+!/data/.gitkeep
 web/node_modules/
 web/dist/
 

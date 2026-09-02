@@ -441,6 +441,11 @@ lève d'exception ; tous produisent des chiffres confiants et faux :
 | Covariance ajustée sur tout l'échantillon | Min-variance devient spectaculaire |
 | `pd.Timestamp(x, tz="UTC")` sur un objet déjà tz-aware | Exception seulement quand l'argument optionnel est omis |
 | Martingale jugée sur la moyenne | Moyenne à 107 628, médiane à 0 |
+| `DataFrame * Series` au lieu de `.mul(series, axis=0)` | Alignement sur les **colonnes** : symboles contre timestamps, recouvrement vide. Les 5 colonnes de rendement résiduel deviennent NaN, `residual[symbole]` répond quand même (union), l'alpha `xs_reversal` renvoie zéro à chaque barre |
+| `macro=`/`funding=` jamais renseignés par un appelant | 5 alphas sur 15 calculés sur du vide. Aucune erreur, le rapport en liste toujours 15 |
+| Source qui traite une réponse illisible comme « pas de données » | Stooq a ajouté une vérification anti-bot JavaScript ; l'ingestion a renvoyé 0 ligne avec un code de sortie 0 |
+| `np.log()` sur une série qui peut être négative | Pente 10a-2a négative sur 551 jours d'inversion, WTI à −37 $ : NaN silencieux sur toute la série |
+| Unités datetime différentes de part et d'autre d'un `merge_asof` | `MergeError` — le seul de la table qui lève. Il n'apparaissait que sur les barres ré-échantillonnées |
 
 C'est la raison d'être des 75 tests : ils ne vérifient pas que le code s'exécute, ils
 vérifient qu'il donne la **bonne réponse** dans les cas où elle est connue analytiquement.

@@ -94,7 +94,14 @@ def build_panel_features(
     rets = np.log(closes).diff()
     market = market_factor(rets)
     betas = rolling_beta(rets, market, beta_window)
-    residual = rets - betas * market  # market-neutral return stream
+    # `.mul(market, axis=0)`, never `betas * market`. Multiplying a DataFrame by a Series
+    # aligns the Series' index against the frame's *columns*; here those are symbols
+    # against timestamps, so the overlap is empty and every value becomes NaN. The result
+    # still has the symbol columns (union alignment), so `residual[symbol]` keeps working
+    # and returns an all-NaN series — no KeyError, no warning. That silently killed
+    # `xs_resid_ret` and all four `xs_resmom_rank_*` columns, and with them the
+    # xs_reversal alpha, which returned a flat zero for every bar.
+    residual = rets.sub(betas.mul(market, axis=0))  # market-neutral return stream
 
     # Cross-sectional ranks of momentum, computed on both raw and residual returns.
     rank_frames: dict[str, pd.DataFrame] = {}

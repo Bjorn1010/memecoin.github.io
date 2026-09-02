@@ -43,6 +43,10 @@ class AlphaEnsembleStrategy:
     alpha_names: tuple[str, ...] | None = None
     weights: dict[str, float] | None = None  # fixed weights; equal if None
     feature_groups: tuple[str, ...] | None = None
+    # Macro/funding context from the lake, as returned by F.load_context. Left None
+    # the funding and macro alphas produce a flat zero — correct, but only five of
+    # fifteen signals are then actually live. qt.live.loop fills this at start-up.
+    context: dict | None = None
     _last: dict = field(default_factory=dict)
 
     def signal(self, bars: pd.DataFrame, symbol: str) -> float:
@@ -50,7 +54,11 @@ class AlphaEnsembleStrategy:
             self._last = {"reason": f"warming up ({len(bars)}/{self.warmup_bars} bars)"}
             return 0.0
 
-        fm = F.build_features(bars, symbol=symbol, groups=self.feature_groups)
+        ctx = self.context or {}
+        fm = F.build_features(
+            bars, symbol=symbol, groups=self.feature_groups,
+            macro=ctx.get("macro"), funding=(ctx.get("funding") or {}).get(symbol),
+        )
         if fm.X.empty:
             self._last = {"reason": "no features"}
             return 0.0
@@ -96,6 +104,7 @@ class ModelStrategy:
     warmup_bars: int = 1000
     feature_groups: tuple[str, ...] | None = None
     threshold: float = 0.0  # ignore edges smaller than this
+    context: dict | None = None
     _last: dict = field(default_factory=dict)
 
     def signal(self, bars: pd.DataFrame, symbol: str) -> float:
@@ -103,7 +112,11 @@ class ModelStrategy:
             self._last = {"reason": f"warming up ({len(bars)}/{self.warmup_bars} bars)"}
             return 0.0
 
-        fm = F.build_features(bars, symbol=symbol, groups=self.feature_groups)
+        ctx = self.context or {}
+        fm = F.build_features(
+            bars, symbol=symbol, groups=self.feature_groups,
+            macro=ctx.get("macro"), funding=(ctx.get("funding") or {}).get(symbol),
+        )
         if fm.X.empty:
             self._last = {"reason": "no features"}
             return 0.0

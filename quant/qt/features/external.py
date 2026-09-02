@@ -17,7 +17,16 @@ from .base import safe_div, zscore
 
 
 def asof_join(bars: pd.DataFrame, external: pd.DataFrame, prefix: str, columns=("close",)) -> pd.DataFrame:
-    """Backward as-of join of `external` onto the bar index."""
+    """Backward as-of join of `external` onto the bar index.
+
+    Both key columns are forced to nanosecond resolution first. Since pandas 2 a
+    DatetimeIndex carries its own unit, and the two sides here reliably disagree:
+    `pd.date_range` yields microseconds while a series decoded from the lake's epoch-ms
+    column yields milliseconds. `merge_asof` refuses mismatched units outright
+    (MergeError, "must be the same type"), so every macro feature would have failed the
+    moment real macro data met an hourly bar index. Widening to ns is lossless from
+    either side.
+    """
     if bars.empty or external is None or external.empty:
         return pd.DataFrame(index=bars.index)
 
@@ -29,10 +38,14 @@ def asof_join(bars: pd.DataFrame, external: pd.DataFrame, prefix: str, columns=(
     right = right.sort_index().reset_index().rename(columns={right.index.name or "index": "dt"})
     right.columns = ["dt"] + [f"{prefix}_{c}" for c in right.columns[1:]]
 
+    left["dt"] = pd.DatetimeIndex(left["dt"]).as_unit("ns")
+    right["dt"] = pd.DatetimeIndex(right["dt"]).as_unit("ns")
+
     merged = pd.merge_asof(
         left.sort_values("dt"), right.sort_values("dt"), on="dt", direction="backward"
     )
     merged = merged.set_index("dt")
+    merged.index = merged.index.as_unit(bars.index.unit)
     merged.index.name = bars.index.name
     return merged.reindex(bars.index)
 
@@ -55,10 +68,25 @@ def macro_features(bars: pd.DataFrame, series: dict[str, pd.DataFrame]) -> pd.Da
             continue
         level = joined[col].astype("float64")
         feat = pd.DataFrame(index=bars.index)
+
+        # Log returns are only defined for a strictly positive series. Several macro
+        # series legitimately are not: the 10y-2y slope was negative on 551 days during
+        # the 2022-23 inversion, and WTI printed -$37 on 20 April 2020. `np.log` of those
+        # yields NaN and -inf without raising, which then propagates through every
+        # horizon and quietly removes the series from the model. Detect rather than
+        # maintain a list, so a series added later cannot reintroduce the bug.
+        #
+        # The naming difference is deliberate: a 0.5 point move in a yield spread is a
+        # change, not a return, and calling it `_ret_` would invite it to be compared
+        # against equity returns as if the units matched.
+        positive = bool((level.dropna() > 0).all()) and not level.dropna().empty
+        kind = "ret" if positive else "chg"
+        base_level = np.log(level) if positive else level
+
         # Multi-horizon changes. On an hourly bar index against a daily series these
         # are step functions, which is correct: the information only updates daily.
         for h, label in ((24, "1d"), (120, "5d"), (480, "20d")):
-            feat[f"{name}_ret_{label}"] = np.log(level).diff(h)
+            feat[f"{name}_{kind}_{label}"] = base_level.diff(h)
         feat[f"{name}_z"] = zscore(level, 720)
         feat[f"{name}_pct"] = level.rolling(2160, min_periods=240).rank(pct=True)
         frames.append(feat)

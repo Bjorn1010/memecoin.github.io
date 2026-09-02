@@ -60,6 +60,24 @@ def _load_bars(symbol: str, venue: str = "binance", interval: str = "1h") -> pd.
     return bars
 
 
+def _features(bars: pd.DataFrame, symbol: str, **kw):
+    """Build features with macro and funding context attached.
+
+    Every command goes through here rather than calling `build_features` directly.
+    Without the context the funding and macro alphas compute on empty inputs and return
+    a flat zero — no error, no warning, just five of fifteen signals silently doing
+    nothing while the report still lists them.
+    """
+    from . import features as F
+    from .data import Catalog
+
+    ctx = F.load_context(Catalog(), [symbol], start=bars.index.min(), end=bars.index.max())
+    return F.build_features(
+        bars, symbol=symbol,
+        macro=ctx["macro"], funding=ctx["funding"].get(symbol), **kw,
+    )
+
+
 # ---------------------------------------------------------------------- data
 @app.command()
 def ingest(
@@ -69,12 +87,12 @@ def ingest(
     end: Optional[str] = typer.Option(None),
     market: str = typer.Option("spot", help="spot | um (USD-M perps)"),
     funding: bool = typer.Option(False, help="also download realised funding (perps only)"),
-    macro: bool = typer.Option(False, help="also download cross-asset context from Stooq"),
+    macro: bool = typer.Option(False, help="also download cross-asset context from FRED"),
 ) -> None:
     """Download free historical data into the lake (Binance archive; no API key)."""
     from .data import Catalog
     from .data.sources import binance_vision as bv
-    from .data.sources import stooq
+    from .data.sources import fred
 
     CONFIG.ensure_dirs()
     cat = Catalog()
@@ -84,8 +102,8 @@ def ingest(
     _table(res, "ingested")
 
     if macro:
-        console.print("[cyan]downloading[/cyan] cross-asset context from Stooq")
-        _table(stooq.ingest(cat, start=start, end=end), "macro")
+        console.print("[cyan]downloading[/cyan] cross-asset context from FRED")
+        _table(fred.ingest(cat, start=start, end=end), "macro")
 
 
 @app.command()
@@ -165,7 +183,7 @@ def research(
     bars_per_year = 365 * 24 * 3600 / max(bar_seconds, 1.0)
     console.print(f"[cyan]{symbol}[/cyan] {bars.shape[0]} bars  {bars.index.min()} -> {bars.index.max()}")
 
-    fm = F.build_features(bars, symbol=symbol)
+    fm = _features(bars, symbol)
     sig = A.compute_all(bars, fm.X, warn_missing=False)
     # Forward-return horizon for the IC: roughly one day of bars, whatever the
     # frequency. Hardcoding 24 would mean a 24-day horizon on daily bars.
@@ -221,7 +239,7 @@ def walkforward(
     bars = _load_bars(symbol, venue, interval)
     bar_seconds = float(pd.Series(bars["ts"]).diff().median()) / 1000.0
     bars_per_year = 365 * 24 * 3600 / max(bar_seconds, 1.0)
-    fm = F.build_features(bars, symbol=symbol)
+    fm = _features(bars, symbol)
     bt_bars = bars.loc[fm.X.index]
 
     console.print(f"[cyan]walk-forward[/cyan] {symbol}: train={train_bars} test={test_bars} bars")
@@ -257,7 +275,7 @@ def train(
     from .models.importance import mda_importance
 
     bars = _load_bars(symbol, venue, interval)
-    fm = F.build_features(bars, symbol=symbol)
+    fm = _features(bars, symbol)
     labels = make_labels(bars.loc[fm.X.index], LabelSpec(horizon_bars=horizon, pt_sl=(2.0, 1.0)))
     ds = build_dataset(fm.X, labels, symbol)
     console.print(json.dumps(ds.summary(), indent=2, default=str))
@@ -571,7 +589,7 @@ def deep_history(
     symbols: str = typer.Option("BTCUSDT,ETHUSDT,BNBUSDT,XRPUSDT,ADAUSDT,LTCUSDT,DOGEUSDT,SOLUSDT,AVAXUSDT,LINKUSDT"),
     interval: str = typer.Option("1d"),
     bitstamp: bool = typer.Option(True, help="also pull Bitstamp, which reaches back to 2011"),
-    macro: bool = typer.Option(True, help="also pull cross-asset context from Stooq"),
+    macro: bool = typer.Option(True, help="also pull cross-asset context from FRED"),
 ) -> None:
     """Download EVERY bar each venue has, back to each symbol's listing date.
 
@@ -591,7 +609,7 @@ def deep_history(
         console.print("[cyan]Bitstamp[/cyan] — the deepest free crypto history (2011+)")
         _table(ingest_deep_crypto(cat, interval=interval), "Bitstamp")
     if macro:
-        console.print("[cyan]Stooq[/cyan] — cross-asset context")
+        console.print("[cyan]FRED[/cyan] — cross-asset context")
         _table(ingest_macro(cat), "macro")
 
     _table(coverage_report(cat), "coverage — read the `years` column before trusting a backtest")

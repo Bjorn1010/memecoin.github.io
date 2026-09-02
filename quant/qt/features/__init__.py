@@ -9,6 +9,7 @@ from . import (  # noqa: F401  (import side effect: registration)
     technical,
     volatility,
 )
+from .context import context_report, load_context, load_funding, load_macro  # noqa: F401
 from .cross_sectional import build_panel_features  # noqa: F401
 from .external import funding_features, macro_features  # noqa: F401
 from .pipeline import FeatureMatrix, align_columns, build_features, build_panel  # noqa: F401
