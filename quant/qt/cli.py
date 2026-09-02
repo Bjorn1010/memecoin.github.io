@@ -637,6 +637,50 @@ def bot(
 
 
 @app.command()
+def objectif(
+    per_hour: float = typer.Option(100.0, help="gain visé par heure"),
+    capital: float = typer.Option(100_000.0, help="capital réellement engagé"),
+    basis: str = typer.Option("crypto_24_7", help="crypto_24_7 | us_market_hours | working_day"),
+    run_id: str = typer.Option("daily"),
+) -> None:
+    """Ce qu'un objectif en euros par heure exige, et ce que le paper trading rapporte.
+
+    Un objectif exprimé en argent par heure n'est pas une affirmation sur une stratégie,
+    c'est une affirmation sur le capital : une fois le rendement fixé, le capital suit par
+    division. Cette commande fait cette arithmétique avant le travail plutôt qu'après.
+    """
+    from .config import CONFIG
+    from .live.objective import Objective, achieved, capital_table, levers, return_table
+    from .live.state import Store
+
+    obj = Objective(target_per_hour=per_hour, capital=capital, hours_basis=basis)
+    meta = obj.to_dict()
+
+    colour = {"atteignable": "green", "ambitieux": "yellow"}.get(meta["verdict"], "red")
+    console.print(
+        f"\n[bold]{per_hour:,.0f} par heure[/bold] sur {capital:,.0f} de capital "
+        f"= [bold]{meta['target_per_year']:,.0f} par an[/bold] "
+        f"= [{colour}]{meta['required_return_pct']} de rendement annuel[/{colour}]"
+    )
+    console.print(f"[{colour}]{meta['verdict']}[/{colour}] — {meta['note']}\n")
+
+    _table(capital_table(obj), "capital qu'il faudrait, à chaque rendement de référence")
+    _table(return_table(obj), "rendement qu'il faudrait, à chaque niveau de capital")
+    _table(levers(obj), "les seuls leviers honnêtes, et ce que chacun coûte en drawdown")
+
+    got = achieved(Store(CONFIG.runs_dir / "daily.sqlite"), run_id, objective=obj)
+    console.print(f"\n[bold]réalisé en paper[/bold] — {got.cycles} cycles")
+    if got.note:
+        console.print(f"[yellow]{got.note}[/yellow]")
+    if got.cycles >= 2:
+        console.print(
+            f"  {got.pnl:+,.2f} sur {got.hours:,.0f} heures = "
+            f"[bold]{got.per_hour:+,.4f} par heure[/bold] "
+            f"({got.per_hour / per_hour * 100:.3f}% de l'objectif)"
+        )
+
+
+@app.command()
 def bot_status(run_id: str = typer.Option("daily")) -> None:
     """What the autonomous book currently holds and how it has behaved."""
     from .live.orchestrator import format_report, status_report
