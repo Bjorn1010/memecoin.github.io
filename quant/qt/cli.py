@@ -637,6 +637,87 @@ def bot(
 
 
 @app.command()
+def signal(
+    symbol: Optional[str] = typer.Option(None, help="détailler un instrument, formule par formule"),
+    blend: float = typer.Option(0.3, help="poids de la tendance dans le mélange"),
+    run_id: str = typer.Option("daily"),
+) -> None:
+    """Acheter ou vendre, et le calcul qui l'a décidé.
+
+    Sans `--symbol`, une ligne par instrument triée par l'ampleur du changement — ce sont
+    les lignes qui bougent qui demandent une décision. Avec, la chaîne complète : le
+    z-score de tendance par horizon, la volatilité, le budget de risque, et le poids qui
+    en sort.
+    """
+    from .config import CONFIG
+    from .data import Catalog
+    from .live.explain import explain_book, explain_symbol, portfolio_terms
+    from .live.orchestrator import DailySpec, load_prices, target_weights
+    from .live.state import Store
+
+    spec = DailySpec(trend_blend=blend)
+    cat = Catalog()
+    prices = load_prices(cat, spec)
+    if prices.empty:
+        console.print("[yellow]lac vide — lancez `qt equities` d'abord[/yellow]")
+        return
+
+    weights = target_weights(prices, spec)
+    if weights.empty:
+        console.print("[yellow]pas assez d'historique pour l'allocateur[/yellow]")
+        return
+    latest = weights.iloc[-1]
+
+    # What the book holds now, so the verdict is about the CHANGE rather than the view.
+    held: dict[str, float] = {}
+    try:
+        decisions = Store(CONFIG.runs_dir / "daily.sqlite").decisions(run_id, limit=200)
+        if not decisions.empty:
+            newest = decisions[decisions["ts"] == decisions["ts"].max()]
+            held = {r["symbol"]: float(r["allowed_weight"] or 0.0)
+                    for _, r in newest.iterrows()}
+    except Exception:  # noqa: BLE001 — an unreadable record must not block the report
+        held = {}
+
+    if symbol:
+        sym = symbol.upper()
+        if sym not in prices.columns:
+            raise typer.BadParameter(f"{sym} absent du lac ; connus : {list(prices.columns)}")
+        detail = explain_symbol(
+            prices[sym].dropna(), sym,
+            target_weight=float(latest.get(sym, 0.0)),
+            current_weight=held.get(sym, 0.0), spec=spec.trend,
+        )
+        console.print(
+            f"\n[bold]{sym}[/bold] à {detail['prix']} — "
+            f"[bold]{detail['action']}[/bold] "
+            f"({detail['poids_actuel']:+.4f} → {detail['poids_cible']:+.4f})\n"
+        )
+        _table(pd.DataFrame(detail["termes"]), "le calcul, terme par terme")
+        return
+
+    from .strategies.trend import sign_flip_threshold
+
+    book = explain_book(prices, latest, current_weights=held, spec=spec.trend)
+    _table(book, f"décisions du jour — mélange tendance {blend:.0%}")
+
+    # A reader seeing a positive weight next to a negative signal deserves to know
+    # whether the construction made any other outcome possible.
+    flip = sign_flip_threshold(blend)
+    if flip == float("-inf"):
+        console.print(
+            f"[yellow]À {blend:.0%} de tendance, aucune position ne peut passer short :[/yellow] "
+            f"il faudrait un signal sous −{(1 - blend) / blend:.2f}, or tanh est borné à −1. "
+            "La tendance module la taille, pas la direction."
+        )
+    else:
+        console.print(f"[dim]Une position bascule short sous un signal de {flip:.2f}.[/dim]")
+    _table(pd.DataFrame([{"terme": t.name, "valeur": round(t.value, 4), "formule": t.formula,
+                          "détail": t.detail} for t in portfolio_terms(prices, weights)]),
+           "et le calcul au niveau du portefeuille")
+
+
+@app.command()
 def objectif(
     per_hour: float = typer.Option(100.0, help="gain visé par heure"),
     capital: float = typer.Option(100_000.0, help="capital réellement engagé"),

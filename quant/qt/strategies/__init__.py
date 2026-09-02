@@ -14,6 +14,7 @@ from .trend import (  # noqa: F401
     TrendSpec,
     build_trend,
     combine_trend_and_allocator,
+    sign_flip_threshold,
     trend_score,
     trend_weights,
 )

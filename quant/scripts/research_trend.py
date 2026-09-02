@@ -26,7 +26,7 @@ from qt.config import CostModel
 from qt.data.catalog import Catalog
 from qt.data.sources.yahoo import UNIVERSES
 from qt.risk import apply_no_trade_band, portfolio_vol_target
-from qt.strategies.trend import TrendSpec, build_trend, combine_trend_and_allocator
+from qt.strategies.trend import TrendSpec, build_trend, combine_trend_and_allocator, trend_score
 from qt.validation import deflated_sharpe_ratio
 
 pd.set_option("display.width", 240)
@@ -92,7 +92,9 @@ def main() -> None:
         w = build_trend(prices, TrendSpec(rebalance_every=every)).weights
         results[f"trend {label}"] = run(targeted(w))
     for blend in (0.3, 0.5, 0.7):
-        combined = combine_trend_and_allocator(trend.weights, allocation, blend=blend)
+        # the bounded signal, not the risk-sized weights — see the note in
+        # combine_trend_and_allocator on why the distinction is not cosmetic
+        combined = combine_trend_and_allocator(trend.signal, allocation, blend=blend)
         results[f"rp+trend {int(blend * 100)}%"] = run(targeted(combined))
     results["buy_hold_SPY"] = buy_and_hold(bars["SPY"], cfg)
 

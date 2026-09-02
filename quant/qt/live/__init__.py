@@ -28,3 +28,12 @@ from .objective import (  # noqa: F401
     levers,
     return_table,
 )
+from .explain import (  # noqa: F401
+    Term,
+    explain_book,
+    explain_symbol,
+    portfolio_terms,
+    trend_terms,
+    verdict,
+    volatility_term,
+)

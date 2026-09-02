@@ -193,7 +193,7 @@ def build_trend(prices: pd.DataFrame, spec: TrendSpec | None = None) -> TrendRes
 
 def combine_trend_and_allocator(
     trend: pd.DataFrame, allocation: pd.DataFrame, *, blend: float = 0.5,
-    max_gross: float = 1.5,
+    max_gross: float = 1.5, strict: bool = True,
 ) -> pd.DataFrame:
     """Overlay a timing signal on a risk allocation.
 
@@ -201,7 +201,25 @@ def combine_trend_and_allocator(
     two are combined multiplicatively on the sign of trend and the magnitude of the
     allocation, which is the standard "risk allocation, timed" construction — the
     allocator decides how the risk is spread, the trend decides how much of it to take.
+
+    **`trend` must be a signal in [-1, 1] — `trend_score`, not `trend_weights`.** Both
+    are DataFrames of the same shape and index, so passing the wrong one raises nothing
+    and produces a plausible book. It happened: every caller passed `.weights`, whose
+    typical magnitude is 0.03 against the signal's 0.53, so the timing term came out
+    seventeen times too small and the result was a scaled-down allocator wearing a trend
+    label. The visible symptom was a positive weight on bonds whose trend signal was
+    -0.5. `strict` refuses that input rather than letting it through quietly.
     """
+    if strict and not trend.empty:
+        typical = float(trend.abs().stack(future_stack=True).median(skipna=True))
+        if np.isfinite(typical) and typical < 0.05:
+            raise ValueError(
+                f"`trend` looks like weights, not a signal: median |value| is {typical:.4f}. "
+                "Pass trend_score(prices, spec), which is bounded in [-1, 1]; "
+                "trend_weights() is already risk-sized and multiplying it by an "
+                "allocation makes the timing term vanish. Pass strict=False to override."
+            )
+
     trend, allocation = trend.align(allocation, join="inner", axis=1)
     trend, allocation = trend.align(allocation, join="inner", axis=0)
     timed = allocation.abs() * trend
@@ -212,3 +230,25 @@ def combine_trend_and_allocator(
     if over.any():
         combined.loc[over] = combined.loc[over].div(gross[over], axis=0) * max_gross
     return combined.fillna(0.0)
+
+
+def sign_flip_threshold(blend: float) -> float:
+    """The trend value at which this blend actually reverses a position's direction.
+
+    `(1-b)·w + b·|w|·s` changes sign only where `s < -(1-b)/b`. Since `s` comes from a
+    tanh and is bounded in [-1, 1], **any blend at or below 0.5 can never go short**: the
+    timing layer modulates size and nothing else, and the book stays on the allocator's
+    side however negative the trend gets.
+
+    That is not a defect — the measured best blend is 0.3, where the book is risk parity
+    scaled between 0.7x and 1.3x — but it is invisible from the weights alone. A reader
+    seeing a +0.11 weight on TLT next to a -0.53 trend signal deserves to know the
+    construction made any other outcome impossible, rather than concluding the signal was
+    ignored.
+
+    Returns the required trend value, or -inf when no attainable value can flip it.
+    """
+    if blend <= 0.0:
+        return float("-inf")
+    threshold = -(1.0 - blend) / blend
+    return threshold if threshold >= -1.0 else float("-inf")

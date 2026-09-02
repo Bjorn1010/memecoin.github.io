@@ -49,7 +49,7 @@ from ..config import CONFIG
 from ..data import schemas
 from ..data.catalog import Catalog
 from ..risk import apply_no_trade_band, portfolio_vol_target
-from ..strategies.trend import TrendSpec, build_trend, combine_trend_and_allocator
+from ..strategies.trend import TrendSpec, combine_trend_and_allocator, trend_score
 from .state import Store
 
 
@@ -60,10 +60,22 @@ class DailySpec:
     universe: str = "multi_asset"
     venue: str = "yahoo"
     dataset: str = "eod"
-    # Trend weight in the blend. 0.7 was the best of the configurations tested, at a
-    # deflated Sharpe of 0.999 over 2010-2026; it is reported rather than hidden so the
-    # selection is visible to anyone reading the results.
-    trend_blend: float = 0.7
+    # Trend weight in the blend, measured over 2010-2026 at a matched 10% volatility.
+    #
+    # This was 0.7, chosen while combine_trend_and_allocator was being fed trend
+    # *weights* instead of the bounded signal — which made the timing term seventeen
+    # times too small, so every blend was really the same scaled allocator and "0.7"
+    # looked best by accident. With the signal passed correctly the ranking inverts:
+    #
+    #     rp+trend 30%   Sharpe 0.97   turnover  5.4x   costs 1.2% of gross
+    #     rp+trend 50%          0.90            10.8x         3.1%
+    #     risk parity           0.79             3.5x         0.8%
+    #     rp+trend 70%          0.78            17.3x         5.8%
+    #
+    # More trend is worse, and the reason is in the turnover column: the signal churns,
+    # and past roughly a third of the book the churn costs more than the timing earns.
+    # Deflated Sharpe of the 30% blend over 12 configurations: 0.999.
+    trend_blend: float = 0.3
     target_vol: float = 0.10
     max_gross: float = 1.5
     max_weight: float = 0.25
@@ -189,7 +201,11 @@ def target_weights(prices: pd.DataFrame, spec: DailySpec) -> pd.DataFrame:
     """
     from ..backtest.portfolio_backtest import AllocationSpec, build_weights
 
-    trend = build_trend(prices, spec.trend).weights
+    # trend_score, not trend_weights. The blend multiplies the allocation's magnitude
+    # by this term, so it must be the bounded signal; passing the risk-sized weights
+    # makes the timing contribution seventeen times too small and silently reduces the
+    # book to a scaled allocator. combine_trend_and_allocator now refuses that input.
+    trend = trend_score(prices, spec.trend)
     allocation, _ = build_weights(prices, AllocationSpec(
         method="risk_parity", lookback=252, rebalance_every=21,
         covariance="ledoit_wolf", max_weight=spec.max_weight, min_history=252))

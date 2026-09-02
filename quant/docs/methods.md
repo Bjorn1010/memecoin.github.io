@@ -519,6 +519,60 @@ sans pénalité de coût, la recherche sélectionne la configuration la plus sur
 Les trois sont testés dans `tests/test_intraday.py`, parce que chacun vaut plus que
 n'importe quel signal.
 
+## Un signal passé à la place d'un autre
+
+`combine_trend_and_allocator(trend, allocation, blend)` calcule
+`(1−b)·alloc + b·|alloc|·trend`. Le terme `trend` doit être le **signal** borné dans
+[−1, 1]. Tous les appelants lui passaient les **poids**.
+
+Les deux sont des DataFrames de même forme et même index, donc l'échange ne lève rien et
+produit un livre plausible. Mais l'amplitude typique diffère d'un facteur 17 :
+
+| | Amplitude médiane |
+|---|---|
+| `trend_score` (le signal) | 0,53 |
+| `trend_weights` (les poids) | 0,031 |
+
+Le terme de timing sortait donc **17 fois trop petit**. Le livre « rp+trend 70 % » était
+en réalité `0,3 × risk parity` plus une erreur d'arrondi, puis remis à l'échelle par la
+cible de volatilité — un allocateur statique portant une étiquette de tendance.
+
+Symptôme visible : un poids de +0,11 sur TLT alors que son signal de tendance valait
+−0,53.
+
+**Classement avant et après correction :**
+
+| Configuration | Sharpe buggé | Sharpe réel | Rotation | Coûts |
+|---|---|---|---|---|
+| rp+trend 30 % | 0,897 | **0,972** | 5,4× | 1,2 % |
+| rp+trend 50 % | 0,964 | 0,904 | 10,8× | 3,1 % |
+| risk parity seul | 0,793 | 0,792 | 3,5× | 0,8 % |
+| **rp+trend 70 %** | **1,100** | **0,784** | **17,3×** | **5,8 %** |
+
+Plus de tendance est **pire**, et la colonne rotation dit pourquoi : le signal churne, et
+au-delà d'un tiers du livre le churn coûte plus que le timing ne rapporte. Le réglage par
+défaut du bot était 0,7 ; il est passé à 0,3.
+
+`combine_trend_and_allocator` refuse désormais une entrée dont l'amplitude médiane est
+sous 0,05, avec un message qui nomme la confusion.
+
+## Une construction qui ne peut pas vendre à découvert
+
+`(1−b)·w + b·|w|·s` ne change de signe que si `s < −(1−b)/b`. Or `s` sort d'un tanh et
+est borné à −1.
+
+| Mélange | Bascule short à |
+|---|---|
+| 30 % | s < −2,33 → **impossible** |
+| 50 % | s < −1,00 → limite exacte |
+| 70 % | s < −0,43 |
+
+**En dessous de 50 % de tendance, le livre ne peut jamais être short** : le timing module
+la taille, jamais la direction. Ce n'est pas un défaut — le meilleur mélange mesuré est
+30 %, où le livre est du risk parity modulé entre 0,7× et 1,3× — mais c'est invisible
+depuis les poids seuls. `sign_flip_threshold()` le calcule et la commande `qt signal`
+l'affiche.
+
 ## Le chemin live contre le backtest
 
 Deux implémentations de la même idée dérivent toujours, et la dérive se découvre en

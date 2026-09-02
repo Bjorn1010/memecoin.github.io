@@ -175,3 +175,53 @@ def test_deflated_sharpe_refuses_to_claim_significance_without_dispersion():
                                      periods_per_year=252)
     assert np.isfinite(informed["deflated_sharpe"])
     assert informed["benchmark_sharpe"] > 0
+
+
+def test_sign_flip_threshold_says_when_a_blend_cannot_go_short():
+    """`(1-b)·w + b·|w|·s` flips sign only where s < -(1-b)/b, and s is bounded by tanh.
+
+    So any blend at or below 0.5 modulates size and never direction. A reader seeing a
+    +0.11 weight on TLT beside a -0.53 trend signal deserves to know the construction
+    made any other outcome impossible, rather than concluding the signal was ignored.
+    """
+    from qt.strategies.trend import sign_flip_threshold
+
+    assert sign_flip_threshold(0.3) == float("-inf")
+    assert sign_flip_threshold(0.5) == pytest.approx(-1.0)
+    assert sign_flip_threshold(0.7) == pytest.approx(-3.0 / 7.0)
+    assert sign_flip_threshold(0.0) == float("-inf")
+
+
+def test_a_low_blend_never_reverses_a_positive_allocation():
+    index = pd.date_range("2020-01-01", periods=50, freq="B", tz="UTC")
+    allocation = pd.DataFrame(0.1, index=index, columns=["A", "B"])
+    # The most negative signal tanh can produce.
+    trend = pd.DataFrame(-1.0, index=index, columns=["A", "B"])
+
+    low = combine_trend_and_allocator(trend, allocation, blend=0.3)
+    assert (low > 0).all().all(), "a 0.3 blend cannot short, whatever the signal says"
+
+    high = combine_trend_and_allocator(trend, allocation, blend=0.7)
+    assert (high < 0).all().all(), "a 0.7 blend must be able to short"
+
+
+def test_blend_refuses_risk_sized_weights_in_place_of_a_signal():
+    """Both are frames of the same shape, so the swap raises nothing and looks plausible.
+
+    Every caller made it: the timing term came out seventeen times too small and the book
+    was a scaled allocator wearing a trend label.
+    """
+    index = pd.date_range("2020-01-01", periods=50, freq="B", tz="UTC")
+    allocation = pd.DataFrame(0.1, index=index, columns=["A", "B"])
+    weights_not_signal = pd.DataFrame(0.03, index=index, columns=["A", "B"])
+
+    with pytest.raises(ValueError, match="looks like weights"):
+        combine_trend_and_allocator(weights_not_signal, allocation, blend=0.7)
+
+    # An explicit override still works, for a caller who knows what they are doing.
+    out = combine_trend_and_allocator(weights_not_signal, allocation, blend=0.7, strict=False)
+    assert not out.empty
+
+    # A genuine signal passes.
+    signal = pd.DataFrame(0.6, index=index, columns=["A", "B"])
+    assert not combine_trend_and_allocator(signal, allocation, blend=0.7).empty
