@@ -59,6 +59,13 @@ class BacktestConfig:
     # or leave the conservative constant in CostModel.half_spread_bps.
     use_estimated_spread: bool = False
     max_weight_per_symbol: float | None = None  # defaults to risk.max_position_weight
+    # Set when the incoming signal is already a portfolio weight rather than a view in
+    # [-1, 1] — a portfolio allocator's output, for instance. Without it the engine
+    # multiplies every weight by target_vol / instrument_vol, which turns each allocator
+    # into a hybrid of itself and inverse-volatility. The optimisers then look far more
+    # alike than they are, and gross exposure collapses: a book of 15 equal weights
+    # summing to 1.0 came out running 3.4% realised volatility against a 10% target.
+    signal_is_weight: bool = False
 
     def to_meta(self) -> dict:
         return {
@@ -186,18 +193,22 @@ def run_backtest(
         sig = sig.clip(lower=0.0)
 
     max_w = config.max_weight_per_symbol or config.risk.max_position_weight
-    desired = pd.DataFrame(
-        {
-            s: volatility_target_weight(
-                sig[s],
-                vol[s],
-                target_annual_vol=config.target_annual_vol,
-                bars_per_year=config.bars_per_year,
-                max_leverage=config.risk.max_gross_leverage,
-            ).clip(-max_w, max_w)
-            for s in symbols
-        }
-    )
+    if config.signal_is_weight:
+        # The caller sized the book already; only the per-instrument cap applies.
+        desired = pd.DataFrame({s: sig[s].astype("float64").clip(-max_w, max_w) for s in symbols})
+    else:
+        desired = pd.DataFrame(
+            {
+                s: volatility_target_weight(
+                    sig[s],
+                    vol[s],
+                    target_annual_vol=config.target_annual_vol,
+                    bars_per_year=config.bars_per_year,
+                    max_leverage=config.risk.max_gross_leverage,
+                ).clip(-max_w, max_w)
+                for s in symbols
+            }
+        )
 
     cost_engine = CostEngine(config.costs)
     risk_engine = RiskEngine(config.risk, config.starting_equity)

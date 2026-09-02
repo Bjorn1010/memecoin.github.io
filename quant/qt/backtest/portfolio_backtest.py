@@ -188,6 +188,11 @@ def run_portfolio_backtest(
         risk=config.risk,
         use_estimated_spread=config.use_estimated_spread,
         max_weight_per_symbol=spec.max_weight,
+        # The allocator has already produced weights. Without this the engine rescales
+        # each one by target_vol / instrument_vol, quietly blending every method with
+        # inverse-volatility so the comparison measures something other than the
+        # allocators. The comment here used to claim the scaling was disabled; it was not.
+        signal_is_weight=True,
     )
 
     aligned = {s: df.loc[df.index.intersection(weights.index)] for s, df in prices.items()}

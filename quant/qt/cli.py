@@ -583,6 +583,56 @@ def vol_surface(
     )
 
 
+# --------------------------------------------------------------- equities/ETF
+@app.command()
+def equities(
+    universe: str = typer.Option("multi_asset", help="multi_asset | sectors | indices"),
+    symbols: Optional[str] = typer.Option(None, help="comma-separated, overrides --universe"),
+    start: Optional[str] = typer.Option(None),
+) -> None:
+    """Download daily equity/ETF history from Yahoo — free, no key, decades deep.
+
+    This is what gets the system off crypto. Ten crypto pairs hold 1.02 effective bets
+    and one significant risk factor; the multi-asset ETF book holds four, over a window
+    that includes 2008 and 2022. The portfolio machinery has nothing to do on the former.
+    """
+    from .data import Catalog
+    from .data.sources import yahoo
+
+    CONFIG.ensure_dirs()
+    syms = [s.strip().upper() for s in symbols.split(",")] if symbols else None
+    if syms is None and universe not in yahoo.UNIVERSES:
+        raise typer.BadParameter(f"unknown universe {universe!r}; known: {sorted(yahoo.UNIVERSES)}")
+    console.print(f"[cyan]Yahoo[/cyan] — {universe if not syms else ', '.join(syms)}")
+    _table(yahoo.ingest(Catalog(), syms, universe=universe, start=start), "ingested")
+
+
+@app.command()
+def dividends(universe: str = typer.Option("multi_asset")) -> None:
+    """Annual return that raw closes discard, per instrument.
+
+    Run this before trusting any equity backtest. The engine fills on `close`, which is
+    the price that printed and never includes a dividend — so a book of ETFs is measured
+    short by its whole yield every year. On HYG that is 6.33%, more than most strategies
+    make in total.
+    """
+    from .data import Catalog
+    from .data.sources import yahoo
+
+    cat = Catalog()
+    rows = []
+    for symbol in yahoo.UNIVERSES.get(universe, ()):
+        df = cat.read("eod", yahoo.VENUE, symbol)
+        if df.empty:
+            continue
+        rows.append({"symbol": symbol, "annual_dividend_pct": round(100 * yahoo.dividend_drag(df), 2)})
+    if not rows:
+        console.print("[yellow]nothing in the lake — run `qt equities` first[/yellow]")
+        return
+    df = pd.DataFrame(rows).sort_values("annual_dividend_pct", ascending=False)
+    _table(df, "return a raw-close backtest silently discards")
+
+
 # ------------------------------------------------------- deep history & sizing
 @app.command()
 def deep_history(

@@ -446,6 +446,44 @@ lève d'exception ; tous produisent des chiffres confiants et faux :
 | Source qui traite une réponse illisible comme « pas de données » | Stooq a ajouté une vérification anti-bot JavaScript ; l'ingestion a renvoyé 0 ligne avec un code de sortie 0 |
 | `np.log()` sur une série qui peut être négative | Pente 10a-2a négative sur 551 jours d'inversion, WTI à −37 $ : NaN silencieux sur toute la série |
 | Unités datetime différentes de part et d'autre d'un `merge_asof` | `MergeError` — le seul de la table qui lève. Il n'apparaissait que sur les barres ré-échantillonnées |
+| `normalise()` supprimait les colonnes hors schéma | `adj_close` perdu à l'écriture **et** à la lecture. La série ajustée redevenait la série brute : tous les dividendes effacés, sans erreur |
+| Backtest actions sur le close brut | Les dividendes ne sont jamais encaissés. HYG perd 6,33 %/an, LQD 4,35 %, TLT 3,50 %. **Le classement des allocateurs s'inverse** |
+| Commentaire décrivant un comportement jamais implémenté | « disable that scaling » — la mise à l'échelle n'était pas désactivée. Chaque allocateur devenait un hybride avec inverse-vol ; exposition brute à 1,0 mais vol réalisée à 3,4 % pour une cible de 10 % |
+
+## Actions et ETF : ce que le dividende change vraiment
+
+Même livre, même période (2010-2026), même moteur. Seule différence : les dividendes
+sont crédités ou non.
+
+| Allocateur | Sharpe rendement total | Sharpe prix seul | Apport du dividende (CAGR) |
+|---|---|---|---|
+| risk_parity | **1,06** | 0,56 | +1,64 pt |
+| inverse_vol | 1,00 | 0,56 | +2,03 pt |
+| max_diversification | 0,96 | **0,57** | +1,76 pt |
+| hrp | 0,92 | 0,32 | +1,98 pt |
+| min_variance | 0,88 | 0,32 | +2,13 pt |
+| equal_weight | 0,78 | 0,55 | +1,59 pt |
+
+Le dividende ne décale pas les niveaux, il **change le gagnant**. Sur le prix seul on
+choisirait `max_diversification` ; sur le rendement réel c'est `risk_parity`. Et `hrp`
+passe de dernier ex æquo à quatrième.
+
+## Pourquoi l'équipondération gagne en crypto et perd en multi-actifs
+
+| Livre | Paris effectifs | Facteurs > borne MP | Corrélation moyenne | Meilleur allocateur |
+|---|---|---|---|---|
+| 10 cryptos | 1,02 / 10 | 1 / 10 | 0,612 | equal_weight (0,78) |
+| 15 ETF multi-actifs | 1,35 / 15 | 4 / 15 | 0,227 | risk_parity (1,06), equal_weight **dernier** |
+
+C'est le résultat de DeMiguel lu correctement. L'équipondération bat les optimiseurs
+quand il n'y a **aucune structure à exploiter** : dix cryptos sont un seul pari portant
+dix tickers, donc estimer une matrice de covariance ne fait qu'ajouter du bruit. Dès
+qu'il existe quatre facteurs de risque réellement distincts, l'optimisation retrouve son
+utilité et l'équipondération devient le pire choix — elle concentre le risque sur les
+actions sans le savoir.
+
+C'est aussi la justification du module portefeuille entier : sur le crypto seul, il
+n'avait rien à faire.
 
 C'est la raison d'être des 75 tests : ils ne vérifient pas que le code s'exécute, ils
 vérifient qu'il donne la **bonne réponse** dans les cas où elle est connue analytiquement.

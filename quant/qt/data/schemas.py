@@ -13,6 +13,8 @@ Time convention, applied without exception across the codebase:
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 import pandas as pd
 
 # ---------------------------------------------------------------------------
@@ -98,22 +100,37 @@ def columns_for(dataset: str) -> list[str]:
     return list(_SCHEMAS[base_dataset(dataset)])
 
 
-def normalise(df: pd.DataFrame, dataset: str) -> pd.DataFrame:
+def normalise(df: pd.DataFrame, dataset: str, extra_columns: Iterable[str] = ()) -> pd.DataFrame:
     """Coerce a venue frame into the canonical schema.
 
     Sorts by `ts`, drops duplicate timestamps (keeping the last print, which is the
     corrected one on every venue we support) and enforces dtypes. Missing optional
     columns are filled with NaN rather than silently dropped so that a dataset from a
     poorer venue stays *shape-compatible* with a richer one.
+
+    Columns beyond the canonical set are **kept**, not dropped. Dropping them meant a
+    venue-specific column could not survive a lake round-trip: Yahoo's `adj_close` was
+    discarded on write and again on read, so the dividend-adjusted series silently became
+    the raw one and every equity return lost its dividends. Nothing raised — the frame
+    simply came back one column lighter. `extra_columns` additionally *guarantees* a
+    column exists, filled with NaN when the venue did not supply it.
+
+    Extra columns are appended after the canonical ones, so a consumer reading by
+    position or by the canonical list is unaffected.
     """
-    cols = columns_for(dataset)
+    canonical = columns_for(dataset)
+    declared = [c for c in extra_columns if c not in canonical]
+    present = [c for c in df.columns if c not in canonical and c not in declared]
+    cols = canonical + declared + present
     out = df.copy()
     for c in cols:
         if c not in out.columns:
             out[c] = pd.NA
     out = out[cols]
     for c in cols:
-        dtype = _DTYPES[c]
+        # An extra column the canonical table does not know is numeric by default;
+        # nothing venue-specific has needed another kind.
+        dtype = _DTYPES.get(c, "float64")
         if dtype == "int64":
             out[c] = pd.to_numeric(out[c], errors="coerce").fillna(0).astype("int64")
         elif dtype == "bool":
