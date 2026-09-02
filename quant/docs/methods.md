@@ -450,6 +450,26 @@ lève d'exception ; tous produisent des chiffres confiants et faux :
 | Backtest actions sur le close brut | Les dividendes ne sont jamais encaissés. HYG perd 6,33 %/an, LQD 4,35 %, TLT 3,50 %. **Le classement des allocateurs s'inverse** |
 | Commentaire décrivant un comportement jamais implémenté | « disable that scaling » — la mise à l'échelle n'était pas désactivée. Chaque allocateur devenait un hybride avec inverse-vol ; exposition brute à 1,0 mais vol réalisée à 3,4 % pour une cible de 10 % |
 
+| Boucle autonome sans valorisation du livre | L'équité reste au montant de départ **pour toujours**. La courbe est plate, le drawdown à zéro, le disjoncteur ne peut jamais se déclencher. Le système tourne, enregistre, rapporte — et annonce « aucune perte » quoi que fasse le marché |
+| `sr_variance` par défaut à zéro dans le Sharpe déflaté | Le benchmark vaut 0, la déflation ne déflate rien, et le verdict annonce quand même « significatif après déflation » |
+| Plafonds appliqués **avant** la mise à l'échelle par volatilité | Le multiplicateur repousse la position au-delà de son propre plafond. Premier cycle live : 25,63 % sur un ETF pour une limite de 25 % |
+| Scalaire de levier recalculé chaque barre | Pompe à rotation : 7,1× → 26,7× par an, 9,5 % du brut parti en exécution, pour un contrôle du risque identique |
+| `warnings.filterwarnings("ignore", RuntimeWarning)` global | Masque toutes les divisions par zéro et valeurs invalides de numpy sur l'ensemble du système. C'est exactement ainsi que le `log()` d'un spread négatif est passé inaperçu |
+
+## Le rééquilibrage : le plus gros levier de coût
+
+Même signal, même livre, seule la fréquence change.
+
+| Fréquence | Rotation annuelle | Part des coûts | Sharpe |
+|---|---|---|---|
+| Quotidienne | 26,7× | **9,97 %** | 0,658 |
+| Hebdomadaire | 15,5× | 5,55 % | 0,699 |
+| Mensuelle | 9,2× | **2,89 %** | 0,700 |
+
+Le signal évolue sur des horizons de 32 à 256 jours. Rééquilibrer quotidiennement, c'est
+payer pour ré-exprimer la même opinion. Ralentir divise les coûts par 3,5 et améliore le
+Sharpe — ce n'est pas un compromis, c'est une correction.
+
 ## Actions et ETF : ce que le dividende change vraiment
 
 Même livre, même période (2010-2026), même moteur. Seule différence : les dividendes

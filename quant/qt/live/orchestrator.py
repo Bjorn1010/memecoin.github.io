@@ -76,6 +76,10 @@ class DailySpec:
     # liquidates: the book is reduced, never dumped.
     soft_drawdown: float = 0.10
     hard_drawdown: float = 0.20
+    # Half-spread charged on every unit of turnover. US-listed ETFs carry no commission
+    # at any major broker, so the spread is the entire cost; 1.5bp is a blend across a
+    # book whose legs range from SPY at a quarter of a basis point to DBC at several.
+    half_spread_bps: float = 1.5
     trend: TrendSpec = field(default_factory=lambda: TrendSpec(rebalance_every=5))
 
     def to_meta(self) -> dict:
@@ -273,9 +277,18 @@ def run_cycle(
                 refreshed=refreshed, data_age_days=age))
 
         latest = weights.iloc[-1]
-        equity, drawdown = _equity_state(store, run_id, spec)
+        # Revalue what was held before deciding what to hold next: the drawdown that
+        # gates the next decision has to reflect the market, not the seed value.
+        equity, drawdown, previous = mark_to_market(store, run_id, prices, spec)
         scale, reason = drawdown_scale(drawdown, spec)
         allowed = latest * scale
+
+        # Cost of getting from the book held to the book wanted, charged now rather than
+        # left implicit. A paper run that never pays a spread reports a strategy nobody
+        # could have traded.
+        turnover = sum(abs(allowed.get(s, 0.0) - previous.get(s, 0.0))
+                       for s in set(allowed.index) | set(previous))
+        equity -= equity * turnover * (spec.half_spread_bps / 1e4)
 
         result = CycleResult(
             ts=stamp,
@@ -294,8 +307,52 @@ def run_cycle(
             stamp, "error", f"{type(exc).__name__}: {exc}\n{traceback.format_exc()[-600:]}"))
 
 
+def mark_to_market(store: Store, run_id: str, prices: pd.DataFrame, spec: DailySpec,
+                   ) -> tuple[float, float, dict[str, float]]:
+    """Revalue the book held since the last cycle, then report equity and drawdown.
+
+    Without this the recorded equity is whatever it was seeded with, forever. The curve
+    looks flat, the drawdown reads zero, and the breaker can never fire — a system that
+    reports "no loss yet" no matter what the market does. It runs, it records, it
+    reports, and every number in it is a constant.
+
+    The revaluation is the honest one: yesterday's *allowed* weights applied to the
+    return actually realised between the last cycle and this one, minus the cost of the
+    trades that got there. Using today's weights would credit the book with a return it
+    was not positioned for — the same look-ahead as sizing on the bar being sized.
+    """
+    curve = store.equity_curve(run_id)
+    if curve.empty:
+        return spec.starting_equity, 0.0, {}
+
+    equity = float(curve["equity"].iloc[-1])
+    last_ts = pd.Timestamp(int(curve["ts"].iloc[-1]), unit="ms", tz="UTC")
+
+    decisions = store.decisions(run_id, limit=400)
+    held: dict[str, float] = {}
+    if not decisions.empty:
+        prior = decisions[decisions["ts"] == decisions["ts"].max()]
+        held = {r["symbol"]: float(r["allowed_weight"] or 0.0) for _, r in prior.iterrows()}
+
+    if held:
+        # Return of each holding over the interval since the book was set.
+        window = prices.loc[prices.index > last_ts]
+        if not window.empty:
+            start = prices.loc[prices.index <= last_ts]
+            if not start.empty:
+                base = start.iloc[-1]
+                latest = window.iloc[-1]
+                for symbol, weight in held.items():
+                    if symbol in base.index and base[symbol] > 0:
+                        equity += equity * weight * float(latest[symbol] / base[symbol] - 1.0)
+
+    peak = max(float(curve["equity"].max()), equity)
+    drawdown = (equity / peak - 1.0) if peak > 0 else 0.0
+    return equity, drawdown, held
+
+
 def _equity_state(store: Store, run_id: str, spec: DailySpec) -> tuple[float, float]:
-    """Current equity and drawdown from the recorded curve."""
+    """Equity and drawdown with no revaluation — used only where prices are unavailable."""
     curve = store.equity_curve(run_id)
     if curve.empty:
         return spec.starting_equity, 0.0

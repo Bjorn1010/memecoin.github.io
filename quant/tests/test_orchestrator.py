@@ -159,3 +159,96 @@ def test_cycle_result_serialises(seeded, spec):
     payload = result.to_dict()
     assert set(payload) >= {"ts", "status", "weights", "gross", "equity"}
     assert all(isinstance(v, float) for v in payload["weights"].values())
+
+
+def test_the_live_decision_path_is_causal(seeded, spec):
+    """Truncating the future must not change any past weight.
+
+    This is the strongest check available on the live path: if a weight the book held
+    last March changes when data after March is removed, the decision used information
+    that did not exist. Every look-ahead bug found in this project has had this shape.
+    """
+    cat, _ = seeded
+    prices = load_prices(cat, spec)
+    assert len(prices) > 600
+
+    full = target_weights(prices, spec)
+    cut = len(prices) - 120
+    truncated = target_weights(prices.iloc[:cut], spec)
+
+    common = full.index.intersection(truncated.index)
+    assert len(common) > 200, "not enough overlap to prove anything"
+
+    # A rebalance schedule is anchored on the sample start, so the last partial block of
+    # the truncated run legitimately differs; compare everything before it.
+    stable = common[:-spec.trend.rebalance_every - 1]
+    pd.testing.assert_frame_equal(
+        full.loc[stable], truncated.loc[stable], check_freq=False, rtol=1e-9,
+    )
+
+
+def test_weights_never_reference_a_bar_that_does_not_exist_yet(seeded, spec):
+    """The newest weight must be computable from the newest bar and nothing beyond."""
+    cat, _ = seeded
+    prices = load_prices(cat, spec)
+    weights = target_weights(prices, spec)
+    assert weights.index.max() <= prices.index.max()
+
+
+def test_equity_is_marked_to_market_between_cycles(seeded, spec):
+    """Without revaluation the curve is a constant and the breaker can never fire.
+
+    The system still runs, records and reports — it simply says "no loss yet" whatever
+    the market does, which is the most dangerous kind of working.
+    """
+    from qt.live.orchestrator import mark_to_market
+
+    cat, store = seeded
+    prices = load_prices(cat, spec)
+    mid = prices.index[len(prices) - 30]
+
+    # A cycle placed 30 bars ago, long the first asset only.
+    ms = int(schemas.epoch_ms(pd.DatetimeIndex([mid])).iloc[0])
+    store.record_equity("mtm", ms, 100_000.0, 100_000.0, 0.5, 0.0, False)
+    store.record_decision("mtm", ms, prices.columns[0], signal=0.5, target_weight=0.5,
+                          allowed_weight=0.5, risk_scale=1.0, risk_reason="ok",
+                          equity=100_000.0)
+
+    equity, drawdown, held = mark_to_market(store, "mtm", prices, spec)
+    realised = float(prices[prices.columns[0]].iloc[-1] / prices[prices.columns[0]].loc[mid] - 1.0)
+
+    assert held == {prices.columns[0]: 0.5}
+    assert equity != pytest.approx(100_000.0), "equity never moved — the book is not valued"
+    assert equity == pytest.approx(100_000.0 * (1 + 0.5 * realised), rel=1e-9)
+    assert drawdown <= 0.0
+
+
+def test_mark_to_market_uses_the_weights_that_were_held(seeded, spec):
+    """Crediting today's weights with today's return is the same look-ahead as sizing
+    a position on the bar it is about to profit from."""
+    from qt.live.orchestrator import mark_to_market
+
+    cat, store = seeded
+    prices = load_prices(cat, spec)
+    mid = prices.index[len(prices) - 20]
+    ms = int(schemas.epoch_ms(pd.DatetimeIndex([mid])).iloc[0])
+
+    store.record_equity("mtm2", ms, 100_000.0, 100_000.0, 0.0, 0.0, False)
+    # Recorded flat: whatever the market did since, equity must be unchanged.
+    store.record_decision("mtm2", ms, prices.columns[0], signal=0.0, target_weight=0.0,
+                          allowed_weight=0.0, risk_scale=1.0, risk_reason="flat",
+                          equity=100_000.0)
+
+    equity, _, _ = mark_to_market(store, "mtm2", prices, spec)
+    assert equity == pytest.approx(100_000.0), "a flat book earned a return"
+
+
+def test_a_first_cycle_starts_at_the_seed_equity(seeded, spec):
+    from qt.live.orchestrator import mark_to_market
+
+    cat, store = seeded
+    prices = load_prices(cat, spec)
+    equity, drawdown, held = mark_to_market(store, "fresh", prices, spec)
+    assert equity == spec.starting_equity
+    assert drawdown == 0.0
+    assert held == {}

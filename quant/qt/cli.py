@@ -23,8 +23,16 @@ from rich.table import Table
 
 from .config import CONFIG
 
-warnings.filterwarnings("ignore", category=RuntimeWarning)
+# Warning policy. A blanket `ignore` on RuntimeWarning silences every divide-by-zero,
+# overflow and invalid-value numpy raises across the whole system — and those have been
+# where the interesting bugs lived here: the log of a negative yield spread announced
+# itself that way and was ignored for as long as the filter was broad. So the noisy,
+# genuinely benign sources are silenced by module, and everything else is shown once.
 warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+for _noisy in ("statsmodels", "sklearn", "scipy"):
+    warnings.filterwarnings("ignore", category=RuntimeWarning, module=_noisy)
+warnings.filterwarnings("once", category=RuntimeWarning)
 
 app = typer.Typer(add_completion=False, help="qt — free-data quant research and paper trading")
 console = Console()
@@ -184,7 +192,10 @@ def research(
     console.print(f"[cyan]{symbol}[/cyan] {bars.shape[0]} bars  {bars.index.min()} -> {bars.index.max()}")
 
     fm = _features(bars, symbol)
-    sig = A.compute_all(bars, fm.X, warn_missing=False)
+    # warn_missing was off while the macro and funding context was unwired and every run
+    # would have been buried in warnings. The context is supplied now, so a missing
+    # feature means something is genuinely absent and the warning is the point.
+    sig = A.compute_all(bars, fm.X, warn_missing=True)
     # Forward-return horizon for the IC: roughly one day of bars, whatever the
     # frequency. Hardcoding 24 would mean a 24-day horizon on daily bars.
     h = max(int(round(86_400 / max(bar_seconds, 1.0))), 1)
