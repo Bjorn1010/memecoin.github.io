@@ -77,7 +77,34 @@ class IntradaySpec:
     symbols: tuple[str, ...] = ("SPY", "QQQ")
     window: int = 24               # barres pour la moyenne et l'écart-type
     threshold: float = 1.5         # écarts-types avant de prendre le contre
-    hold_bars: int = 6             # 30 minutes sur des barres de 5 minutes
+    # Une heure, pas trente minutes.
+    #
+    # Le réglage venait d'une grille automatique ; il a été corrigé sur la remarque d'un
+    # utilisateur qui tient ses positions Nasdaq une heure au maximum. Vérifié sur QQQ,
+    # 60 séances, et il avait raison :
+    #
+    #     15 min   +1,25 bp net   t=0,98
+    #     30 min   +3,09 bp net   t=1,65
+    #     1 heure  +5,82 bp net   t=2,34   <-
+    #     2 heures +3,50 bp net   t=1,04
+    #
+    # L'explication est cohérente avec ce que la stratégie prétend faire : le retour à
+    # la moyenne après un écart met plus de trente minutes à se produire, et au-delà de
+    # deux heures c'est la dérive de la séance qui domine le retour.
+    #
+    # Deux honnêtetés à propos de ce changement.
+    #
+    # Il n'améliore pas tout. Ce tableau porte sur QQQ seul, sans plafond de trades. Sur
+    # le livre effectivement livré — SPY et QQQ, six trades par séance — passer de 30
+    # minutes à une heure fait BAISSER le t de 2,06 à 1,66 et le cumul de 15,03 € à
+    # 12,98 €. Le réglage est conservé parce que le raisonnement tient sur l'actif visé
+    # et que les deux chiffres sont de toute façon du bruit, pas parce qu'il gagne
+    # partout.
+    #
+    # Et il ne rend rien significatif. Corrigé pour les seize configurations balayées,
+    # le t de 2,34 donne p = 0,28 : le t médian du meilleur de seize tirages de pur
+    # bruit vaut 2,03.
+    hold_bars: int = 12            # 1 heure sur des barres de 5 minutes
     stop_sigma: float = 2.0        # coupe à 2 écarts-types contre soi
     capital: float = 500.0
     position_eur: float = 100.0    # engagé par trade

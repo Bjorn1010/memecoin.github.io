@@ -989,3 +989,38 @@ Et l'arithmétique du capital, qui ne dépend d'aucune stratégie :
 | 66 % | Medallion, record absolu, fonds fermé | **181 818 €** |
 
 Avec 500 € il faudrait **24 000 % par an**.
+
+### Une heure plutôt que trente minutes — corrigé sur une remarque d'utilisateur
+
+Le réglage de détention venait d'une grille automatique. Un utilisateur qui tient ses
+positions Nasdaq une heure au maximum a signalé que ce n'était pas la bonne durée.
+Vérifié sur QQQ, 60 séances, sans plafond de trades :
+
+| Détention | Net moyen | t |
+|---|---|---|
+| 15 min | +1,25 bp | 0,98 |
+| 30 min | +3,09 bp | 1,65 |
+| **1 heure** | **+5,82 bp** | **2,34** |
+| 2 heures | +3,50 bp | 1,04 |
+
+Il avait raison, et l'explication est cohérente avec ce que la stratégie prétend faire :
+le retour à la moyenne après un écart met plus de trente minutes à se produire, et
+au-delà de deux heures c'est la dérive de la séance qui domine le retour.
+
+**Deux réserves, écrites parce qu'elles vont dans le sens défavorable.**
+
+Le changement n'améliore pas tout. Sur le livre effectivement livré — SPY et QQQ, six
+trades par séance — passer à une heure fait *baisser* le t de 2,06 à 1,66 et le cumul de
+15,03 € à 12,98 €. Le réglage est conservé parce que le raisonnement tient sur l'actif
+visé, pas parce qu'il gagne partout.
+
+Et il ne rend rien significatif. Seize configurations ont été balayées pour trouver ce
+t de 2,34 ; le t médian du meilleur de seize tirages de **pur bruit** vaut 2,03. Corrigé
+pour la recherche, **p = 0,28**.
+
+L'ablation reste la même : sur 291 trades, retirer les dix meilleurs fait tomber le gain
+de +5,82 bp à +0,78 bp, et le trade médian rapporte −0,11 bp.
+
+| Erreur trouvée en chemin | Effet mesuré |
+|---|---|
+| Lire un t de 2,34 comme significatif après avoir balayé seize configurations | Le meilleur de seize tirages de bruit donne un t médian de 2,03. Le p honnête est 0,28, pas 0,02 |
