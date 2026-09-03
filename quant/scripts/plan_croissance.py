@@ -1,26 +1,35 @@
-"""Le chemin réel vers 6 000 €/mois : pas une stratégie plus agressive, un plan d'épargne.
+"""Le chemin réel vers un revenu mensuel cible : pas une stratégie plus agressive, un
+plan d'épargne.
 
 Ce script répond à une reformulation, et c'est la bonne. Chercher une stratégie qui
-transforme 500 € en 6 000 €/mois immédiatement, c'est chercher un rendement de
-plusieurs milliers de pour cent par an — mesuré impossible dans ce dépôt, à plusieurs
+transforme un petit capital en un gros revenu immédiatement, c'est chercher un rendement
+de plusieurs milliers de pour cent par an — mesuré impossible dans ce dépôt, à plusieurs
 reprises (`chemin_rentabilite.py`). Investir de plus en plus, à mesure que le capital
 grandit, jusqu'à ce que le revenu suive, est une question complètement différente : ce
 n'est plus une question de stratégie, c'est une question d'épargne et de temps.
 
-La stratégie ne change pas. C'est celle qui a déjà survécu à une déflation honnête :
-risk parity + 30 % de tendance, quinze ETF, Sharpe 0,97, 6,6 % par an, mesuré sur 2010-
-2026 avec les coûts. Ce script ne cherche pas mieux — il applique l'épargne à ce qui
-marche déjà, et chiffre combien de temps ça prend.
+La stratégie ne change pas, quelle que soit la cible demandée. C'est celle qui a déjà
+survécu à une déflation honnête : risk parity + 30 % de tendance, quinze ETF, Sharpe
+0,97, 6,6 % par an, mesuré sur 2010-2026 avec les coûts. Ce script ne cherche pas mieux
+— il applique l'épargne à ce qui marche déjà, et chiffre combien de temps ça prend.
 
 Le calcul n'est pas un taux d'intérêt composé lisse. Chaque trajectoire simulée est
 rééchantillonnée par blocs depuis l'historique réel du livre (`qt/live/growth.py`), donc
 elle traverse ses propres creux — pas la moyenne qui les efface.
 
-Lancer :  .venv/bin/python -u scripts/plan_croissance.py
+La cible et le capital de départ sont des paramètres plutôt que des constantes gravées
+dans le fichier : l'objectif a déjà changé trois fois dans la même conversation
+(100 $/heure, 20 €/heure, 6 000 €/mois, 10 000 CHF/mois), et un script qu'il faut
+réécrire à chaque fois serait aussi peu fiable que le calcul qu'il remplace.
+
+Lancer :
+  .venv/bin/python -u scripts/plan_croissance.py
+  .venv/bin/python -u scripts/plan_croissance.py --target-per-month 10500 --devise CHF
 """
 
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -35,11 +44,26 @@ from qt.live.growth import ContributionPlan, contribution_ladder, simulate  # no
 
 pd.set_option("display.width", 240)
 
-START_CAPITAL = 500.0
-TARGET_PER_MONTH = 6_000.0
 MONTHLY_CONTRIBUTIONS = (100, 250, 500, 1_000, 2_000, 3_000)
 N_PATHS = 3_000
 MAX_YEARS = 45.0          # au-delà, verser plus est la seule réponse utile de toute façon
+
+
+def parse_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument("--start-capital", type=float, default=500.0,
+                   help="capital de départ (défaut : 500)")
+    p.add_argument("--target-per-month", type=float, default=6_000.0,
+                   help="revenu mensuel visé, dans la devise du capital de départ "
+                        "(défaut : 6000)")
+    p.add_argument("--devise", type=str, default="€",
+                   help="uniquement pour l'affichage — aucune conversion n'est faite, "
+                        "convertissez la cible vous-même avant de la passer ici "
+                        "(défaut : €)")
+    p.add_argument("--contributions", type=float, nargs="+",
+                   default=list(MONTHLY_CONTRIBUTIONS),
+                   help="niveaux de versement mensuel à comparer")
+    return p.parse_args()
 
 
 def fr(value: float, decimals: int = 0) -> str:
@@ -48,6 +72,11 @@ def fr(value: float, decimals: int = 0) -> str:
 
 
 def main() -> None:
+    args = parse_args()
+    start_capital = args.start_capital
+    target_per_month = args.target_per_month
+    devise = args.devise
+    contributions = args.contributions
     cat = Catalog()
 
     print("=" * 88)
@@ -64,15 +93,16 @@ def main() -> None:
     print("  perdante ou non significative après coûts. Celle-ci est la seule qui reste,")
     print("  et le plan est construit dessus, pas sur un espoir de mieux.")
 
-    target_capital = TARGET_PER_MONTH * 12 / s["cagr"]
+    target_capital = target_per_month * 12 / s["cagr"]
     print("\n" + "=" * 88)
-    print(f"LA CIBLE : LE CAPITAL QUI PRODUIT {fr(TARGET_PER_MONTH)} € PAR MOIS\n")
-    print(f"  {fr(TARGET_PER_MONTH)} €/mois = {fr(TARGET_PER_MONTH * 12)} €/an")
-    print(f"  au rendement mesuré de {s['cagr'] * 100:.2f} % : il faut {fr(target_capital)} € de capital")
+    print(f"LA CIBLE : LE CAPITAL QUI PRODUIT {fr(target_per_month)} {devise} PAR MOIS\n")
+    print(f"  {fr(target_per_month)} {devise}/mois = {fr(target_per_month * 12)} {devise}/an")
+    print(f"  au rendement mesuré de {s['cagr'] * 100:.2f} % : il faut "
+          f"{fr(target_capital)} {devise} de capital")
     print("\n  Pour situer ce chiffre, au rendement d'autres références :")
     for label, r in (("S&P 500, long terme", 0.10), ("Buffett, 1965-2023", 0.198),
                      ("Medallion, record absolu, fonds fermé", 0.66)):
-        print(f"    {label:42s} {r * 100:5.1f} % -> {fr(TARGET_PER_MONTH * 12 / r):>14s} €")
+        print(f"    {label:42s} {r * 100:5.1f} % -> {fr(target_per_month * 12 / r):>14s} {devise}")
 
     # -------------------------------------------------------------- sans versement
     print("\n" + "=" * 88)
@@ -80,13 +110,14 @@ def main() -> None:
     # Question fermée arithmétiquement, pas simulée : le bootstrap ne change pas la
     # réponse à une croissance composée déterministe sur cet horizon, et une simulation
     # à 200 ans coûterait plusieurs gigaoctets de mémoire pour rien.
-    years_solo = np.log(target_capital / START_CAPITAL) / np.log(1 + s["cagr"])
-    print(f"  {fr(START_CAPITAL)} € seuls, réinvestis au rendement mesuré de "
+    years_solo = np.log(target_capital / start_capital) / np.log(1 + s["cagr"])
+    print(f"  {fr(start_capital)} {devise} seuls, réinvestis au rendement mesuré de "
           f"{s['cagr'] * 100:.2f} % par an, sans un euro ajouté :")
-    print(f"  {years_solo:.0f} ans pour atteindre {fr(target_capital)} €.")
+    print(f"  {years_solo:.0f} ans pour atteindre {fr(target_capital)} {devise}.")
     print("\n  Ce n'est pas un défaut de la stratégie, c'est l'arithmétique de partir")
     print("  petit : les intérêts composés ont besoin de plusieurs générations sur un")
-    print("  capital de 500 €. C'est exactement pourquoi verser régulièrement est")
+    print(f"  capital de {fr(start_capital)} {devise}. C'est exactement pourquoi verser "
+          "régulièrement est")
     print("  obligatoire, pas optionnel.")
 
     # ----------------------------------------------------------------- avec versement
@@ -97,10 +128,10 @@ def main() -> None:
     print("  réel du livre — pas une moyenne lisse. « médiane » est le résultat typique ;")
     print("  « p10 / p90 » bornent 80 % des trajectoires, le mauvais et le bon tirage.\n")
 
-    table = contribution_ladder(START_CAPITAL, target_capital, daily_returns,
-                                MONTHLY_CONTRIBUTIONS, n_paths=N_PATHS, max_years=MAX_YEARS)
+    table = contribution_ladder(start_capital, target_capital, daily_returns,
+                                contributions, n_paths=N_PATHS, max_years=MAX_YEARS)
     show = table.copy()
-    show["versement_mensuel"] = show["versement_mensuel"].map(lambda v: f"{fr(v)} €")
+    show["versement_mensuel"] = show["versement_mensuel"].map(lambda v: f"{fr(v)} {devise}")
     show["atteint_dans_le_délai"] = (show["atteint_dans_le_délai"] * 100).map(lambda v: f"{v:.0f} %")
     for col in ("années_médiane", "années_p10", "années_p90"):
         show[col] = table[col].map(lambda v: f"{v:.1f}" if np.isfinite(v) else f"> {MAX_YEARS:.0f}")
@@ -118,13 +149,14 @@ def main() -> None:
     print("\n" + "=" * 88)
     print("CE QUE ÇA VEUT DIRE, DIRECTEMENT\n")
     if reachable.empty:
-        print(f"  Même à {fr(MONTHLY_CONTRIBUTIONS[-1])} €/mois, moins de la moitié des")
+        print(f"  Même à {fr(contributions[-1])} {devise}/mois, moins de la moitié des")
         print(f"  trajectoires atteignent la cible en {MAX_YEARS:.0f} ans. Il faut soit verser plus,")
         print("  soit revoir l'objectif à la baisse, soit les deux.")
     else:
         best = reachable.iloc[0]
-        print(f"  À partir de {fr(best['versement_mensuel'])} €/mois versés en plus de la")
-        print(f"  stratégie, la moitié des trajectoires atteignent {fr(TARGET_PER_MONTH)} €/mois")
+        print(f"  À partir de {fr(best['versement_mensuel'])} {devise}/mois versés en plus de la")
+        print(f"  stratégie, la moitié des trajectoires atteignent "
+              f"{fr(target_per_month)} {devise}/mois")
         print(f"  de revenu en {best['années_médiane']:.0f} ans — entre {best['années_p10']:.0f} et "
               f"{best['années_p90']:.0f} ans selon que le marché a été favorable ou non.")
 
