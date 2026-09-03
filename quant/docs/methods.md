@@ -836,3 +836,48 @@ Le multiplicateur caché a été cherché dans cinq directions — scalping, pr�
 horaire, day trading crypto, primes de style, régimes. Les cinq sont mesurées négatives
 et documentées ci-dessus. Ce qui reste est un chemin réel mais lent : une stratégie
 modeste et vérifiée, appliquée à du capital qui grandit.
+
+## Étape 1 : le papier-trading, et ce qu'il a révélé sur 500 €
+
+L'essai de trois mois demande deux choses que le code n'avait pas.
+
+**Un état qui survit au conteneur.** L'orchestrateur enregistrait tout dans un SQLite
+sous le lac de données — ignoré par git, et détruit avec la machine. Au premier
+recyclage, l'essai serait reparti de sa valeur de départ : courbe plate, drawdown nul,
+et un relevé ressemblant à un mois calme plutôt qu'à un mois perdu. `qt/live/journal.py`
+tient une seconde copie en CSV versionné, une ligne par cycle, rejouée dans une base de
+travail au début de chaque exécution. Le journal est le relevé ; la base est une copie
+de travail, jamais l'inverse.
+
+**Une vérification que le livre est achetable.** C'est le vrai résultat de cette étape.
+Un backtest raisonne en poids ; un courtier vend des actions entières. Sur 100 000 € la
+différence est un arrondi. Sur 500 €, mesuré sur le livre réel :
+
+| Capital | Positions obtenues | Investi / voulu | Erreur de poids (entières) | (fractionnées) |
+|---|---|---|---|---|
+| **500 €** | **3 / 15** | **28 %** | **1,045** | 0,000 |
+| 1 000 € | 7 / 15 | 54 % | 0,668 | 0,000 |
+| 2 500 € | 10 / 15 | 73 % | 0,394 | 0,000 |
+| 5 000 € | 12 / 15 | 83 % | 0,244 | 0,000 |
+| 10 000 € | 14 / 15 | 92 % | 0,112 | 0,000 |
+| 25 000 € | 15 / 15 | 95 % | 0,079 | 0,000 |
+
+L'erreur de poids est la somme des écarts entre le livre voulu et le livre obtenu. À
+1,045 sur 500 €, ce n'est plus la même stratégie — c'est un autre portefeuille portant le
+même nom.
+
+Et les lignes qui disparaissent ne sont pas les moins utiles : ce sont les **plus chères
+à l'action**. Le S&P 500 à 765 $ disparaît, l'or à 403 $ disparaît, le dollar à 28 $
+reste. Le livre survivant est celui des actions bon marché — un critère de sélection qui
+n'apparaît nulle part dans la stratégie et que personne n'a choisi. Un moteur qui
+travaille en poids n'a aucune raison de lever une erreur là-dessus.
+
+**Conséquence** : avec 500 €, il faut un courtier proposant les actions fractionnées, et
+la reproduction devient alors exacte (erreur 0,000). Chez un courtier classique il
+faudrait environ 25 000 €.
+
+| Erreur trouvée en chemin | Effet mesuré |
+|---|---|
+| Supposer qu'un livre de quinze poids est un livre de quinze positions | Sur 500 €, trois positions sur quinze et 28 % du capital investi. L'essai aurait mesuré correctement une stratégie que le compte ne peut pas tenir |
+| Ignorer le taux de change sur des ETF cotés en dollars | Surestime le nombre d'actions achetables, toujours dans le sens flatteur. Le taux est maintenant un paramètre explicite |
+| Annualiser un Sharpe sur deux semaines de papier | Un nombre sans information, et toujours celui qu'on cite. `performance` le retient jusqu'à 60 jours de rendements |
