@@ -44,6 +44,10 @@ export interface Product {
   compareAt?: number;
   sizes: string[];
   colorway: Colorway;
+  /** Real product photography. When set, it replaces the drawn kit everywhere.
+   *  Left undefined across the seeded catalogue because club imagery is not
+   *  ours to ship — see components/ui/KitVisual.tsx. */
+  photo?: string;
   rating: number;
   reviews: number;
   stock: number;

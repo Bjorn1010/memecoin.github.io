@@ -12,13 +12,15 @@ import { revealCinematic, transition } from "@/lib/motion";
 /* Three.js is ~150 kB gzipped. It must never sit in the initial bundle, so the
  * scene is a dynamic client-only import that is requested only once we've
  * decided this device should actually run it. */
-const JerseyScene = dynamic(() => import("@/components/3d/JerseyScene"), {
+const StadiumScene = dynamic(() => import("@/components/3d/StadiumScene"), {
   ssr: false,
 });
 
-/* Striped and high-chroma: the kit has to hold its own against a green pitch,
-   and the stripes give the cloth drape something to deform. */
-const HERO_TEAM = clubs.find((c) => c.slug === "barcelona") ?? clubs[0];
+/* Three kits with distinct patterns and high-chroma colourways — a carousel of
+   three whites would read as one object turning. */
+const CAST = ["barcelona", "paris-saint-germain", "borussia-dortmund"]
+  .map((slug) => clubs.find((c) => c.slug === slug))
+  .filter((c): c is (typeof clubs)[number] => Boolean(c));
 
 export function Hero() {
   const ref = useRef<HTMLDivElement>(null);
@@ -27,8 +29,7 @@ export function Hero() {
 
   /* Gate the WebGL scene on: reduced motion off, a pointer that can actually
      drive it, enough cores to spare, and a viewport worth rendering into.
-     Everyone else gets the SVG kit, which is not a downgrade — it is the same
-     artwork, just not lit in real time. */
+     Everyone else gets the drawn kits, which are the same artwork. */
   useEffect(() => {
     if (reduced) return;
     const coarse = window.matchMedia("(pointer: coarse)").matches;
@@ -46,31 +47,71 @@ export function Hero() {
     offset: ["start start", "end start"],
   });
 
-  const kitY = useTransform(scrollYProgress, [0, 1], ["0%", "16%"]);
-  const copyY = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
+  const sceneY = useTransform(scrollYProgress, [0, 1], ["0%", "14%"]);
+  const copyY = useTransform(scrollYProgress, [0, 1], ["0%", "48%"]);
   const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
 
   return (
-    /* The pitch. Everything below this section is white — putting turf only
-       here means the shop reads as football in the first half second without
-       the whole site turning into a green wall. */
     <section
       ref={ref}
-      className="turf pitch-lines grain relative flex min-h-[100svh] items-center overflow-hidden pt-24"
+      className="turf relative flex min-h-[100svh] items-center overflow-hidden pt-24"
       aria-label="Nouvelle collection"
     >
-      <div aria-hidden className="floodlight pointer-events-none absolute inset-0" />
-      {/* Fade into the white page below, so the turf ends as a horizon rather
-          than a hard band. */}
+      {/* The stadium fills the whole hero and the copy sits over it, rather
+          than the kit living in its own column — that is the difference
+          between a product shot and a matchday. */}
+      <motion.div
+        style={reduced ? undefined : { y: sceneY }}
+        className="pointer-events-none absolute inset-0"
+        aria-hidden
+      >
+        {enable3D ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1 }}
+            className="absolute inset-0"
+          >
+            <StadiumScene teams={CAST} />
+          </motion.div>
+        ) : (
+          /* Not a placeholder — the shipped experience for touch, reduced
+             motion and low-core devices: the same three kits, drawn. */
+          <div className="absolute inset-0 flex items-center justify-end gap-4 pr-[4vw] lg:pr-[6vw]">
+            {CAST.map((team, i) => (
+              <motion.div
+                key={team.slug}
+                initial={{ opacity: 0, y: 24, filter: "blur(10px)" }}
+                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                transition={{ ...transition.cinematic, delay: 0.15 + i * 0.12 }}
+                className="drop-shadow-[0_18px_36px_rgb(5_52_28_/_0.45)]"
+                style={{
+                  height: i === 1 ? "58%" : "46%",
+                  opacity: i === 1 ? 1 : 0.85,
+                }}
+              >
+                <Jersey colorway={team.colorway} monogram={team.monogram} number={`${i + 9}`} />
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </motion.div>
+
+      {/* Legibility scrim: the crowd and turf behind the copy are busy, and
+          white type over them needs a ground of its own. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-gradient-to-r from-pitch-deep/85 via-pitch-deep/45 to-transparent"
+      />
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-void to-transparent"
       />
 
-      <div className="relative mx-auto grid w-full max-w-[1600px] items-center gap-8 px-5 lg:grid-cols-2 lg:px-10">
+      <div className="relative mx-auto w-full max-w-[1600px] px-5 lg:px-10">
         <motion.div
           style={reduced ? undefined : { y: copyY, opacity }}
-          className="relative z-10 order-2 lg:order-1"
+          className="relative z-10 max-w-xl"
         >
           <motion.p
             custom={0}
@@ -91,7 +132,7 @@ export function Hero() {
                 variants={revealCinematic}
                 initial="hidden"
                 animate="visible"
-                className="block drop-shadow-[0_2px_12px_rgb(5_52_28_/_0.35)]"
+                className="block drop-shadow-[0_2px_14px_rgb(5_52_28_/_0.5)]"
               >
                 {i === 2 ? (
                   <>
@@ -109,7 +150,7 @@ export function Hero() {
             variants={revealCinematic}
             initial="hidden"
             animate="visible"
-            className="mt-6 max-w-md text-base leading-relaxed text-paper/85"
+            className="mt-6 max-w-md text-base leading-relaxed text-paper/90"
           >
             Maillots, kits enfants, rétros et éditions limitées. Flocage nom et
             numéro inclus, expédié sous 48&nbsp;h depuis la Suisse.
@@ -122,8 +163,6 @@ export function Hero() {
             animate="visible"
             className="mt-8 flex flex-wrap items-center gap-3"
           >
-            {/* White on green is the highest-contrast button available here, and
-                it keeps the solid pitch-green CTA reserved for white sections. */}
             <Button
               href="/maillots"
               size="lg"
@@ -156,41 +195,6 @@ export function Hero() {
               </div>
             ))}
           </motion.dl>
-        </motion.div>
-
-        <motion.div
-          style={reduced ? undefined : { y: kitY, opacity }}
-          className="relative order-1 h-[46svh] min-h-[320px] lg:order-2 lg:h-[76svh]"
-        >
-          {/* Light bloom behind the kit so it separates from the turf. */}
-          <div
-            aria-hidden
-            className="pointer-events-none absolute left-1/2 top-1/2 h-[70%] w-[70%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-paper/20 blur-[100px]"
-          />
-
-          {enable3D ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.8 }}
-              className="absolute inset-0"
-            >
-              <JerseyScene colorway={HERO_TEAM.colorway} monogram={HERO_TEAM.monogram} />
-            </motion.div>
-          ) : (
-            /* Not a placeholder — the shipped experience for touch, reduced
-               motion and low-core devices. */
-            <motion.div
-              initial={{ opacity: 0, scale: 0.94, filter: "blur(10px)" }}
-              animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-              transition={{ ...transition.cinematic, delay: 0.15 }}
-              className="absolute inset-0 grid place-items-center"
-            >
-              <div className="h-full max-h-[540px] w-auto drop-shadow-[0_20px_40px_rgb(5_52_28_/_0.4)]">
-                <Jersey colorway={HERO_TEAM.colorway} monogram={HERO_TEAM.monogram} number="10" />
-              </div>
-            </motion.div>
-          )}
         </motion.div>
       </div>
 

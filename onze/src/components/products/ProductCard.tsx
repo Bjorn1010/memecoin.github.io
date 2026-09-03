@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import { motion, useMotionTemplate, useMotionValue, useSpring, useReducedMotion } from "motion/react";
 import { Eye, Heart } from "lucide-react";
 import type { Product } from "@/lib/types";
-import { Jersey } from "@/components/ui/Jersey";
+import { KitVisual } from "@/components/ui/KitVisual";
 import { Badge } from "@/components/ui/Badge";
 import { Price } from "@/components/ui/Price";
 import { spring, transition } from "@/lib/motion";
@@ -116,8 +116,10 @@ export function ProductCard({
               )}
               style={{ transform: reduced ? undefined : "translateZ(40px)" }}
             >
-              <Jersey
+              <KitVisual
                 colorway={product.colorway}
+                photo={product.photo}
+                alt={product.name}
                 monogram={product.teamSlug.slice(0, 3).toUpperCase()}
                 number="10"
               />
@@ -163,7 +165,7 @@ export function ProductCard({
             "absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full border backdrop-blur-md transition-colors",
             wishlisted
               ? "border-sale/40 bg-sale/20 text-sale"
-              : "border-ink/12 bg-ink/40 text-steel-300 hover:text-ink",
+              : "border-ink/12 bg-paper/85 text-steel-400 hover:text-ink",
           )}
         >
           <Heart size={15} fill={wishlisted ? "currentColor" : "none"} />

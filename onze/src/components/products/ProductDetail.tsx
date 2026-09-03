@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Box, Check, ChevronDown, Heart, Minus, Plus, RotateCcw, Ruler, Truck } from "lucide-react";
 import type { Product } from "@/lib/types";
-import { Jersey } from "@/components/ui/Jersey";
+import { KitVisual } from "@/components/ui/KitVisual";
 import { Badge } from "@/components/ui/Badge";
 import { Price } from "@/components/ui/Price";
 import { Button } from "@/components/ui/Button";
@@ -120,12 +120,15 @@ export function ProductDetail({ product }: { product: Product }) {
                     className="absolute inset-0 p-10"
                     style={{ perspective: 1200 }}
                   >
-                    <Jersey
+                    <KitVisual
                       colorway={product.colorway}
+                      photo={view === "front" ? product.photo : undefined}
+                      alt={`${product.name}, vue ${view === "front" ? "de face" : "de dos"}`}
                       monogram={monogram}
                       number={playerNumber || "10"}
                       view={view}
                       playerName={playerName}
+                      priority
                     />
                   </motion.div>
                 </AnimatePresence>

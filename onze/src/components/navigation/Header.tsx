@@ -49,7 +49,7 @@ export function Header() {
           "fixed inset-x-0 top-0 z-50 transition-[height,background-color,border-color]",
           "duration-[--duration-standard] ease-[--ease-out-expo]",
           onTurf
-            ? "h-24 border-b border-transparent bg-gradient-to-b from-pitch-deep/25 to-transparent"
+            ? "h-24 border-b border-transparent bg-gradient-to-b from-pitch-deep/70 via-pitch-deep/30 to-transparent"
             : compact
               ? "h-16 border-b border-ink/10 bg-paper/90 backdrop-blur-xl"
               : "h-24 border-b border-ink/10 bg-paper/90 backdrop-blur-xl",
