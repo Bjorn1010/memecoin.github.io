@@ -45,3 +45,15 @@ from .rapport import (  # noqa: F401
     positions,
     resultat,
 )
+from .scalp_bot import (  # noqa: F401
+    MARKETS,
+    CycleReport,
+    Execution,
+    PaperBroker,
+    ScalpBotSpec,
+    ScalpDecision,
+    SkillGate,
+    analyse,
+    decide,
+)
+from .scalp_bot import run_cycle as run_scalp_cycle  # noqa: F401

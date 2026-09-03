@@ -637,6 +637,61 @@ def bot(
 
 
 @app.command()
+def scalp(
+    symbols: str = typer.Option("QQQ,GLD", help="marchés à surveiller"),
+    cycles: int = typer.Option(1, help="cycles à exécuter ; 0 = en continu"),
+    minutes: float = typer.Option(5.0, help="minutes entre deux cycles"),
+    capital: float = typer.Option(500.0),
+    position: float = typer.Option(100.0, help="montant engagé par trade"),
+    force: bool = typer.Option(False, "--force", help="trader même sans compétence démontrée"),
+) -> None:
+    """Scalping autonome : analyse, probabilité de hausse, décision. Papier uniquement.
+
+    Le bot récupère les dernières heures du Nasdaq et de l'or, calcule une probabilité
+    calibrée que ça monte, et soit prend position soit explique pourquoi il s'abstient.
+
+    Il refuse par défaut de trader tant que sa probabilité n'a pas démontré qu'elle
+    distingue quoi que ce soit. `--force` lève ce garde-fou ; la mesure actuelle dit que
+    ce serait une erreur.
+    """
+    import time
+
+    from .live.scalp_bot import PaperBroker, ScalpBotSpec, run_cycle
+
+    syms = tuple(s.strip().upper() for s in symbols.split(",") if s.strip())
+    spec = ScalpBotSpec(symbols=syms, capital_eur=capital, position_eur=position,
+                        require_skill=not force)
+    broker = PaperBroker()
+
+    if force:
+        console.print("[red]garde-fou levé[/red] — le bot tradera un signal non validé\n")
+
+    n = 0
+    while cycles == 0 or n < max(cycles, 1):
+        report = run_cycle(spec, broker=broker)
+        rows = [d.to_dict() for d in report.decisions]
+        if rows:
+            # The reason is printed as a line below; repeating it in a column wraps it
+            # into an unreadable stack and pushes the numbers off the screen.
+            frame = pd.DataFrame(rows).drop(columns=["raison"], errors="ignore")
+            _table(frame, f"cycle {n + 1} — {report.ts.strftime('%H:%M:%S UTC')}")
+        for d in report.decisions:
+            colour = {"ACHETER": "green", "VENDRE": "green",
+                      "BLOQUÉ": "red"}.get(d.action, "yellow")
+            console.print(f"  [{colour}]{d.action}[/{colour}] {d.market} — {d.reason}")
+        if report.fills:
+            _table(pd.DataFrame(report.fills), "ordres passés (papier)")
+        if report.status != "ok":
+            console.print(f"[red]{report.status}[/red] {report.reason}")
+
+        n += 1
+        if cycles != 0 and n >= cycles:
+            break
+        console.print(f"\n[dim]prochain cycle dans {minutes:.0f} minutes[/dim]\n")
+        time.sleep(max(minutes, 0.0) * 60)
+
+
+@app.command()
 def rapport(
     run_id: str = typer.Option("daily"),
     refresh: bool = typer.Option(True, help="télécharger les prix du jour avant"),
