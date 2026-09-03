@@ -123,7 +123,7 @@ export default function JerseyScene({
       <ambientLight intensity={0.55} />
       <directionalLight position={[-4, 5, 3]} intensity={1.6} color="#dfe6ff" />
       {/* Volt rim from behind, tying the 3D object to the system accent. */}
-      <directionalLight position={[3, -2, -4]} intensity={2.2} color="#ccff00" />
+      <directionalLight position={[3, -2, -4]} intensity={2.2} color="#0a9c4a" />
       {/* Deliberately no drei <Environment>: every preset pulls an HDR from a
           CDN at runtime. Three analytic lights cost nothing and keep the hero
           working offline and behind a strict CSP. */}

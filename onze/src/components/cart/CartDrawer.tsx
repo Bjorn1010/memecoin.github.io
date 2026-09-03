@@ -40,25 +40,25 @@ export function CartDrawer() {
             animate="visible"
             exit="exit"
             onClick={close}
-            className="fixed inset-0 z-[85] bg-black/70 backdrop-blur-sm"
+            className="fixed inset-0 z-[85] bg-ink/70 backdrop-blur-sm"
           />
           <motion.aside
             variants={slideInRight}
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="fixed inset-y-0 right-0 z-[90] flex w-full max-w-md flex-col border-l border-white/10 bg-base"
+            className="fixed inset-y-0 right-0 z-[90] flex w-full max-w-md flex-col border-l border-ink/10 bg-base"
             role="dialog"
             aria-modal="true"
             aria-label="Panier"
           >
-            <header className="flex items-center justify-between border-b border-white/8 px-6 py-5">
-              <h2 className="font-display text-xl uppercase text-white">Panier</h2>
+            <header className="flex items-center justify-between border-b border-ink/8 px-6 py-5">
+              <h2 className="font-display text-xl uppercase text-ink">Panier</h2>
               <button
                 type="button"
                 onClick={close}
                 aria-label="Fermer le panier"
-                className="grid h-9 w-9 place-items-center rounded-sm text-steel-400 hover:text-white"
+                className="grid h-9 w-9 place-items-center rounded-sm text-steel-400 hover:text-ink"
               >
                 <X size={20} />
               </button>
@@ -69,7 +69,7 @@ export function CartDrawer() {
               <div className="flex flex-1 flex-col items-center justify-center gap-5 px-8 text-center">
                 <ShoppingBag size={40} strokeWidth={1.25} className="text-steel-600" />
                 <div>
-                  <p className="font-display text-lg uppercase text-white">Panier vide</p>
+                  <p className="font-display text-lg uppercase text-ink">Panier vide</p>
                   <p className="mt-2 text-sm text-steel-400">
                     Les nouveautés 26/27 viennent d&apos;arriver.
                   </p>
@@ -81,20 +81,20 @@ export function CartDrawer() {
             ) : (
               <>
                 {/* Free-shipping meter — the one piece of persuasion in the drawer. */}
-                <div className="border-b border-white/8 px-6 py-4">
+                <div className="border-b border-ink/8 px-6 py-4">
                   <p className="mb-2 text-xs text-steel-400">
                     {remaining > 0 ? (
                       <>
-                        Plus que <span className="tabular text-volt">{formatPrice(remaining)}</span>{" "}
+                        Plus que <span className="tabular text-pitch">{formatPrice(remaining)}</span>{" "}
                         pour la livraison offerte
                       </>
                     ) : (
-                      <span className="text-volt">Livraison offerte débloquée</span>
+                      <span className="text-pitch">Livraison offerte débloquée</span>
                     )}
                   </p>
                   <div className="h-1 overflow-hidden rounded-full bg-steel-800">
                     <motion.div
-                      className="h-full bg-volt"
+                      className="h-full bg-pitch"
                       initial={false}
                       animate={{ width: `${progress}%` }}
                       transition={transition.slow}
@@ -118,7 +118,7 @@ export function CartDrawer() {
                                eye lands on it without a toast. */
                             boxShadow:
                               lastAdded === key
-                                ? ["0 0 0 0 #ccff0000", "0 0 0 2px #ccff0066", "0 0 0 0 #ccff0000"]
+                                ? ["0 0 0 0 #0a9c4a00", "0 0 0 2px #0a9c4a66", "0 0 0 0 #0a9c4a00"]
                                 : undefined,
                           }}
                           exit={{ opacity: 0, x: 24, height: 0, marginBottom: 0 }}
@@ -129,31 +129,31 @@ export function CartDrawer() {
                             <Jersey colorway={line.colorway} detailed={false} />
                           </Link>
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm text-white">{line.name}</p>
+                            <p className="truncate text-sm text-ink">{line.name}</p>
                             <p className="label-mono mt-1 text-steel-500">Taille {line.size}</p>
                             <div className="mt-3 flex items-center justify-between">
-                              <div className="flex items-center gap-1 rounded-sm border border-white/12">
+                              <div className="flex items-center gap-1 rounded-sm border border-ink/12">
                                 <button
                                   type="button"
                                   onClick={() => setQuantity(line.productId, line.size, line.quantity - 1)}
                                   aria-label={`Réduire la quantité de ${line.name}`}
-                                  className="grid h-7 w-7 place-items-center text-steel-400 hover:text-white"
+                                  className="grid h-7 w-7 place-items-center text-steel-400 hover:text-ink"
                                 >
                                   <Minus size={13} />
                                 </button>
-                                <span className="tabular w-6 text-center text-xs text-white">
+                                <span className="tabular w-6 text-center text-xs text-ink">
                                   {line.quantity}
                                 </span>
                                 <button
                                   type="button"
                                   onClick={() => setQuantity(line.productId, line.size, line.quantity + 1)}
                                   aria-label={`Augmenter la quantité de ${line.name}`}
-                                  className="grid h-7 w-7 place-items-center text-steel-400 hover:text-white"
+                                  className="grid h-7 w-7 place-items-center text-steel-400 hover:text-ink"
                                 >
                                   <Plus size={13} />
                                 </button>
                               </div>
-                              <span className="tabular text-sm text-white">
+                              <span className="tabular text-sm text-ink">
                                 {formatPrice(line.price * line.quantity)}
                               </span>
                             </div>
@@ -172,7 +172,7 @@ export function CartDrawer() {
                   </AnimatePresence>
                 </ul>
 
-                <footer className="border-t border-white/8 px-6 py-5">
+                <footer className="border-t border-ink/8 px-6 py-5">
                   <div className="mb-4 flex items-baseline justify-between">
                     <span className="label-mono text-steel-400">Sous-total</span>
                     <motion.span
@@ -180,7 +180,7 @@ export function CartDrawer() {
                       initial={{ opacity: 0, y: -6 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={transition.fast}
-                      className="tabular font-display text-2xl text-white"
+                      className="tabular font-display text-2xl text-ink"
                     >
                       {formatPrice(subtotal)}
                     </motion.span>
@@ -188,9 +188,13 @@ export function CartDrawer() {
                   <Button href="/checkout" size="lg" className="w-full" onClick={close}>
                     Passer commande
                   </Button>
-                  <p className="mt-3 text-center text-xs text-steel-500">
-                    Taxes et livraison calculées au paiement.
-                  </p>
+                  <Link
+                    href="/panier"
+                    onClick={close}
+                    className="label-mono mt-3 block text-center text-steel-500 transition-colors hover:text-pitch"
+                  >
+                    Voir le panier
+                  </Link>
                 </footer>
               </>
             )}

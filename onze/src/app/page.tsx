@@ -72,8 +72,8 @@ export default function HomePage() {
       <FlocageTeaser />
 
       {/* PROMOTIONS */}
-      <section className="relative overflow-hidden border-y border-white/8 bg-base py-24 lg:py-32">
-        <div aria-hidden className="mesh-volt pointer-events-none absolute inset-0 opacity-60" />
+      <section className="relative overflow-hidden border-y border-ink/8 bg-base py-24 lg:py-32">
+        <div aria-hidden className="mesh-pitch pointer-events-none absolute inset-0 opacity-60" />
         <div className={`${shell} relative`}>
           <SectionHeader
             eyebrow="Offre en cours"
@@ -120,7 +120,7 @@ export default function HomePage() {
             <Reveal key={c.slug} index={i} as="div">
               <Link
                 href={`/collections/${c.slug}`}
-                className="group relative flex min-h-[220px] flex-col justify-between overflow-hidden rounded-xl border border-white/8 bg-surface p-7 transition-colors hover:border-white/20"
+                className="group relative flex min-h-[220px] flex-col justify-between overflow-hidden rounded-xl border border-ink/8 bg-surface p-7 transition-colors hover:border-ink/20"
               >
                 <div
                   aria-hidden
@@ -130,10 +130,10 @@ export default function HomePage() {
                   }}
                 />
                 <div className="relative flex items-start justify-between gap-4">
-                  <h3 className="font-display text-2xl uppercase text-white">{c.title}</h3>
+                  <h3 className="font-display text-2xl uppercase text-ink">{c.title}</h3>
                   <ArrowUpRight
                     size={18}
-                    className="mt-1 shrink-0 text-steel-500 transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-volt"
+                    className="mt-1 shrink-0 text-steel-500 transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-pitch"
                   />
                 </div>
                 <div className="relative">
@@ -148,14 +148,14 @@ export default function HomePage() {
 
       {/* SERVICE */}
       <section className={`${shell} pb-8`}>
-        <div className="grid gap-px overflow-hidden rounded-xl border border-white/8 bg-white/8 sm:grid-cols-3">
+        <div className="grid gap-px overflow-hidden rounded-xl border border-ink/8 bg-ink/8 sm:grid-cols-3">
           {[
             { t: "Flocage inclus", d: "Nom, numéro et écusson appliqués avant expédition." },
             { t: "Expédition 48 h", d: "Départ de Suisse, suivi fourni sur chaque commande." },
             { t: "Retours 30 jours", d: "Article non porté, étiquette d'origine attachée." },
           ].map((item, i) => (
             <Reveal key={item.t} index={i} as="div" className="bg-base p-7">
-              <p className="font-display text-lg uppercase text-white">{item.t}</p>
+              <p className="font-display text-lg uppercase text-ink">{item.t}</p>
               <p className="mt-2 text-sm leading-relaxed text-steel-400">{item.d}</p>
             </Reveal>
           ))}

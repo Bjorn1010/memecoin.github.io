@@ -7,7 +7,7 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       /* Checkout and account carry no indexable content and would only bleed
          crawl budget away from product pages. */
-      disallow: ["/checkout", "/compte", "/wishlist"],
+      disallow: ["/checkout", "/panier", "/compte", "/wishlist"],
     },
     sitemap: "https://onze.example/sitemap.xml",
   };

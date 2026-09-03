@@ -15,11 +15,11 @@ export default function CollectionsPage() {
   return (
     <div className="mx-auto max-w-[1600px] px-5 pt-32 lg:px-10">
       <header className="mb-14">
-        <p className="label-mono mb-4 flex items-center gap-3 text-volt">
-          <span className="inline-block h-px w-8 bg-volt" />
+        <p className="label-mono mb-4 flex items-center gap-3 text-pitch">
+          <span className="inline-block h-px w-8 bg-pitch" />
           Le vestiaire
         </p>
-        <h1 className="font-display text-display text-white">Collections</h1>
+        <h1 className="font-display text-display text-ink">Collections</h1>
         <p className="mt-4 max-w-md text-sm leading-relaxed text-steel-400">
           Sept territoires, chacun avec sa propre identité.
         </p>
@@ -30,7 +30,7 @@ export default function CollectionsPage() {
           <Reveal key={c.slug} index={i} as="div">
             <Link
               href={`/collections/${c.slug}`}
-              className="group relative flex min-h-[260px] flex-col justify-between overflow-hidden rounded-xl border border-white/8 bg-surface p-7 transition-colors hover:border-white/20"
+              className="group relative flex min-h-[260px] flex-col justify-between overflow-hidden rounded-xl border border-ink/8 bg-surface p-7 transition-colors hover:border-ink/20"
             >
               <div
                 aria-hidden
@@ -40,10 +40,10 @@ export default function CollectionsPage() {
                 }}
               />
               <div className="relative flex items-start justify-between gap-4">
-                <h2 className="font-display text-2xl uppercase text-white">{c.title}</h2>
+                <h2 className="font-display text-2xl uppercase text-ink">{c.title}</h2>
                 <ArrowUpRight
                   size={18}
-                  className="mt-1 shrink-0 text-steel-500 transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-volt"
+                  className="mt-1 shrink-0 text-steel-500 transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-pitch"
                 />
               </div>
               <div className="relative">

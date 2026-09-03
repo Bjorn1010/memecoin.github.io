@@ -118,7 +118,7 @@ export default function ProductScene({
     >
       <ambientLight intensity={0.6} />
       <directionalLight position={[-4, 5, 4]} intensity={1.5} color="#dfe6ff" />
-      <directionalLight position={[3, -2, -4]} intensity={1.8} color="#ccff00" />
+      <directionalLight position={[3, -2, -4]} intensity={1.8} color="#0a9c4a" />
       <Garment colorway={colorway} monogram={monogram} number={number} playerName={playerName} />
       {/* Vertical orbit is clamped: letting the user tumble the garment upside
           down looks broken, not flexible. */}

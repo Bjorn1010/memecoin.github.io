@@ -35,7 +35,7 @@ export function TeamCard({
     >
       <Link
         href={href}
-        className={`group relative flex flex-col justify-between overflow-hidden rounded-xl border border-white/8 bg-surface p-6 transition-colors duration-[--duration-standard] hover:border-white/20 ${
+        className={`group relative flex flex-col justify-between overflow-hidden rounded-xl border border-ink/8 bg-surface p-6 transition-colors duration-[--duration-standard] hover:border-ink/20 ${
           size === "lg" ? "min-h-[420px]" : "min-h-[300px]"
         }`}
       >
@@ -52,19 +52,19 @@ export function TeamCard({
         {/* Oversized monogram, drifting slightly against the kit for parallax. */}
         <span
           aria-hidden
-          className="pointer-events-none absolute -right-4 top-2 font-display text-[7rem] leading-none text-white/6 transition-transform duration-[--duration-premium] ease-[--ease-out-expo] group-hover:-translate-y-2 group-hover:translate-x-1"
+          className="pointer-events-none absolute -right-4 top-2 font-display text-[7rem] leading-none text-ink/6 transition-transform duration-[--duration-premium] ease-[--ease-out-expo] group-hover:-translate-y-2 group-hover:translate-x-1"
         >
           {team.monogram}
         </span>
 
         <div className="relative z-10 flex items-start justify-between">
           <div>
-            <p className="font-display text-xl uppercase leading-tight text-white">{team.name}</p>
+            <p className="font-display text-xl uppercase leading-tight text-ink">{team.name}</p>
             <p className="label-mono mt-1.5 text-steel-500">{count} références</p>
           </div>
           <ArrowUpRight
             size={18}
-            className="shrink-0 text-steel-500 transition-all duration-[--duration-standard] group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-volt"
+            className="shrink-0 text-steel-500 transition-all duration-[--duration-standard] group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-pitch"
           />
         </div>
 

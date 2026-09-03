@@ -85,9 +85,9 @@ export function ProductCard({
           <motion.div
             style={reduced ? undefined : { rotateX: rx, rotateY: ry, transformStyle: "preserve-3d" }}
             className={cn(
-              "edge-lit relative aspect-4/5 overflow-hidden rounded-lg border border-white/8",
-              "bg-gradient-to-b from-surface to-base transition-colors duration-[--duration-standard]",
-              "group-hover:border-white/16",
+              "edge-lit relative aspect-4/5 overflow-hidden rounded-lg border border-ink/8",
+              "bg-gradient-to-b from-white to-pitch-tint transition-colors duration-[--duration-standard]",
+              "group-hover:border-ink/16",
             )}
           >
             {/* Club-tinted wash, revealed on hover. */}
@@ -141,7 +141,7 @@ export function ProductCard({
                     e.preventDefault();
                     onQuickView(product);
                   }}
-                  className="label-mono flex w-full items-center justify-center gap-2 rounded-sm bg-white/10 py-3 text-white backdrop-blur-md transition-colors hover:bg-volt hover:text-void"
+                  className="label-mono flex w-full items-center justify-center gap-2 rounded-sm bg-ink/10 py-3 text-ink backdrop-blur-md transition-colors hover:bg-pitch hover:text-paper"
                 >
                   <Eye size={14} />
                   Aperçu rapide
@@ -163,7 +163,7 @@ export function ProductCard({
             "absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full border backdrop-blur-md transition-colors",
             wishlisted
               ? "border-sale/40 bg-sale/20 text-sale"
-              : "border-white/12 bg-black/40 text-steel-300 hover:text-white",
+              : "border-ink/12 bg-ink/40 text-steel-300 hover:text-ink",
           )}
         >
           <Heart size={15} fill={wishlisted ? "currentColor" : "none"} />
@@ -175,8 +175,8 @@ export function ProductCard({
         <p className="label-mono text-steel-500">
           {product.team} · {product.season}
         </p>
-        <h3 className="text-sm leading-snug text-white">
-          <Link href={`/produit/${product.slug}`} className="hover:text-volt">
+        <h3 className="text-sm leading-snug text-ink">
+          <Link href={`/produit/${product.slug}`} className="hover:text-pitch">
             {product.name}
           </Link>
         </h3>

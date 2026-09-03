@@ -46,7 +46,7 @@ function Field({
         autoComplete={autoComplete}
         required={required}
         placeholder={placeholder}
-        className="h-12 w-full rounded-sm border border-white/12 bg-surface px-3 text-sm text-white outline-none transition-colors placeholder:text-steel-700 focus:border-volt"
+        className="h-12 w-full rounded-sm border border-ink/12 bg-surface px-3 text-sm text-ink outline-none transition-colors placeholder:text-steel-700 focus:border-pitch"
       />
     </label>
   );
@@ -63,7 +63,7 @@ export function CheckoutView() {
   if (count === 0) {
     return (
       <div className="mx-auto max-w-lg px-5 pt-40 text-center">
-        <h1 className="font-display text-title text-white">Panier vide</h1>
+        <h1 className="font-display text-title text-ink">Panier vide</h1>
         <p className="mt-3 text-sm text-steel-400">
           Ajoutez un maillot avant de passer au paiement.
         </p>
@@ -77,10 +77,10 @@ export function CheckoutView() {
   return (
     <div className="mx-auto max-w-[1200px] px-5 pt-28 lg:px-10">
       <header className="mb-10">
-        <Link href="/" className="font-display text-2xl text-white">
-          ONZE<span className="text-volt">.</span>
+        <Link href="/" className="font-display text-2xl text-ink">
+          ONZE<span className="text-pitch">.</span>
         </Link>
-        <h1 className="mt-6 font-display text-title text-white">Paiement</h1>
+        <h1 className="mt-6 font-display text-title text-ink">Paiement</h1>
         <p className="label-mono mt-3 flex items-center gap-2 text-steel-500">
           <Lock size={13} />
           Connexion chiffrée
@@ -96,14 +96,14 @@ export function CheckoutView() {
           }}
         >
           <section aria-labelledby="contact">
-            <h2 id="contact" className="mb-5 font-display text-lg uppercase text-white">
+            <h2 id="contact" className="mb-5 font-display text-lg uppercase text-ink">
               1 · Contact
             </h2>
             <Field label="E-mail" id="email" type="email" autoComplete="email" placeholder="vous@exemple.ch" />
           </section>
 
           <section aria-labelledby="livraison">
-            <h2 id="livraison" className="mb-5 font-display text-lg uppercase text-white">
+            <h2 id="livraison" className="mb-5 font-display text-lg uppercase text-ink">
               2 · Adresse de livraison
             </h2>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -117,7 +117,7 @@ export function CheckoutView() {
           </section>
 
           <section aria-labelledby="mode">
-            <h2 id="mode" className="mb-5 font-display text-lg uppercase text-white">
+            <h2 id="mode" className="mb-5 font-display text-lg uppercase text-ink">
               3 · Mode de livraison
             </h2>
             <div className="space-y-3">
@@ -129,8 +129,8 @@ export function CheckoutView() {
                     className={cn(
                       "flex cursor-pointer items-center gap-4 rounded-md border p-4 transition-colors",
                       shipping === s.id
-                        ? "border-volt bg-volt/5"
-                        : "border-white/12 hover:border-white/30",
+                        ? "border-pitch bg-pitch/5"
+                        : "border-ink/12 hover:border-ink/30",
                     )}
                   >
                     <input
@@ -145,16 +145,16 @@ export function CheckoutView() {
                       aria-hidden
                       className={cn(
                         "grid h-4 w-4 shrink-0 place-items-center rounded-full border",
-                        shipping === s.id ? "border-volt" : "border-white/30",
+                        shipping === s.id ? "border-pitch" : "border-ink/30",
                       )}
                     >
-                      {shipping === s.id && <span className="h-2 w-2 rounded-full bg-volt" />}
+                      {shipping === s.id && <span className="h-2 w-2 rounded-full bg-pitch" />}
                     </span>
                     <span className="flex-1">
-                      <span className="block text-sm text-white">{s.label}</span>
+                      <span className="block text-sm text-ink">{s.label}</span>
                       <span className="block text-xs text-steel-500">{s.detail}</span>
                     </span>
-                    <span className="tabular text-sm text-white">
+                    <span className="tabular text-sm text-ink">
                       {free || s.price === 0 ? "Offerte" : formatPrice(s.price)}
                     </span>
                   </label>
@@ -164,7 +164,7 @@ export function CheckoutView() {
           </section>
 
           <section aria-labelledby="paiement">
-            <h2 id="paiement" className="mb-5 font-display text-lg uppercase text-white">
+            <h2 id="paiement" className="mb-5 font-display text-lg uppercase text-ink">
               4 · Paiement
             </h2>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -199,22 +199,22 @@ export function CheckoutView() {
 
         {/* ------------------------------------------------ SUMMARY */}
         <aside className="lg:sticky lg:top-28 lg:self-start">
-          <div className="rounded-xl border border-white/10 bg-surface p-6">
-            <h2 className="label-mono mb-5 text-white">
+          <div className="rounded-xl border border-ink/10 bg-surface p-6">
+            <h2 className="label-mono mb-5 text-ink">
               Récapitulatif · {count} article{count > 1 ? "s" : ""}
             </h2>
 
-            <ul className="space-y-4 border-b border-white/8 pb-5">
+            <ul className="space-y-4 border-b border-ink/8 pb-5">
               {lines.map((line) => (
                 <li key={`${line.productId}-${line.size}`} className="flex gap-3">
                   <div className="relative h-16 w-14 shrink-0">
                     <Jersey colorway={line.colorway} detailed={false} />
-                    <span className="tabular absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-steel-700 px-1 text-[10px] text-white">
+                    <span className="tabular absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-steel-700 px-1 text-[10px] text-ink">
                       {line.quantity}
                     </span>
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm text-white">{line.name}</p>
+                    <p className="truncate text-sm text-ink">{line.name}</p>
                     <p className="label-mono mt-0.5 text-steel-600">Taille {line.size}</p>
                   </div>
                   <span className="tabular shrink-0 text-sm text-steel-200">
@@ -224,14 +224,14 @@ export function CheckoutView() {
               ))}
             </ul>
 
-            <dl className="space-y-2.5 border-b border-white/8 py-5 text-sm">
+            <dl className="space-y-2.5 border-b border-ink/8 py-5 text-sm">
               <div className="flex justify-between">
                 <dt className="text-steel-400">Sous-total</dt>
-                <dd className="tabular text-white">{formatPrice(subtotal)}</dd>
+                <dd className="tabular text-ink">{formatPrice(subtotal)}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-steel-400">Livraison</dt>
-                <dd className="tabular text-white">
+                <dd className="tabular text-ink">
                   {shippingCost === 0 ? "Offerte" : formatPrice(shippingCost)}
                 </dd>
               </div>
@@ -243,11 +243,11 @@ export function CheckoutView() {
 
             <div className="flex items-baseline justify-between pt-5">
               <span className="label-mono text-steel-400">Total</span>
-              <span className="scoreboard text-3xl text-white">{formatPrice(total)}</span>
+              <span className="scoreboard text-3xl text-ink">{formatPrice(total)}</span>
             </div>
 
             <p className="mt-5 flex items-start gap-2 text-xs leading-relaxed text-steel-500">
-              <Truck size={14} className="mt-0.5 shrink-0 text-volt" />
+              <Truck size={14} className="mt-0.5 shrink-0 text-pitch" />
               Flocage nom et numéro inclus. Expédition sous 48 h ouvrables depuis la Suisse.
             </p>
           </div>

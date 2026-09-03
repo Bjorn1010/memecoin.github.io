@@ -11,10 +11,16 @@ npm run build
 
 ## Direction artistique
 
-Nike × Apple × Champions League. Noir profond, gris métalliques froids, et
-**un seul accent volt** (`#ccff00`) réservé aux CTA et aux états actifs — la
-retenue est ce qui le rend premium. Typographie : Archivo (display, tracking
-serré) + Inter (UI), auto-hébergées via `next/font`.
+Une boutique de foot, reconnaissable en une demi-seconde. Vert pelouse
+(`#0a9c4a`) en primaire et en CTA, blanc pour les surfaces, jaune de coupe
+(`#ffc400`) en accent rare. Typographie : Archivo (display, tracking serré) +
+Inter (UI), auto-hébergées via `next/font`.
+
+Le vert n'est appliqué **que** sur le hero (pelouse tondue, lignes de surface,
+projecteurs) et sur les bandeaux promo. Tout le reste est blanc : mettre du vert
+partout transformerait le site en mur vert et écraserait les maillots, qui sont
+le vrai sujet. Le header s'inverse en blanc au-dessus du hero et redevient
+sombre partout ailleurs.
 
 Tous les tokens vivent dans `src/app/globals.css` sous `@theme` (Tailwind v4,
 config CSS-first — il n'y a pas de `tailwind.config.js`).
@@ -103,6 +109,4 @@ Limites connues :
   vêtement.
 - La wishlist est locale à chaque carte et n'est pas persistée.
 - `/compte` est un formulaire sans backend, signalé comme tel sur la page.
-- Le panier vit en mémoire : un rechargement le vide. À brancher sur
-  `localStorage` ou une session serveur.
 - Pas encore d'audit Lighthouse chiffré.

@@ -153,12 +153,12 @@ export function CatalogueView({
   return (
     <div className="mx-auto max-w-[1600px] px-5 pt-32 lg:px-10">
       <header className="mb-10">
-        <p className="label-mono mb-4 flex items-center gap-3 text-volt">
-          <span className="inline-block h-px w-8 bg-volt" />
+        <p className="label-mono mb-4 flex items-center gap-3 text-pitch">
+          <span className="inline-block h-px w-8 bg-pitch" />
           {eyebrow}
         </p>
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <h1 className="font-display text-display text-white">{title}</h1>
+          <h1 className="font-display text-display text-ink">{title}</h1>
           <p className="scoreboard text-2xl text-steel-400">
             {results.length}
             <span className="ml-2 font-sans text-xs font-normal uppercase tracking-[0.16em] text-steel-600">
@@ -173,7 +173,7 @@ export function CatalogueView({
         <aside className="hidden lg:block">
           <div className="sticky top-28 max-h-[calc(100vh-8rem)] overflow-y-auto pr-2 no-scrollbar">
             <div className="mb-5 flex items-center justify-between">
-              <p className="label-mono text-white">Filtres</p>
+              <p className="label-mono text-ink">Filtres</p>
               {active > 0 && (
                 <button
                   type="button"
@@ -200,12 +200,12 @@ export function CatalogueView({
             <button
               type="button"
               onClick={() => setSheetOpen(true)}
-              className="label-mono flex items-center gap-2 rounded-sm border border-white/15 px-4 py-2.5 text-steel-200 transition-colors hover:border-white/35 lg:hidden"
+              className="label-mono flex items-center gap-2 rounded-sm border border-ink/15 px-4 py-2.5 text-steel-200 transition-colors hover:border-ink/35 lg:hidden"
             >
               <SlidersHorizontal size={14} />
               Filtres
               {active > 0 && (
-                <span className="tabular grid h-5 min-w-5 place-items-center rounded-full bg-volt px-1 text-[10px] font-bold text-void">
+                <span className="tabular grid h-5 min-w-5 place-items-center rounded-full bg-pitch px-1 text-[10px] font-bold text-paper">
                   {active}
                 </span>
               )}
@@ -216,7 +216,7 @@ export function CatalogueView({
               <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value as SortKey)}
-                className="label-mono cursor-pointer rounded-sm border border-white/15 bg-surface px-3 py-2.5 text-steel-200 outline-none transition-colors hover:border-white/35 focus:border-volt"
+                className="label-mono cursor-pointer rounded-sm border border-ink/15 bg-surface px-3 py-2.5 text-steel-200 outline-none transition-colors hover:border-ink/35 focus:border-pitch"
               >
                 {Object.entries(SORT_LABELS).map(([k, v]) => (
                   <option key={k} value={k} className="bg-surface">
@@ -231,9 +231,9 @@ export function CatalogueView({
           {pending ? (
             <ProductGridSkeleton count={8} />
           ) : results.length === 0 ? (
-            <div className="pitch-lines flex flex-col items-center justify-center rounded-xl border border-white/8 bg-surface px-6 py-24 text-center">
+            <div className="pitch-lines flex flex-col items-center justify-center rounded-xl border border-ink/8 bg-surface px-6 py-24 text-center">
               <p className="scoreboard relative text-5xl text-steel-700">0</p>
-              <p className="relative mt-4 font-display text-xl uppercase text-white">
+              <p className="relative mt-4 font-display text-xl uppercase text-ink">
                 Aucun résultat
               </p>
               <p className="relative mt-2 max-w-sm text-sm text-steel-400">
@@ -278,7 +278,7 @@ export function CatalogueView({
               animate="visible"
               exit="exit"
               onClick={() => setSheetOpen(false)}
-              className="fixed inset-0 z-[88] bg-black/70 backdrop-blur-sm lg:hidden"
+              className="fixed inset-0 z-[88] bg-ink/70 backdrop-blur-sm lg:hidden"
             />
             <motion.div
               variants={slideUpSheet}
@@ -288,13 +288,13 @@ export function CatalogueView({
               role="dialog"
               aria-modal="true"
               aria-label="Filtres"
-              className="fixed inset-x-0 bottom-0 z-[89] max-h-[85dvh] overflow-y-auto rounded-t-xl border-t border-white/12 bg-base lg:hidden"
+              className="fixed inset-x-0 bottom-0 z-[89] max-h-[85dvh] overflow-y-auto rounded-t-xl border-t border-ink/12 bg-base lg:hidden"
             >
               {/* Grab handle — signals the sheet is dismissable by drag on
                   platforms where that is the expectation. */}
-              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/8 bg-base px-5 pb-4 pt-3">
-                <div className="absolute left-1/2 top-1.5 h-1 w-9 -translate-x-1/2 rounded-full bg-white/20" />
-                <p className="font-display text-lg uppercase text-white">Filtres</p>
+              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-ink/8 bg-base px-5 pb-4 pt-3">
+                <div className="absolute left-1/2 top-1.5 h-1 w-9 -translate-x-1/2 rounded-full bg-ink/20" />
+                <p className="font-display text-lg uppercase text-ink">Filtres</p>
                 <button
                   type="button"
                   onClick={() => setSheetOpen(false)}
@@ -315,7 +315,7 @@ export function CatalogueView({
                 />
               </div>
 
-              <div className="sticky bottom-0 flex gap-3 border-t border-white/8 bg-base px-5 py-4">
+              <div className="sticky bottom-0 flex gap-3 border-t border-ink/8 bg-base px-5 py-4">
                 <Button
                   variant="outline"
                   className={cn("flex-1", active === 0 && "opacity-50")}

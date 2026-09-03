@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { AnimatePresence, motion, useMotionValueEvent, useScroll } from "motion/react";
 import { Heart, Menu, Search, ShoppingBag, User, X } from "lucide-react";
@@ -26,7 +27,14 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const { count, open: openCart } = useCart();
+  const pathname = usePathname();
   const { scrollY } = useScroll();
+
+  /* The inverted state is only correct where a turf hero actually sits behind
+     the header — the homepage. Every other route starts on white, so the header
+     keeps its light treatment there even at scroll 0, or it would render white
+     text on a white page. */
+  const onTurf = pathname === "/" && !compact;
 
   /* Threshold well below one viewport so the header settles almost immediately,
      and hysteresis so it cannot flicker when a user hovers the boundary. */
@@ -40,9 +48,11 @@ export function Header() {
         className={cn(
           "fixed inset-x-0 top-0 z-50 transition-[height,background-color,border-color]",
           "duration-[--duration-standard] ease-[--ease-out-expo]",
-          compact
-            ? "h-16 border-b border-white/8 bg-void/80 backdrop-blur-xl"
-            : "h-24 border-b border-transparent bg-gradient-to-b from-void/90 to-transparent",
+          onTurf
+            ? "h-24 border-b border-transparent bg-gradient-to-b from-pitch-deep/25 to-transparent"
+            : compact
+              ? "h-16 border-b border-ink/10 bg-paper/90 backdrop-blur-xl"
+              : "h-24 border-b border-ink/10 bg-paper/90 backdrop-blur-xl",
         )}
         onMouseLeave={() => setOpenMenu(null)}
       >
@@ -52,17 +62,23 @@ export function Header() {
             type="button"
             onClick={() => setMobileOpen(true)}
             aria-label="Ouvrir le menu"
-            className="-ml-2 grid h-10 w-10 place-items-center rounded-sm text-steel-200 transition-colors hover:text-white lg:hidden"
+            className={cn(
+              "-ml-2 grid h-10 w-10 place-items-center rounded-sm transition-colors lg:hidden",
+              onTurf ? "text-paper" : "text-steel-200 hover:text-ink",
+            )}
           >
             <Menu size={22} strokeWidth={1.75} />
           </button>
 
           <Link
             href="/"
-            className="font-display text-2xl leading-none tracking-[-0.04em] text-white"
+            className={cn(
+              "font-display text-2xl leading-none tracking-[-0.04em]",
+              onTurf ? "text-paper" : "text-ink",
+            )}
             aria-label="ONZE, accueil"
           >
-            ONZE<span className="text-volt">.</span>
+            ONZE<span className={onTurf ? "text-cup" : "text-pitch"}>.</span>
           </Link>
 
           {/* Desktop navigation. Hovering a trigger opens its mega panel; the
@@ -77,14 +93,18 @@ export function Header() {
                 onFocus={() => setOpenMenu(item.key)}
                 className={cn(
                   "label-mono relative rounded-sm px-3 py-2 transition-colors",
-                  openMenu === item.key ? "text-white" : "text-steel-300 hover:text-white",
+                  onTurf
+                    ? "text-paper/85 hover:text-paper"
+                    : openMenu === item.key
+                      ? "text-ink"
+                      : "text-steel-300 hover:text-ink",
                 )}
               >
                 {item.label}
                 {openMenu === item.key && (
                   <motion.span
                     layoutId="nav-underline"
-                    className="absolute inset-x-3 -bottom-0.5 h-px bg-volt"
+                    className={cn("absolute inset-x-3 -bottom-0.5 h-0.5", onTurf ? "bg-cup" : "bg-pitch")}
                     transition={spring.pointer}
                   />
                 )}
@@ -97,21 +117,21 @@ export function Header() {
               type="button"
               onClick={() => setSearchOpen(true)}
               aria-label="Rechercher"
-              className="grid h-10 w-10 place-items-center rounded-sm text-steel-200 transition-colors hover:text-white"
+              className={cn("grid h-10 w-10 place-items-center rounded-sm transition-colors", onTurf ? "text-paper hover:text-cup" : "text-steel-200 hover:text-ink")}
             >
               <Search size={20} strokeWidth={1.75} />
             </button>
             <Link
               href="/compte"
               aria-label="Mon compte"
-              className="hidden h-10 w-10 place-items-center rounded-sm text-steel-200 transition-colors hover:text-white sm:grid"
+              className={cn("hidden h-10 w-10 place-items-center rounded-sm transition-colors sm:grid", onTurf ? "text-paper hover:text-cup" : "text-steel-200 hover:text-ink")}
             >
               <User size={20} strokeWidth={1.75} />
             </Link>
             <Link
               href="/wishlist"
               aria-label="Ma wishlist"
-              className="hidden h-10 w-10 place-items-center rounded-sm text-steel-200 transition-colors hover:text-white sm:grid"
+              className={cn("hidden h-10 w-10 place-items-center rounded-sm transition-colors sm:grid", onTurf ? "text-paper hover:text-cup" : "text-steel-200 hover:text-ink")}
             >
               <Heart size={20} strokeWidth={1.75} />
             </Link>
@@ -119,7 +139,7 @@ export function Header() {
               type="button"
               onClick={openCart}
               aria-label={`Panier, ${count} article${count > 1 ? "s" : ""}`}
-              className="relative grid h-10 w-10 place-items-center rounded-sm text-steel-200 transition-colors hover:text-white"
+              className={cn("relative grid h-10 w-10 place-items-center rounded-sm transition-colors", onTurf ? "text-paper hover:text-cup" : "text-steel-200 hover:text-ink")}
             >
               <ShoppingBag size={20} strokeWidth={1.75} />
               <AnimatePresence>
@@ -130,7 +150,7 @@ export function Header() {
                     animate={{ scale: 1 }}
                     exit={{ scale: 0 }}
                     transition={spring.pop}
-                    className="tabular absolute right-0.5 top-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-volt px-1 text-[10px] font-bold text-void"
+                    className={cn("tabular absolute right-0.5 top-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[10px] font-bold", onTurf ? "bg-cup text-ink" : "bg-pitch text-paper")}
                   >
                     {count}
                   </motion.span>

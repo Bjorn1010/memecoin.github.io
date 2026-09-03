@@ -9,23 +9,25 @@ import { transition } from "@/lib/motion";
 /* One button, four intents. Every clickable surface on the site goes through
  * here so press feedback, focus rings and disabled states stay identical. */
 
-type Variant = "volt" | "solid" | "ghost" | "outline";
+type Variant = "pitch" | "solid" | "ghost" | "outline" | "onDark";
 type Size = "sm" | "md" | "lg";
 
 const base =
   "relative inline-flex items-center justify-center gap-2 font-display uppercase " +
-  "tracking-[0.08em] whitespace-nowrap select-none rounded-sm " +
+  "tracking-[0.08em] whitespace-nowrap select-none rounded-md " +
   "transition-colors duration-[--duration-fast] " +
   "disabled:pointer-events-none disabled:opacity-40";
 
 const variants: Record<Variant, string> = {
-  /* The primary action. Volt on black is the loudest thing on the page, which
-     is exactly why only one of these appears per view. */
-  volt: "bg-volt text-void hover:bg-[#dcff3d] shadow-[0_8px_32px_#ccff001f]",
-  solid: "bg-steel-100 text-void hover:bg-white",
-  ghost: "text-steel-200 hover:text-white hover:bg-white/8",
-  outline:
-    "border border-white/18 text-steel-100 hover:border-white/40 hover:bg-white/5 backdrop-blur-sm",
+  /* The primary action. Pitch green on white is the shop's loudest element,
+     which is exactly why only one of these appears per view. */
+  pitch: "bg-pitch text-paper hover:bg-pitch-dark shadow-[0_6px_20px_rgb(10_156_74_/_0.32)]",
+  solid: "bg-ink text-paper hover:bg-pitch-deep",
+  ghost: "text-steel-300 hover:text-ink hover:bg-ink/5",
+  outline: "border-2 border-ink/15 text-steel-200 hover:border-pitch hover:text-pitch",
+  /* For the turf sections, where the page background is green and an outline
+     in ink would disappear. */
+  onDark: "border-2 border-paper/45 text-paper hover:border-paper hover:bg-paper/10",
 };
 
 const sizes: Record<Size, string> = {
@@ -44,7 +46,7 @@ interface ButtonProps extends Omit<HTMLMotionProps<"button">, "ref" | "children"
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { variant = "volt", size = "md", href, className, children, onClick, ...props },
+  { variant = "pitch", size = "md", href, className, children, onClick, ...props },
   ref,
 ) {
   const classes = cn(base, variants[variant], sizes[size], className);

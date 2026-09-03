@@ -2,77 +2,87 @@
 
 /* =========================================================================
    ONZE — DESIGN SYSTEM
-   Direction: Nike × Apple × Champions League × Futuristic Football
-   Deep black canvas, metallic greys, a single volt accent used sparingly.
+   Direction: a football shop first. Pitch green, white, and the energy of a
+   matchday programme — clean and modern, but you know what it sells in the
+   first half second.
+
+   The palette is token-driven end to end: components never name a raw colour,
+   so the whole site re-skins from this block.
    ========================================================================= */
 
 @theme {
-  /* ---------- Colour: canvas & elevation ---------------------------------
-     A five-step dark ramp. Surfaces get lighter as they come forward, which
-     is what makes depth read without relying on heavy shadows. */
-  --color-void: #050506;
-  --color-base: #0a0a0c;
-  --color-surface: #101014;
-  --color-raised: #17171c;
-  --color-overlay: #1e1e25;
+  /* ---------- Surfaces -------------------------------------------------
+     A light stack. The page carries a faint turf tint so white cards lift
+     off it without needing heavy shadows. */
+  --color-void: #f1f7f2;
+  --color-base: #ffffff;
+  --color-surface: #ffffff;
+  --color-raised: #e9f2ec;
+  --color-overlay: #ffffff;
 
-  /* ---------- Colour: metallics ------------------------------------------
-     Greys are cool-shifted (blue undertone) so they read as brushed metal
-     rather than as dead neutral grey. */
-  --color-steel-100: #f4f6f8;
-  --color-steel-200: #d9dde3;
-  --color-steel-300: #b4bac4;
-  --color-steel-400: #878e9b;
-  --color-steel-500: #5f6672;
-  --color-steel-600: #41464f;
-  --color-steel-700: #2b2f36;
-  --color-steel-800: #1c1f24;
+  /* ---------- The football colours -------------------------------------
+     Pitch green is the primary and the CTA. Green on white is the single
+     most legible "this is football" signal there is. */
+  --color-pitch: #0a9c4a;
+  --color-pitch-dark: #06773a;
+  --color-pitch-deep: #05341c;
+  --color-pitch-tint: #e3f5e9;
+  --color-pitch-glow: #0a9c4a1f;
 
-  /* ---------- Colour: the one accent -------------------------------------
-     Volt. Nike's speed signal. Used for CTAs, live states and nothing else —
-     the restraint is what keeps it premium. 19.2:1 on --color-void. */
-  --color-volt: #ccff00;
-  --color-volt-dim: #a8d400;
-  --color-volt-glow: #ccff0026;
+  /* Matchday yellow. Used sparingly — badges, live states, highlights.
+     Never for body copy: it fails contrast on white. */
+  --color-cup: #ffc400;
 
-  /* ---------- Colour: semantic ------------------------------------------- */
-  --color-sale: #ff4d3d;
-  --color-success: #34d97b;
-  --color-warning: #ffb020;
+  /* ---------- Ink & lines ---------------------------------------------- */
+  --color-ink: #0c1a11;
+  --color-paper: #ffffff;
 
-  /* ---------- Typography -------------------------------------------------
+  /* Greys are green-shifted so they sit in the same family as the pitch
+     rather than reading as cold corporate grey. */
+  --color-steel-100: #0c1a11;
+  --color-steel-200: #223227;
+  --color-steel-300: #3d5145;
+  --color-steel-400: #5c7266;
+  --color-steel-500: #7d9187;
+  --color-steel-600: #a2b3aa;
+  --color-steel-700: #c8d5cd;
+  --color-steel-800: #e4ece7;
+
+  /* ---------- Semantic -------------------------------------------------- */
+  --color-sale: #e01b30;
+  --color-success: #0a9c4a;
+  --color-warning: #e07800;
+
+  /* ---------- Typography ------------------------------------------------
      Archivo carries the sporting voice at heavy weights and tight tracking.
      Inter does every job where legibility beats personality. */
   --font-display: var(--font-archivo), "Arial Narrow", system-ui, sans-serif;
   --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
 
-  /* Sized against a 3-line hero in a 900px-tall viewport: at 1440px wide this
-     is ~79px per line, so the headline, copy, CTAs and stat row all sit above
-     the fold. Anything larger and the last line clips. */
   --text-hero: clamp(2.5rem, 5.5vw, 5.5rem);
   --text-display: clamp(2rem, 4.2vw, 3.75rem);
   --text-title: clamp(1.5rem, 2.6vw, 2.25rem);
   --text-heading: clamp(1.15rem, 1.6vw, 1.5rem);
 
-  /* ---------- Radius -----------------------------------------------------
-     Restrained. Sharp corners read as technical; the softening is reserved
-     for surfaces that need to feel touchable. */
-  --radius-xs: 2px;
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 14px;
-  --radius-xl: 22px;
+  /* ---------- Radius ----------------------------------------------------
+     Softer than the previous pass. Sharp corners read as technical; a shop
+     that sells kit to fans should feel approachable. */
+  --radius-xs: 3px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
 
   /* ---------- Elevation --------------------------------------------------
-     Two-layer shadows: a tight contact shadow plus a wide ambient one. A
-     single blurred shadow always looks like a sticker. */
-  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4), 0 2px 8px rgb(0 0 0 / 0.25);
-  --shadow-md: 0 2px 4px rgb(0 0 0 / 0.45), 0 8px 24px rgb(0 0 0 / 0.35);
-  --shadow-lg: 0 4px 8px rgb(0 0 0 / 0.5), 0 20px 56px rgb(0 0 0 / 0.45);
-  --shadow-volt: 0 0 0 1px #ccff0033, 0 8px 32px #ccff001f;
+     Two layers: a tight contact shadow plus a wide ambient one, both tinted
+     green so shadows belong to the palette instead of muddying it. */
+  --shadow-sm: 0 1px 2px rgb(5 52 28 / 0.06), 0 2px 8px rgb(5 52 28 / 0.05);
+  --shadow-md: 0 2px 4px rgb(5 52 28 / 0.07), 0 10px 28px rgb(5 52 28 / 0.09);
+  --shadow-lg: 0 4px 10px rgb(5 52 28 / 0.09), 0 24px 60px rgb(5 52 28 / 0.13);
+  --shadow-pitch: 0 6px 20px rgb(10 156 74 / 0.32);
 
   /* ---------- Motion tokens ---------------------------------------------
-     Three tiers, per the brief. Anything outside these is a mistake. */
+     Three tiers. Anything outside these is a mistake. */
   --duration-micro: 140ms;
   --duration-fast: 220ms;
   --duration-standard: 320ms;
@@ -105,7 +115,7 @@ html {
 body {
   margin: 0;
   background: var(--color-void);
-  color: var(--color-steel-100);
+  color: var(--color-ink);
   font-family: var(--font-sans);
   font-synthesis-weight: none;
   text-rendering: optimizeLegibility;
@@ -114,7 +124,6 @@ body {
   overflow-x: clip;
 }
 
-/* Reserve the scrollbar so opening a modal does not shift the layout. */
 @media (min-width: 768px) {
   html {
     scrollbar-gutter: stable;
@@ -147,13 +156,11 @@ summary {
 
 /* =========================================================================
    FOCUS
-   One visible treatment everywhere. Volt ring on a dark offset so it stays
-   legible over any surface in the ramp.
    ========================================================================= */
 
 :focus-visible {
-  outline: 2px solid var(--color-volt);
-  outline-offset: 3px;
+  outline: 3px solid var(--color-pitch);
+  outline-offset: 2px;
   border-radius: var(--radius-xs);
 }
 
@@ -162,8 +169,8 @@ summary {
 }
 
 ::selection {
-  background: var(--color-volt);
-  color: var(--color-void);
+  background: var(--color-pitch);
+  color: var(--color-paper);
 }
 
 /* =========================================================================
@@ -174,28 +181,25 @@ summary {
   font-family: var(--font-display);
   font-weight: 800;
   letter-spacing: -0.03em;
-  line-height: 0.92;
+  line-height: 0.94;
   text-transform: uppercase;
 }
 
-/* Optical tracking: the larger the type, the tighter it needs to be. */
 .text-hero {
   font-size: var(--text-hero);
-  letter-spacing: -0.045em;
+  letter-spacing: -0.04em;
 }
 
 .text-display {
   font-size: var(--text-display);
-  letter-spacing: -0.035em;
+  letter-spacing: -0.032em;
 }
 
-/* Small uppercase labels — the "technical readout" voice used for eyebrows,
-   metadata and badges. Needs positive tracking to stay readable. */
 .label-mono {
   font-family: var(--font-sans);
   font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.16em;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   font-variant-numeric: tabular-nums;
 }
@@ -205,75 +209,31 @@ summary {
 }
 
 /* =========================================================================
-   MATERIALS
-   Glass is deliberately subtle — a hint of depth, never a frosted slab.
-   ========================================================================= */
-
-.glass {
-  background: color-mix(in oklab, var(--color-surface) 72%, transparent);
-  backdrop-filter: blur(20px) saturate(1.6);
-  -webkit-backdrop-filter: blur(20px) saturate(1.6);
-  border: 1px solid color-mix(in oklab, var(--color-steel-100) 8%, transparent);
-}
-
-/* A 1px top highlight fakes a lit edge, the way real product photography
-   catches a rim light. Cheap, and it does most of the "premium" work. */
-.edge-lit {
-  position: relative;
-}
-
-.edge-lit::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding-top: 1px;
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklab, var(--color-steel-100) 14%, transparent),
-    transparent 42%
-  );
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-}
-
-.mesh-volt {
-  background:
-    radial-gradient(60% 50% at 50% 0%, var(--color-volt-glow), transparent 70%),
-    radial-gradient(40% 40% at 85% 20%, #4a5cff14, transparent 70%);
-}
-
-/* Fine grain over flat blacks. Without it, large dark areas band on cheap
-   panels and read as "empty div" rather than as a material. */
-.grain::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.035;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
-/* =========================================================================
    FOOTBALL MOTIFS
-   The cues that make this read as football rather than as generic premium
-   retail. All of them are cheap CSS — no images, no extra requests.
+   The furniture that makes this read as a football shop rather than as a
+   generic store. All CSS — no images, no extra requests.
    ========================================================================= */
 
-/* Mown pitch stripes. Very low contrast on purpose: it should register as
-   texture underfoot, not as a green pattern. */
-.pitch-stripes {
+/* Mown turf. Alternating bands, the way a groundsman cuts a pitch. */
+.turf {
+  background-color: var(--color-pitch);
   background-image: repeating-linear-gradient(
     90deg,
-    rgb(255 255 255 / 0.015) 0 64px,
+    rgb(255 255 255 / 0.045) 0 72px,
+    transparent 72px 144px
+  );
+}
+
+.turf-tint {
+  background-color: var(--color-pitch-tint);
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgb(10 156 74 / 0.035) 0 64px,
     transparent 64px 128px
   );
 }
 
-/* Penalty-box geometry, drawn with borders. Used as a section backdrop. */
+/* Penalty box + centre arc, drawn in pitch markings. */
 .pitch-lines {
   position: relative;
 }
@@ -283,10 +243,10 @@ summary {
   position: absolute;
   left: 50%;
   top: 0;
-  width: min(520px, 62%);
-  height: 190px;
+  width: min(560px, 64%);
+  height: 200px;
   translate: -50% 0;
-  border: 1px solid rgb(255 255 255 / 0.06);
+  border: 2px solid rgb(255 255 255 / 0.28);
   border-top: 0;
   pointer-events: none;
 }
@@ -295,41 +255,77 @@ summary {
   content: "";
   position: absolute;
   left: 50%;
-  top: 190px;
-  width: 150px;
-  height: 150px;
+  top: 200px;
+  width: 160px;
+  height: 160px;
   translate: -50% -50%;
-  border: 1px solid rgb(255 255 255 / 0.06);
+  border: 2px solid rgb(255 255 255 / 0.28);
   border-radius: 50%;
   clip-path: inset(50% 0 0 0);
   pointer-events: none;
 }
 
-/* Floodlight wash from above — the single strongest "stadium at night" cue. */
-.floodlight {
-  background:
-    radial-gradient(58% 44% at 50% -8%, rgb(255 255 255 / 0.1), transparent 68%),
-    radial-gradient(38% 30% at 12% 0%, #ccff0014, transparent 70%),
-    radial-gradient(38% 30% at 88% 0%, #4a7cff14, transparent 70%);
+/* Same markings, for light sections where white lines would vanish. */
+.pitch-lines-dark::before,
+.pitch-lines-dark::after {
+  border-color: rgb(10 156 74 / 0.22);
 }
 
-/* Scoreboard readout: tight tabular figures for prices, counts and countdowns
-   that need to feel like a stadium display rather than body copy. */
+/* Stadium floodlight, for the green sections. */
+.floodlight {
+  background:
+    radial-gradient(60% 46% at 50% -6%, rgb(255 255 255 / 0.22), transparent 70%),
+    radial-gradient(40% 32% at 12% 0%, rgb(255 255 255 / 0.1), transparent 72%),
+    radial-gradient(40% 32% at 88% 0%, rgb(255 196 0 / 0.12), transparent 72%);
+}
+
+/* Scoreboard readout — stadium display, not body copy. */
 .scoreboard {
   font-family: var(--font-display);
   font-variant-numeric: tabular-nums;
   font-weight: 800;
   letter-spacing: -0.02em;
-  font-feature-settings: "ss01";
 }
 
-/* Kit-number plate, used for the size selector so choosing a size feels like
-   picking a squad number. */
+/* Squad-number plate, used for size pickers. */
 .number-plate {
   font-family: var(--font-display);
   font-variant-numeric: tabular-nums;
   font-weight: 800;
   letter-spacing: -0.02em;
+}
+
+/* Diagonal pitch-green wash for promo strips. */
+.mesh-pitch {
+  background:
+    radial-gradient(58% 50% at 50% 0%, var(--color-pitch-glow), transparent 72%),
+    radial-gradient(38% 38% at 88% 18%, rgb(255 196 0 / 0.1), transparent 72%);
+}
+
+/* Fine grain, so large flat fills read as a material rather than an empty div. */
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* =========================================================================
+   MATERIALS
+   ========================================================================= */
+
+.glass {
+  background: color-mix(in oklab, var(--color-paper) 82%, transparent);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid color-mix(in oklab, var(--color-ink) 8%, transparent);
+}
+
+.edge-lit {
+  position: relative;
 }
 
 /* =========================================================================
@@ -348,9 +344,9 @@ summary {
 .skeleton {
   background: linear-gradient(
     90deg,
-    var(--color-surface) 25%,
+    var(--color-steel-800) 25%,
     var(--color-raised) 37%,
-    var(--color-surface) 63%
+    var(--color-steel-800) 63%
   );
   background-size: 400% 100%;
   animation: shimmer 1.4s ease-in-out infinite;
@@ -367,8 +363,7 @@ summary {
 
 /* =========================================================================
    REDUCED MOTION
-   Not a nicety. Every transform/animation collapses to a near-instant state
-   change; opacity fades are kept short so nothing appears to "pop".
+   Every transform and animation collapses to a near-instant state change.
    ========================================================================= */
 
 @media (prefers-reduced-motion: reduce) {
@@ -387,6 +382,6 @@ summary {
 
   .skeleton {
     animation: none;
-    background: var(--color-surface);
+    background: var(--color-steel-800);
   }
 }

@@ -50,7 +50,7 @@ export function QuickView({ product, onClose }: { product: Product; onClose: () 
         animate="visible"
         exit="exit"
         onClick={onClose}
-        className="fixed inset-0 z-[95] bg-black/75 backdrop-blur-md"
+        className="fixed inset-0 z-[95] bg-ink/75 backdrop-blur-md"
       />
       <motion.div
         initial={{ opacity: 0, scale: 0.96, y: 20 }}
@@ -60,19 +60,19 @@ export function QuickView({ product, onClose }: { product: Product; onClose: () 
         role="dialog"
         aria-modal="true"
         aria-label={`Aperçu rapide : ${product.name}`}
-        className="fixed left-1/2 top-1/2 z-[96] w-[min(920px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl border border-white/12 bg-base shadow-[0_4px_8px_rgb(0_0_0/0.5),0_20px_56px_rgb(0_0_0/0.45)]"
+        className="fixed left-1/2 top-1/2 z-[96] w-[min(920px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl border border-ink/12 bg-base shadow-[0_4px_8px_rgb(0_0_0/0.5),0_20px_56px_rgb(0_0_0/0.45)]"
       >
         <button
           type="button"
           onClick={onClose}
           aria-label="Fermer l'aperçu"
-          className="absolute right-4 top-4 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/50 text-steel-300 backdrop-blur-sm hover:text-white"
+          className="absolute right-4 top-4 z-10 grid h-9 w-9 place-items-center rounded-full bg-ink/50 text-steel-300 backdrop-blur-sm hover:text-ink"
         >
           <X size={18} />
         </button>
 
         <div className="grid md:grid-cols-2">
-          <div className="relative aspect-square bg-gradient-to-b from-surface to-base p-8">
+          <div className="relative aspect-square bg-gradient-to-b from-white to-pitch-tint p-8">
             <div
               aria-hidden
               className="absolute inset-0"
@@ -98,7 +98,7 @@ export function QuickView({ product, onClose }: { product: Product; onClose: () 
             <p className="label-mono text-steel-500">
               {product.team} · {product.season}
             </p>
-            <h2 className="mt-2 font-display text-2xl uppercase leading-tight text-white">
+            <h2 className="mt-2 font-display text-2xl uppercase leading-tight text-ink">
               {product.name}
             </h2>
             <Price price={product.price} compareAt={product.compareAt} size="lg" className="mt-4" />
@@ -121,8 +121,8 @@ export function QuickView({ product, onClose }: { product: Product; onClose: () 
                     className={cn(
                       "h-11 min-w-[3rem] rounded-sm border px-3 text-sm transition-colors",
                       size === s
-                        ? "border-volt bg-volt text-void"
-                        : "border-white/15 text-steel-200 hover:border-white/40",
+                        ? "border-pitch bg-pitch text-paper"
+                        : "border-ink/15 text-steel-200 hover:border-ink/40",
                       error && !size && "border-sale/50",
                     )}
                   >
@@ -144,7 +144,7 @@ export function QuickView({ product, onClose }: { product: Product; onClose: () 
               <Link
                 href={`/produit/${product.slug}`}
                 onClick={onClose}
-                className="label-mono block text-center text-steel-400 transition-colors hover:text-white"
+                className="label-mono block text-center text-steel-400 transition-colors hover:text-ink"
               >
                 Voir la fiche complète
               </Link>

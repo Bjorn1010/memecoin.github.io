@@ -33,12 +33,12 @@ const GROUPS = [
 
 export function Footer() {
   return (
-    <footer className="relative mt-32 border-t border-white/8 bg-base">
+    <footer className="relative mt-32 border-t border-ink/8 bg-base">
       <div className="mx-auto max-w-[1600px] px-5 py-16 lg:px-10">
         <div className="grid gap-12 lg:grid-cols-[1.4fr_repeat(4,1fr)]">
           <div className="max-w-sm">
-            <p className="font-display text-3xl text-white">
-              ONZE<span className="text-volt">.</span>
+            <p className="font-display text-3xl text-ink">
+              ONZE<span className="text-pitch">.</span>
             </p>
             <p className="mt-4 text-sm leading-relaxed text-steel-400">
               Maillots de football sélectionnés, floqués et expédiés depuis la Suisse.
@@ -56,11 +56,11 @@ export function Footer() {
                   type="email"
                   required
                   placeholder="vous@exemple.ch"
-                  className="h-11 min-w-0 flex-1 rounded-sm border border-white/12 bg-surface px-3 text-sm text-white outline-none transition-colors placeholder:text-steel-600 focus:border-volt/60"
+                  className="h-11 min-w-0 flex-1 rounded-sm border border-ink/12 bg-surface px-3 text-sm text-ink outline-none transition-colors placeholder:text-steel-600 focus:border-pitch/60"
                 />
                 <button
                   type="submit"
-                  className="label-mono h-11 shrink-0 rounded-sm bg-steel-100 px-5 text-void transition-colors hover:bg-white"
+                  className="label-mono h-11 shrink-0 rounded-sm bg-steel-100 px-5 text-paper transition-colors hover:bg-white"
                 >
                   OK
                 </button>
@@ -76,7 +76,7 @@ export function Footer() {
                   <li key={l.href + l.label}>
                     <Link
                       href={l.href}
-                      className="text-sm text-steel-300 transition-colors hover:text-white"
+                      className="text-sm text-steel-300 transition-colors hover:text-ink"
                     >
                       {l.label}
                     </Link>
@@ -87,7 +87,7 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="mt-16 flex flex-col gap-4 border-t border-white/8 pt-8 text-xs text-steel-500 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-16 flex flex-col gap-4 border-t border-ink/8 pt-8 text-xs text-steel-500 sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} ONZE. Tous droits réservés.</p>
           <p className="max-w-xl">
             Répliques non officielles. ONZE n&apos;est affilié à aucun club, fédération ou

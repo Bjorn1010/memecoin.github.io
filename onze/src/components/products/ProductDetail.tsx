@@ -74,11 +74,11 @@ export function ProductDetail({ product }: { product: Product }) {
       <div className="mx-auto max-w-[1600px] px-5 pt-28 lg:px-10">
         {/* Breadcrumb */}
         <nav aria-label="Fil d'Ariane" className="label-mono mb-6 flex flex-wrap gap-2 text-steel-600">
-          <Link href="/" className="hover:text-white">Accueil</Link>
+          <Link href="/" className="hover:text-ink">Accueil</Link>
           <span aria-hidden>/</span>
-          <Link href="/maillots" className="hover:text-white">Maillots</Link>
+          <Link href="/maillots" className="hover:text-ink">Maillots</Link>
           <span aria-hidden>/</span>
-          <Link href={`/maillots?club=${product.teamSlug}`} className="hover:text-white">
+          <Link href={`/maillots?club=${product.teamSlug}`} className="hover:text-ink">
             {product.team}
           </Link>
         </nav>
@@ -88,8 +88,8 @@ export function ProductDetail({ product }: { product: Product }) {
           <div className="lg:sticky lg:top-28 lg:self-start">
             <div
               className={cn(
-                "grain relative aspect-square overflow-hidden rounded-xl border border-white/8",
-                "bg-gradient-to-b from-surface to-base",
+                "grain relative aspect-square overflow-hidden rounded-xl border border-ink/8",
+                "bg-gradient-to-b from-white to-pitch-tint",
               )}
             >
               <div
@@ -132,7 +132,7 @@ export function ProductDetail({ product }: { product: Product }) {
               )}
 
               {/* View controls */}
-              <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border border-white/12 bg-black/60 p-1 backdrop-blur-md">
+              <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border border-ink/12 bg-ink/60 p-1 backdrop-blur-md">
                 {(["front", "back"] as const).map((v) => (
                   <button
                     key={v}
@@ -144,7 +144,7 @@ export function ProductDetail({ product }: { product: Product }) {
                     aria-pressed={!use3D && view === v}
                     className={cn(
                       "label-mono rounded-full px-4 py-2 transition-colors",
-                      !use3D && view === v ? "bg-white text-void" : "text-steel-300 hover:text-white",
+                      !use3D && view === v ? "bg-white text-paper" : "text-steel-300 hover:text-ink",
                     )}
                   >
                     {v === "front" ? "Face" : "Dos"}
@@ -156,7 +156,7 @@ export function ProductDetail({ product }: { product: Product }) {
                   aria-pressed={use3D}
                   className={cn(
                     "label-mono flex items-center gap-1.5 rounded-full px-4 py-2 transition-colors",
-                    use3D ? "bg-volt text-void" : "text-steel-300 hover:text-white",
+                    use3D ? "bg-pitch text-paper" : "text-steel-300 hover:text-ink",
                   )}
                 >
                   <Box size={13} />
@@ -165,7 +165,7 @@ export function ProductDetail({ product }: { product: Product }) {
               </div>
 
               {use3D && (
-                <p className="label-mono absolute left-1/2 top-4 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1.5 text-steel-400 backdrop-blur-md">
+                <p className="label-mono absolute left-1/2 top-4 -translate-x-1/2 rounded-full bg-ink/60 px-3 py-1.5 text-steel-400 backdrop-blur-md">
                   Glissez pour tourner · molette pour zoomer
                 </p>
               )}
@@ -184,12 +184,12 @@ export function ProductDetail({ product }: { product: Product }) {
             <p className="label-mono text-steel-500">
               {product.team} · {product.league} · {product.season}
             </p>
-            <h1 className="mt-3 font-display text-title text-white">{product.name}</h1>
+            <h1 className="mt-3 font-display text-title text-ink">{product.name}</h1>
 
             <div className="mt-5 flex flex-wrap items-center gap-4">
               <Price price={product.price} compareAt={product.compareAt} size="lg" />
               <span className="flex items-center gap-1.5 text-xs text-steel-400">
-                <span aria-hidden className="text-volt">★</span>
+                <span aria-hidden className="text-pitch">★</span>
                 <span className="tabular">{product.rating.toFixed(1)}</span>
                 <span className="text-steel-600">({product.reviews} avis)</span>
               </span>
@@ -204,7 +204,7 @@ export function ProductDetail({ product }: { product: Product }) {
                 </legend>
                 <button
                   type="button"
-                  className="label-mono flex items-center gap-1.5 text-steel-500 transition-colors hover:text-white"
+                  className="label-mono flex items-center gap-1.5 text-steel-500 transition-colors hover:text-ink"
                 >
                   <Ruler size={13} />
                   Guide des tailles
@@ -226,8 +226,8 @@ export function ProductDetail({ product }: { product: Product }) {
                     className={cn(
                       "number-plate h-14 min-w-14 rounded-md border px-4 text-lg transition-all",
                       size === s
-                        ? "border-volt bg-volt text-void"
-                        : "border-white/15 text-steel-200 hover:border-white/45 hover:bg-white/5",
+                        ? "border-pitch bg-pitch text-paper"
+                        : "border-ink/15 text-steel-200 hover:border-ink/45 hover:bg-ink/5",
                       sizeError && !size && "border-sale/60",
                       soldOut && "cursor-not-allowed opacity-40",
                     )}
@@ -239,9 +239,9 @@ export function ProductDetail({ product }: { product: Product }) {
             </fieldset>
 
             {/* ---------------------------------------- FLOCAGE */}
-            <div className="mt-9 rounded-xl border border-white/10 bg-surface p-5">
+            <div className="mt-9 rounded-xl border border-ink/10 bg-surface p-5">
               <div className="mb-4 flex items-center justify-between">
-                <p className="label-mono text-white">Flocage</p>
+                <p className="label-mono text-ink">Flocage</p>
                 <Badge tone="new">Inclus</Badge>
               </div>
               <div className="grid grid-cols-[1fr_88px] gap-3">
@@ -252,7 +252,7 @@ export function ProductDetail({ product }: { product: Product }) {
                     onChange={(e) => setPlayerName(e.target.value.replace(/[^a-zA-ZÀ-ÿ .-]/g, ""))}
                     maxLength={12}
                     placeholder="VOTRE NOM"
-                    className="number-plate h-12 w-full rounded-sm border border-white/12 bg-base px-3 uppercase tracking-wide text-white outline-none transition-colors placeholder:text-steel-700 focus:border-volt"
+                    className="number-plate h-12 w-full rounded-sm border border-ink/12 bg-base px-3 uppercase tracking-wide text-ink outline-none transition-colors placeholder:text-steel-700 focus:border-pitch"
                   />
                 </label>
                 <label className="block">
@@ -262,7 +262,7 @@ export function ProductDetail({ product }: { product: Product }) {
                     onChange={(e) => setPlayerNumber(e.target.value.replace(/\D/g, "").slice(0, 2))}
                     inputMode="numeric"
                     placeholder="10"
-                    className="number-plate h-12 w-full rounded-sm border border-white/12 bg-base px-3 text-center text-lg text-white outline-none transition-colors placeholder:text-steel-700 focus:border-volt"
+                    className="number-plate h-12 w-full rounded-sm border border-ink/12 bg-base px-3 text-center text-lg text-ink outline-none transition-colors placeholder:text-steel-700 focus:border-pitch"
                   />
                 </label>
               </div>
@@ -274,21 +274,21 @@ export function ProductDetail({ product }: { product: Product }) {
 
             {/* ---------------------------------------- QUANTITY + CTA */}
             <div className="mt-7 flex items-stretch gap-3">
-              <div className="flex items-center rounded-sm border border-white/15">
+              <div className="flex items-center rounded-sm border border-ink/15">
                 <button
                   type="button"
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                   aria-label="Réduire la quantité"
-                  className="grid h-14 w-11 place-items-center text-steel-400 hover:text-white"
+                  className="grid h-14 w-11 place-items-center text-steel-400 hover:text-ink"
                 >
                   <Minus size={15} />
                 </button>
-                <span className="tabular w-8 text-center text-white">{quantity}</span>
+                <span className="tabular w-8 text-center text-ink">{quantity}</span>
                 <button
                   type="button"
                   onClick={() => setQuantity((q) => Math.min(10, q + 1))}
                   aria-label="Augmenter la quantité"
-                  className="grid h-14 w-11 place-items-center text-steel-400 hover:text-white"
+                  className="grid h-14 w-11 place-items-center text-steel-400 hover:text-ink"
                 >
                   <Plus size={15} />
                 </button>
@@ -325,7 +325,7 @@ export function ProductDetail({ product }: { product: Product }) {
                   "grid h-14 w-14 shrink-0 place-items-center rounded-sm border transition-colors",
                   wishlisted
                     ? "border-sale/40 bg-sale/15 text-sale"
-                    : "border-white/15 text-steel-300 hover:border-white/40 hover:text-white",
+                    : "border-ink/15 text-steel-300 hover:border-ink/40 hover:text-ink",
                 )}
               >
                 <Heart size={18} fill={wishlisted ? "currentColor" : "none"} />
@@ -350,15 +350,15 @@ export function ProductDetail({ product }: { product: Product }) {
             </p>
 
             {/* Service strip */}
-            <div className="mt-7 grid gap-px overflow-hidden rounded-lg border border-white/8 bg-white/8 sm:grid-cols-2">
+            <div className="mt-7 grid gap-px overflow-hidden rounded-lg border border-ink/8 bg-ink/8 sm:grid-cols-2">
               {[
                 { icon: Truck, t: "Livraison 48 h", d: "Suivi inclus, départ de Suisse" },
                 { icon: RotateCcw, t: "Retours 30 jours", d: "Article non porté" },
               ].map((s) => (
                 <div key={s.t} className="flex items-start gap-3 bg-base p-4">
-                  <s.icon size={17} className="mt-0.5 shrink-0 text-volt" strokeWidth={1.75} />
+                  <s.icon size={17} className="mt-0.5 shrink-0 text-pitch" strokeWidth={1.75} />
                   <div>
-                    <p className="text-sm text-white">{s.t}</p>
+                    <p className="text-sm text-ink">{s.t}</p>
                     <p className="mt-0.5 text-xs text-steel-500">{s.d}</p>
                   </div>
                 </div>
@@ -395,11 +395,11 @@ export function ProductDetail({ product }: { product: Product }) {
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={spring.panel}
-            className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t border-white/10 bg-void/95 px-4 py-3 backdrop-blur-xl lg:hidden"
+            className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t border-ink/10 bg-void/95 px-4 py-3 backdrop-blur-xl lg:hidden"
           >
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs text-steel-400">{product.team}</p>
-              <p className="tabular text-sm font-semibold text-white">
+              <p className="tabular text-sm font-semibold text-ink">
                 {formatPrice(product.price * quantity)}
               </p>
             </div>
@@ -416,14 +416,14 @@ export function ProductDetail({ product }: { product: Product }) {
 function Accordion({ title, children }: { title: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border-b border-white/8">
+    <div className="border-b border-ink/8">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         className="flex w-full items-center justify-between py-4 text-left"
       >
-        <span className="label-mono text-white">{title}</span>
+        <span className="label-mono text-ink">{title}</span>
         <ChevronDown
           size={17}
           className={cn("text-steel-500 transition-transform duration-[--duration-standard]", open && "rotate-180")}

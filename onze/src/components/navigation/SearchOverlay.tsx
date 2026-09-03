@@ -56,7 +56,7 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
       aria-label="Recherche"
     >
       <div className="mx-auto max-w-3xl px-5 pt-24">
-        <div className="flex items-center gap-4 border-b border-white/15 pb-4">
+        <div className="flex items-center gap-4 border-b border-ink/15 pb-4">
           <Search size={24} className="shrink-0 text-steel-500" />
           <input
             ref={inputRef}
@@ -64,13 +64,13 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Club, sélection, saison…"
             aria-label="Rechercher un produit"
-            className="w-full bg-transparent font-display text-2xl uppercase tracking-tight text-white outline-none placeholder:text-steel-600 md:text-4xl"
+            className="w-full bg-transparent font-display text-2xl uppercase tracking-tight text-ink outline-none placeholder:text-steel-600 md:text-4xl"
           />
           <button
             type="button"
             onClick={onClose}
             aria-label="Fermer la recherche"
-            className="shrink-0 text-steel-400 hover:text-white"
+            className="shrink-0 text-steel-400 hover:text-ink"
           >
             <X size={24} />
           </button>
@@ -91,7 +91,7 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
                   key={s}
                   type="button"
                   onClick={() => setQuery(s)}
-                  className="rounded-full border border-white/12 px-4 py-2 text-sm text-steel-300 transition-colors hover:border-volt/50 hover:text-volt"
+                  className="rounded-full border border-ink/12 px-4 py-2 text-sm text-steel-300 transition-colors hover:border-pitch/50 hover:text-pitch"
                 >
                   {s}
                 </button>
@@ -110,13 +110,13 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
                 <Link
                   href={`/produit/${p.slug}`}
                   onClick={onClose}
-                  className="flex items-center gap-4 rounded-md px-3 py-3 transition-colors hover:bg-white/5"
+                  className="flex items-center gap-4 rounded-md px-3 py-3 transition-colors hover:bg-ink/5"
                 >
                   <div className="h-14 w-14 shrink-0">
                     <Jersey colorway={p.colorway} detailed={false} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm text-white">{p.name}</p>
+                    <p className="truncate text-sm text-ink">{p.name}</p>
                     <p className="label-mono text-steel-500">{p.league}</p>
                   </div>
                   <span className="tabular shrink-0 text-sm text-steel-300">

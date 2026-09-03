@@ -21,7 +21,7 @@ export function FlocageTeaser() {
 
   return (
     <section
-      className="pitch-lines relative overflow-hidden border-y border-white/8 bg-base py-24 lg:py-32"
+      className="pitch-lines relative overflow-hidden border-y border-ink/8 bg-base py-24 lg:py-32"
       aria-labelledby="flocage"
     >
       <div aria-hidden className="floodlight pointer-events-none absolute inset-0" />
@@ -29,16 +29,16 @@ export function FlocageTeaser() {
       <div className="relative mx-auto grid max-w-[1600px] items-center gap-12 px-5 lg:grid-cols-2 lg:px-10">
         <div>
           <Reveal>
-            <p className="label-mono mb-4 flex items-center gap-3 text-volt">
-              <span className="inline-block h-px w-8 bg-volt" />
+            <p className="label-mono mb-4 flex items-center gap-3 text-pitch">
+              <span className="inline-block h-px w-8 bg-pitch" />
               Flocage inclus
             </p>
           </Reveal>
           <Reveal index={1}>
-            <h2 id="flocage" className="font-display text-display text-white">
+            <h2 id="flocage" className="font-display text-display text-ink">
               Votre nom.
               <br />
-              Votre <span className="text-volt">numéro</span>.
+              Votre <span className="text-pitch">numéro</span>.
             </h2>
           </Reveal>
           <Reveal index={2}>
@@ -58,7 +58,7 @@ export function FlocageTeaser() {
                   maxLength={12}
                   placeholder="VOTRE NOM"
                   aria-label="Nom à floquer"
-                  className="number-plate w-full rounded-sm border border-white/12 bg-surface px-3 py-3 uppercase tracking-wide text-white outline-none transition-colors placeholder:text-steel-700 focus:border-volt"
+                  className="number-plate w-full rounded-sm border border-ink/12 bg-surface px-3 py-3 uppercase tracking-wide text-ink outline-none transition-colors placeholder:text-steel-700 focus:border-pitch"
                 />
               </label>
               <label className="block">
@@ -69,7 +69,7 @@ export function FlocageTeaser() {
                   inputMode="numeric"
                   placeholder="10"
                   aria-label="Numéro à floquer"
-                  className="number-plate w-full rounded-sm border border-white/12 bg-surface px-3 py-3 text-center text-lg text-white outline-none transition-colors placeholder:text-steel-700 focus:border-volt"
+                  className="number-plate w-full rounded-sm border border-ink/12 bg-surface px-3 py-3 text-center text-lg text-ink outline-none transition-colors placeholder:text-steel-700 focus:border-pitch"
                 />
               </label>
             </div>

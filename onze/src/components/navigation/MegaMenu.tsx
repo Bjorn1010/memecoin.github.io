@@ -27,7 +27,7 @@ function Item({ href, children }: { href: string; children: React.ReactNode }) {
     <li>
       <Link
         href={href}
-        className="block truncate py-0.5 text-[0.9rem] text-steel-300 transition-colors hover:text-volt"
+        className="block truncate py-0.5 text-[0.9rem] text-steel-300 transition-colors hover:text-pitch"
       >
         {children}
       </Link>
@@ -42,7 +42,7 @@ function Feature({ teamSlug }: { teamSlug: string }) {
   return (
     <Link
       href={`/maillots?club=${team.slug}`}
-      className="group relative flex min-h-[240px] flex-col justify-between overflow-hidden rounded-lg border border-white/8 bg-surface p-5"
+      className="group relative flex min-h-[240px] flex-col justify-between overflow-hidden rounded-lg border border-ink/8 bg-surface p-5"
     >
       <div
         aria-hidden
@@ -55,7 +55,7 @@ function Feature({ teamSlug }: { teamSlug: string }) {
       <div className="pointer-events-none absolute inset-x-0 bottom-0 top-8 opacity-90 transition-transform duration-[--duration-premium] ease-[--ease-out-expo] group-hover:scale-105">
         <Jersey colorway={team.colorway} monogram={team.monogram} number="10" />
       </div>
-      <p className="relative z-10 mt-auto flex items-center gap-1 font-display text-lg text-white">
+      <p className="relative z-10 mt-auto flex items-center gap-1 font-display text-lg text-ink">
         {team.name}
         <ArrowUpRight size={16} className="transition-transform group-hover:translate-x-0.5" />
       </p>
@@ -70,7 +70,7 @@ export function MegaMenu({ menu, onClose }: { menu: MenuKey; onClose: () => void
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
       transition={transition.standard}
-      className="absolute inset-x-0 top-full hidden border-b border-white/8 bg-void/95 backdrop-blur-2xl lg:block"
+      className="absolute inset-x-0 top-full hidden border-b border-ink/8 bg-void/95 backdrop-blur-2xl lg:block"
       onMouseLeave={onClose}
     >
       <div className="mx-auto grid max-w-[1600px] grid-cols-[repeat(4,minmax(0,1fr))_320px] gap-10 px-10 py-10">
@@ -137,14 +137,14 @@ export function MegaMenu({ menu, onClose }: { menu: MenuKey; onClose: () => void
                 <Link
                   key={c.slug}
                   href={`/collections/${c.slug}`}
-                  className="group relative overflow-hidden rounded-md border border-white/8 bg-surface p-5 transition-colors hover:border-white/20"
+                  className="group relative overflow-hidden rounded-md border border-ink/8 bg-surface p-5 transition-colors hover:border-ink/20"
                 >
                   <div
                     aria-hidden
                     className="absolute inset-0 opacity-0 transition-opacity duration-[--duration-standard] group-hover:opacity-100"
                     style={{ background: `radial-gradient(80% 80% at 20% 0%, ${c.accent}22, transparent)` }}
                   />
-                  <p className="relative font-display text-lg text-white">{c.title}</p>
+                  <p className="relative font-display text-lg text-ink">{c.title}</p>
                   <p className="relative mt-1 text-xs leading-relaxed text-steel-400">{c.tagline}</p>
                   <p className="label-mono relative mt-3 text-steel-500">{c.count} pièces</p>
                 </Link>

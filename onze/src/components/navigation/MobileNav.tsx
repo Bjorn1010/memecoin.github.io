@@ -69,8 +69,8 @@ export function MobileNav({ onClose }: { onClose: () => void }) {
       aria-label="Menu principal"
     >
       <div className="flex h-16 items-center justify-between px-5">
-        <span className="font-display text-xl text-white">
-          ONZE<span className="text-volt">.</span>
+        <span className="font-display text-xl text-ink">
+          ONZE<span className="text-pitch">.</span>
         </span>
         <button
           type="button"
@@ -100,7 +100,7 @@ export function MobileNav({ onClose }: { onClose: () => void }) {
                 <Link
                   href={item.href}
                   onClick={onClose}
-                  className="flex items-center justify-between border-b border-white/6 py-5 font-display text-2xl uppercase text-white"
+                  className="flex items-center justify-between border-b border-ink/6 py-5 font-display text-2xl uppercase text-ink"
                 >
                   {item.label}
                 </Link>
@@ -108,7 +108,7 @@ export function MobileNav({ onClose }: { onClose: () => void }) {
                 <button
                   type="button"
                   onClick={() => openPanel(item.panel)}
-                  className="flex w-full items-center justify-between border-b border-white/6 py-5 font-display text-2xl uppercase text-white"
+                  className="flex w-full items-center justify-between border-b border-ink/6 py-5 font-display text-2xl uppercase text-ink"
                 >
                   {item.label}
                   <ChevronRight size={22} className="text-steel-500" />
@@ -121,14 +121,14 @@ export function MobileNav({ onClose }: { onClose: () => void }) {
             <Link
               href="/compte"
               onClick={onClose}
-              className="label-mono flex-1 rounded-sm border border-white/15 py-3 text-center text-steel-200"
+              className="label-mono flex-1 rounded-sm border border-ink/15 py-3 text-center text-steel-200"
             >
               Compte
             </Link>
             <Link
               href="/wishlist"
               onClick={onClose}
-              className="label-mono flex-1 rounded-sm border border-white/15 py-3 text-center text-steel-200"
+              className="label-mono flex-1 rounded-sm border border-ink/15 py-3 text-center text-steel-200"
             >
               Wishlist
             </Link>
@@ -152,13 +152,13 @@ export function MobileNav({ onClose }: { onClose: () => void }) {
               <ChevronRight size={16} className="rotate-180" />
               Retour
             </button>
-            <p className="mb-4 font-display text-3xl uppercase text-white">{panel.title}</p>
+            <p className="mb-4 font-display text-3xl uppercase text-ink">{panel.title}</p>
             {panel.items.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={onClose}
-                className="block border-b border-white/6 py-4 text-lg text-steel-200"
+                className="block border-b border-ink/6 py-4 text-lg text-steel-200"
               >
                 {item.label}
               </Link>
