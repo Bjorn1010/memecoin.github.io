@@ -26,6 +26,7 @@ from qt.models.probability import (
     probability_report,
     reliability_curve,
     required_probability,
+    shrink_to_evidence,
 )
 
 
@@ -95,6 +96,153 @@ def test_reliability_curve_exposes_overconfidence():
 
     low = curve[curve["probabilité_prédite"] < 0.2]
     assert float(low["écart"].iloc[0]) < -0.3
+
+
+# ------------------------------------------------------------- shrinkage
+"""Isotonic regression will say 0.998 from sixteen observations, and the market then
+rises 25% of the time. That was measured on the Nasdaq, and it is the defect these
+tests pin down: a probability must not claim more than its evidence supports.
+"""
+
+
+def calibration_set(n: int = 1000, seed: int = 3):
+    """A calibration sample whose scores span the range, with a 50% base rate."""
+    rng = np.random.default_rng(seed)
+    scores = rng.uniform(0.0, 1.0, n)
+    outcomes = rng.integers(0, 2, n)
+    return scores, outcomes
+
+
+def test_a_confident_probability_from_a_thin_bucket_is_pulled_back():
+    """The measured failure: an extreme probability standing on almost no observations."""
+    # Ninety-nine per cent of the calibration set sits low; the top of the range holds
+    # a handful of observations — exactly the shape that produced 0.998 on QQQ.
+    rng = np.random.default_rng(5)
+    scores = np.concatenate([rng.uniform(0.0, 0.5, 990), rng.uniform(0.95, 1.0, 10)])
+    outcomes = np.concatenate([rng.integers(0, 2, 990), np.ones(10, dtype=int)])
+
+    out = shrink_to_evidence(np.array([1.0]), np.array([0.97]), scores, outcomes,
+                             prior_strength=50.0)
+    assert out[0] < 0.65, "ten observations cannot support a claim of certainty"
+    assert out[0] > 0.5, "but the evidence still points up, so it must not be erased"
+
+
+def test_a_thick_bucket_keeps_its_probability():
+    """Shrinkage must fade as evidence accumulates, or the model can never say anything."""
+    scores, outcomes = calibration_set(4000)
+    thin = shrink_to_evidence(np.array([0.8]), np.array([0.5]),
+                              scores[:120], outcomes[:120], prior_strength=50.0)
+    thick = shrink_to_evidence(np.array([0.8]), np.array([0.5]), scores, outcomes,
+                               prior_strength=50.0)
+    assert thick[0] > thin[0]
+    assert thick[0] == pytest.approx(0.8, abs=0.05)
+
+
+def test_shrinkage_is_monotone_in_the_prior():
+    """A firmer prior must pull harder — nothing else about the knob is meaningful."""
+    scores, outcomes = calibration_set()
+    probe, probe_score = np.array([0.9]), np.array([0.5])
+    pulled = [float(shrink_to_evidence(probe, probe_score, scores, outcomes,
+                                       prior_strength=s)[0])
+              for s in (0.0, 25.0, 100.0, 400.0)]
+    assert pulled == sorted(pulled, reverse=True)
+    assert pulled[0] == pytest.approx(0.9), "prior 0 must leave the probability alone"
+
+
+def test_evidence_is_counted_where_the_score_lives_not_where_the_probability_lands():
+    """The scale bug: isotonic maps scores onto probabilities, so the two do not align.
+
+    Here every calibration score sits in 0.45-0.55 while the calibrated output is 0.95.
+    Counting evidence in probability space finds an empty bucket and shrinks all the way
+    to the base rate; counting it in score space finds the thousand observations that
+    actually stand behind the number. The second is correct, and the first returns a
+    plausible figure computed from the wrong place.
+    """
+    rng = np.random.default_rng(9)
+    scores = rng.uniform(0.45, 0.55, 1000)
+    outcomes = rng.integers(0, 2, 1000)
+
+    out = float(shrink_to_evidence(np.array([0.95]), np.array([0.50]), scores, outcomes,
+                                   prior_strength=50.0)[0])
+    base = float(outcomes.mean())
+    assert out > base + 0.2, "a thousand observations must not be shrunk to the base rate"
+
+
+def test_a_score_in_a_region_never_seen_falls_back_to_the_base_rate():
+    """No evidence means no claim — and it must not mean a NaN."""
+    rng = np.random.default_rng(13)
+    scores = rng.uniform(0.40, 0.60, 500)
+    outcomes = (rng.uniform(size=500) < 0.6).astype(int)
+
+    out = shrink_to_evidence(np.array([0.99]), np.array([0.59999]), scores, outcomes,
+                             prior_strength=0.0)
+    assert np.isfinite(out).all()
+
+
+def test_no_divide_by_zero_warning_on_an_empty_bucket():
+    """0/0 would give NaN, and every downstream comparison reads NaN as 'do not trade'
+    — the right action for entirely the wrong reason, with no error to show for it."""
+    scores = np.full(200, 0.55)
+    outcomes = (np.arange(200) % 2).astype(int)
+    with np.errstate(all="raise"):
+        out = shrink_to_evidence(np.array([0.05, 0.55, 0.95]), np.array([0.05, 0.55, 0.95]),
+                                 scores, outcomes, prior_strength=0.0)
+    assert np.isfinite(out).all()
+
+
+def test_an_empty_calibration_set_changes_nothing():
+    probe = np.array([0.2, 0.8])
+    out = shrink_to_evidence(probe, probe, np.array([]), np.array([]))
+    assert out == pytest.approx(probe)
+
+
+def test_shrinkage_reduces_calibration_error_by_the_predicted_amount():
+    """The end-to-end claim, checked against the algebra rather than a round number.
+
+    Shrinking by w = n/(n+s) moves every forecast a factor w toward the base rate, and
+    the calibration error is a squared distance — so it must fall by w², not by "a lot".
+    Here 2000 uniform scores spread over ten bins give n = 200 per bin against a prior
+    of 50, so w = 0.8 and the error should land near 64% of what it was.
+
+    Asserting a loose threshold instead would pass just as happily if the shrinkage were
+    applied twice, or to the wrong bucket.
+    """
+    rng = np.random.default_rng(19)
+    n = 2000
+    scores = rng.uniform(0.0, 1.0, n)
+    outcomes = rng.integers(0, 2, n)          # the score predicts nothing at all
+    overconfident = scores                     # ...but the forecast claims it does
+
+    before = brier_decomposition(overconfident, outcomes)["reliability"]
+    after = brier_decomposition(
+        shrink_to_evidence(overconfident, scores, scores, outcomes, prior_strength=50.0),
+        outcomes)["reliability"]
+
+    w = (n / 10) / (n / 10 + 50.0)
+    assert after == pytest.approx(before * w**2, rel=0.15)
+
+
+def test_shrinkage_is_strongest_exactly_where_the_evidence_is_thinnest():
+    """On real data the extreme probabilities came from buckets of 4, 10 and 16.
+
+    The whole point is that the pull is local: a claim standing on a handful of
+    observations must be pulled hard, while a claim standing on a thousand is left
+    nearly alone. A global shrink toward the base rate would pass a "calibration
+    improved" test and would be the wrong fix.
+    """
+    rng = np.random.default_rng(23)
+    # A crowded middle and a nearly empty top — the shape a boosted model produces.
+    scores = np.concatenate([rng.uniform(0.30, 0.70, 1900), rng.uniform(0.90, 1.00, 12)])
+    outcomes = np.concatenate([rng.integers(0, 2, 1900), np.ones(12, dtype=int)])
+
+    crowded = float(shrink_to_evidence(np.array([0.75]), np.array([0.50]),
+                                       scores, outcomes, prior_strength=50.0)[0])
+    thin = float(shrink_to_evidence(np.array([0.75]), np.array([0.95]),
+                                    scores, outcomes, prior_strength=50.0)[0])
+    base = float(outcomes.mean())
+
+    assert abs(crowded - 0.75) < abs(thin - 0.75), "the thin bucket must be pulled harder"
+    assert abs(thin - base) < abs(crowded - base)
 
 
 # ------------------------------------------------------------------- report

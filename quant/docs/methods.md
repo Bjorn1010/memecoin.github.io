@@ -694,3 +694,60 @@ n'avait rien à faire.
 
 C'est la raison d'être des 75 tests : ils ne vérifient pas que le code s'exécute, ils
 vérifient qu'il donne la **bonne réponse** dans les cas où elle est connue analytiquement.
+
+## Quand le bot annonce 70 %, est-ce que ça arrive ?
+
+C'est la question qui décide si une probabilité vaut quoi que ce soit, et la première
+réponse mesurée était mauvaise.
+
+La régression isotonique a le droit de sortir 0,0 et 1,0, et elle le fait à partir d'une
+poignée d'observations. Sur le Nasdaq, les compartiments produisant les probabilités
+extrêmes contenaient **4, 10 et 16 observations** : le modèle annonçait **99,8 %** et le
+marché montait **25 %** du temps. Ce n'est pas une propriété des marchés, c'est un
+calibrateur qui prend le bruit au premier degré. Et comme la taille des positions suit la
+confiance, l'erreur allait toujours dans le sens coûteux.
+
+`shrink_to_evidence` ramène chaque probabilité vers le taux de base à hauteur de ce que
+les données autorisent — moyenne a posteriori Beta-Binomiale, `p̂ = (k + s·b) / (n + s)`,
+où `n` est le nombre d'observations de calibration dans le voisinage du score et `s` le
+poids accordé au taux de base. Avec seize observations et `s = 50`, un compartiment sorti
+à 100 % annonce environ 0,60 : c'est ce que seize observations autorisent à dire.
+
+Mesuré sur QQQ, GLD et SPY, mêmes plis, seul le rétrécissement change
+(`scripts/research_calibration.py`) :
+
+| | Avant | Après |
+|---|---|---|
+| Pire écart annoncé / réalisé | **0,748** | **0,297** |
+| Erreur de calibration moyenne | 0,01975 | **0,00414** |
+| Amplitude de la probabilité | 0,319 | 0,104 |
+
+Le compartiment qui annonçait 0,998 pour un réalisé de 0,250 a disparu ; il ne reste plus
+aucune annonce au-dessus de 0,63.
+
+**L'amplitude est le garde-fou de cette correction, et elle est publiée à côté du gain.**
+Rétrécir améliore *mécaniquement* la calibration : à la limite, annoncer toujours 50 % est
+parfaitement calibré et totalement inutile, puisqu'aucune position n'en sort. Une table qui
+ne montrerait que l'erreur de calibration ferait passer la destruction du signal pour un
+progrès. `resolution` et l'amplitude sont donc reportées dans le même tableau.
+
+| Erreur trouvée en chemin | Effet mesuré |
+|---|---|
+| Compter les preuves dans l'espace des **probabilités** au lieu de celui des **scores** | L'isotonique fait passer de l'un à l'autre : les scores d'un modèle boosté se tassent dans 0,4–0,6 pendant que la sortie calibrée couvre 0–1. Le comptage tombait donc systématiquement dans le mauvais compartiment — en général un compartiment vide à côté d'un compartiment plein — et renvoyait un nombre plausible calculé au mauvais endroit |
+| `n + s` au dénominateur avec `s = 0` et un compartiment vide | 0/0 → NaN. Toute comparaison en aval lit NaN comme faux, donc le bot lisait « ne pas trader » — la bonne action pour une raison entièrement fausse, sans la moindre erreur levée |
+
+### Ce que ça ne corrige pas
+
+Une probabilité honnête n'est pas une probabilité rentable. Après correction, sur données
+horaires réelles :
+
+| | Nasdaq 100 | Or |
+|---|---|---|
+| Amplitude (seuil 0,05) | 0,130 ✅ | 0,113 ✅ |
+| Resolution (seuil 0,005) | **0,00024** ❌ | **0,00023** ❌ |
+| Gain de Brier (seuil > 0) | **−0,00412** ❌ | **−0,00923** ❌ |
+
+Le garde-fou bloque toujours, et il bloque sur la **resolution** — vingt fois sous le
+seuil. Autrement dit : le bot annonce maintenant des chiffres auxquels on peut se fier, et
+ces chiffres disent qu'il ne sait pas prédire la direction de la prochaine heure. C'est
+un progrès réel et c'est un résultat négatif ; les deux sont vrais en même temps.

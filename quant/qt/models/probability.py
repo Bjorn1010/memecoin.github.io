@@ -134,6 +134,7 @@ def fit_calibrated(
     embargo: int = 24,
     horizon: int = 6,
     model_factory=None,
+    prior_strength: float = 50.0,
 ):
     """Fit a model and its calibrator on disjoint data, walking forward.
 
@@ -175,14 +176,95 @@ def fit_calibrated(
         model.fit(X.iloc[fit_idx], y.iloc[fit_idx])
 
         cal_scores = model.predict_proba(X.iloc[cal_idx])[:, 1]
+        cal_truth = y.iloc[cal_idx].to_numpy()
         iso = IsotonicRegression(out_of_bounds="clip", y_min=0.0, y_max=1.0)
-        iso.fit(cal_scores, y.iloc[cal_idx].to_numpy())
+        iso.fit(cal_scores, cal_truth)
 
         test_scores = model.predict_proba(X.iloc[test_idx])[:, 1]
         raw_out.iloc[test_idx] = test_scores
-        cal_out.iloc[test_idx] = iso.predict(test_scores)
+        cal_out.iloc[test_idx] = shrink_to_evidence(
+            iso.predict(test_scores), test_scores, cal_scores, cal_truth,
+            prior_strength=prior_strength,
+        )
 
     return cal_out, raw_out
+
+
+def shrink_to_evidence(
+    calibrated: np.ndarray,
+    scores: np.ndarray,
+    calibration_scores: np.ndarray,
+    calibration_outcomes: np.ndarray,
+    *,
+    prior_strength: float = 50.0,
+    n_bins: int = 10,
+) -> np.ndarray:
+    """Pull each probability back toward the base rate by what the evidence supports.
+
+    Isotonic regression is free to output 0.0 and 1.0, and it will do so from a handful
+    of observations. Measured on the Nasdaq, the buckets producing the extreme
+    probabilities held 4, 10 and 16 observations — the model announced 99.8% and the
+    market rose 25% of the time. That is not a property of markets; it is a calibrator
+    taking noise literally.
+
+    The fix is the standard one. Treat each region of the score as a Beta-Binomial: the
+    posterior mean of `k` successes in `n` trials against a prior centred on the base
+    rate with weight `prior_strength` is
+
+        p̂ = (k + s·b) / (n + s)
+
+    With sixteen observations and a prior weight of fifty, a bucket that came up 100%
+    reports about 0.60 rather than 1.00 — which is what sixteen observations actually
+    entitle anyone to say. As the bucket fills, the prior fades and the estimate
+    converges on the empirical frequency.
+
+    `prior_strength` is the number of observations the base rate is worth. Fifty is
+    deliberately firm: at short horizons the honest prior is "this is a coin flip", and
+    a signal has to work to overcome it.
+
+    `scores` are the raw model scores that produced `calibrated`, and they are required
+    rather than optional. The evidence behind a probability lives in the score's
+    neighbourhood, not the probability's: isotonic maps one scale onto the other, and a
+    boosted model's scores routinely bunch inside 0.4–0.6 while the calibrated output
+    spans 0–1. Counting the calibration set in probability space therefore reads the
+    wrong bucket — usually an empty one next to a crowded one — and the count that comes
+    back is a plausible number computed from the wrong place.
+    """
+    p = np.asarray(calibrated, dtype="float64")
+    if len(calibration_scores) == 0:
+        return p
+
+    base = float(np.mean(calibration_outcomes))
+    cal = np.asarray(calibration_scores, dtype="float64")
+
+    # How many calibration observations sit near each score, so the shrinkage reflects
+    # the evidence behind *that* region rather than the sample as a whole. The bins span
+    # the observed score range rather than [0, 1]: scores that all land inside 0.45–0.55
+    # would otherwise fall into one or two bins of a [0, 1] grid, every count would come
+    # back near the full sample size, and nothing would be shrunk at all.
+    lo, hi = float(cal.min()), float(cal.max())
+    if hi <= lo:
+        n_local = np.full(p.shape, float(len(cal)))
+    else:
+        edges = np.linspace(lo, hi, n_bins + 1)
+        cal_bin = np.clip(np.digitize(cal, edges[1:-1]), 0, n_bins - 1)
+        counts = np.bincount(cal_bin, minlength=n_bins).astype("float64")
+
+        out_bin = np.clip(np.digitize(np.asarray(scores, dtype="float64"), edges[1:-1]),
+                          0, n_bins - 1)
+        n_local = counts[out_bin]
+
+    # k is what that probability implies happened in the bucket; the posterior mean then
+    # blends it with the prior in proportion to the evidence.
+    k = p * n_local
+    denominator = n_local + prior_strength
+
+    # A score landing in a region the calibrator never saw has no evidence at all, so it
+    # gets the base rate rather than a division by zero. With prior_strength=0 that would
+    # otherwise be 0/0 — a NaN probability, which every downstream comparison silently
+    # treats as False and which therefore reads as "do not trade" for the wrong reason.
+    out = np.where(denominator > 0, k + prior_strength * base, base * np.ones_like(p))
+    return np.where(denominator > 0, out / np.where(denominator > 0, denominator, 1.0), base)
 
 
 def probability_report(probabilities: pd.Series, outcomes: pd.Series,
