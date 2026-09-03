@@ -751,3 +751,88 @@ Le garde-fou bloque toujours, et il bloque sur la **resolution** — vingt fois 
 seuil. Autrement dit : le bot annonce maintenant des chiffres auxquels on peut se fier, et
 ces chiffres disent qu'il ne sait pas prédire la direction de la prochaine heure. C'est
 un progrès réel et c'est un résultat négatif ; les deux sont vrais en même temps.
+
+## Conditionner au régime de marché : mesuré, puis écarté
+
+Le module de régimes markoviens existait depuis longtemps sans nourrir une seule
+décision — exactement la situation où l'on suppose qu'un composant aide parce qu'il est
+sophistiqué. Deux tests, tous deux négatifs.
+
+**Sur le livre qui marche.** Le Sharpe du livre trend + risk parity par régime, sur
+2010-2026, régimes estimés de façon causale sur le SPY et décalés d'une barre :
+
+| Régimes | Régime le plus calme | Le plus agité | Écart |
+|---|---|---|---|
+| 2 états | 1,23 (76 % du temps) | 0,44 (24 %) | 0,78 |
+| 3 états | 0,78 / 1,29 | 0,67 (9 %) | 0,62 |
+
+L'écart existe, donc couper le mauvais régime devrait payer. En apparence, ça paie :
+Sharpe 0,974 → **1,039**, drawdown −18,2 % → −13,0 %.
+
+**C'est faux, et la façon dont c'est faux est instructive.** Le régime coupé a été choisi
+en regardant le Sharpe de chaque régime sur tout l'échantillon, puis mesuré sur ce même
+échantillon. En choisissant le régime sur 2010-2019 et en mesurant sur 2019-2026 :
+
+| | Sharpe hors échantillon |
+|---|---|
+| Sans filtre | 0,881 |
+| Filtre 2 états | **0,074** (−0,807) |
+| Filtre 3 états | **0,559** (−0,321) |
+
+Le filtre ne perd pas un peu, il détruit la stratégie. Et le régime désigné comme « le
+pire » n'est même pas stable : la première moitié désigne le régime 0, l'échantillon
+complet désigne le régime 2. Il n'y avait pas de mauvais régime à couper — seulement
+trois tirages d'une statistique bruitée et la liberté de choisir le meilleur.
+
+**Sur la prédiction horaire.** L'hypothèse restante était que la direction est prévisible
+*à l'intérieur* d'un régime et que le mélange noie le signal. Sur QQQ, GLD et SPY, en
+régime calme et en régime agité :
+
+| Actif | Régime | Précision | Taux de base | Excès |
+|---|---|---|---|---|
+| QQQ | calme | 0,483 | 0,526 | −0,043 |
+| QQQ | agité | 0,514 | 0,557 | −0,043 |
+| GLD | calme | 0,499 | 0,549 | −0,050 |
+| SPY | calme | 0,509 | 0,542 | −0,033 |
+
+**0 résultat significatif sur 6**, pour 0,3 attendu par pur hasard. Tous les excès sont
+négatifs. Le signal n'était pas noyé : il n'y en a pas.
+
+Un modèle de régime ne crée pas de signal, il ne peut que redistribuer celui qui existe.
+Le module reste implémenté et testé — ce sont des méthodes correctes — mais il ne pilote
+aucune décision, parce que le brancher a été mesuré comme destructeur.
+
+| Erreur trouvée en chemin | Effet mesuré |
+|---|---|
+| Choisir le régime à couper sur l'échantillon de mesure | +0,065 de Sharpe apparent, **−0,81 réel**. Trois régimes, c'est trois essais ; le meilleur de trois essais sur une statistique bruitée bat la référence à peu près une fois sur deux, sans qu'aucune affirmation fausse ne soit écrite |
+
+## Le chemin vers la rentabilité, en chiffres
+
+`scripts/chemin_rentabilite.py` fait l'arithmétique jusqu'au bout à partir de la seule
+stratégie qui survit à une déflation honnête.
+
+| | Mesuré |
+|---|---|
+| Rendement annuel | 6,63 % |
+| Volatilité | 6,83 % |
+| Sharpe | 0,971 |
+| Pire perte | −18,2 % |
+| Période | 16,5 ans, coûts inclus |
+
+Sur 500 € : **33 € par an**, soit 2,76 € par mois, soit **0,0202 € par heure** de marché
+ouvert. L'objectif de 20 €/heure demande **6 552 % par an** — il manque un facteur 989.
+
+Les deux seuls leviers, chiffrés :
+
+* **Capital.** Au rendement mesuré, 20 €/heure exige **494 357 €**. À 66 % par an — le
+  record absolu, fonds fermé depuis 1993 — il en faudrait encore 49 636 €.
+* **Risque.** Le levier nécessaire est x989, soit une volatilité de 6 749 %. Dès x10 la
+  pire perte historique du livre dépasse −100 %, et il n'y a pas de seconde chance
+  après. La probabilité de perdre la moitié du capital en un an, simulée au taux de
+  réussite mesuré (52,6 % de jours positifs) : 1,4 % en risquant 2 % par jour, **56 %**
+  à 5 %, **99 %** à 10 %.
+
+Le multiplicateur caché a été cherché dans cinq directions — scalping, prédiction
+horaire, day trading crypto, primes de style, régimes. Les cinq sont mesurées négatives
+et documentées ci-dessus. Ce qui reste est un chemin réel mais lent : une stratégie
+modeste et vérifiée, appliquée à du capital qui grandit.

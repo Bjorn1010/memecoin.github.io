@@ -38,12 +38,24 @@ HOURS_PER_YEAR = {
     "working_day": 8 * 250,           # 2,000
 }
 
+# What this bot actually does, measured rather than hoped: risk parity + 30% trend over
+# 15 ETFs, 2010-2026, costs included (`scripts/research_trend.py`). These are the
+# defaults for every "at what return?" argument below, because the alternative is a
+# module whose defaults quietly describe a better strategy than the one that ships.
+#
+# This figure has been wrong once already, and in the flattering direction: it read 3.5%
+# at a Sharpe of 1.10, which came from `combine_trend_and_allocator` being handed the
+# risk-sized weights instead of the bounded signal. Corrected, the book runs at 6.6% a
+# year for 6.8% volatility — a Sharpe of 0.97.
+MEASURED_RETURN = 0.066
+MEASURED_VOL = 0.068
+
 # Published long-run annualised returns, for scale. These are what the required figure
 # has to be read against; without them a percentage is just a number.
 REFERENCES = {
     "Livret A / cash": 0.03,
     "S&P 500, long run": 0.10,
-    "ce bot, mesuré (Sharpe 1,10 à 10% de vol)": 0.035,
+    "ce bot, mesuré (Sharpe 0,97)": MEASURED_RETURN,
     "meilleur hedge fund décennal typique": 0.20,
     "Buffett, 1965-2023": 0.198,
     "Medallion (fermé, plafonné), brut": 0.66,
@@ -78,7 +90,7 @@ class Objective:
             return float("inf")
         return self.target_per_year / self.capital
 
-    def required_capital(self, at_return: float = 0.035) -> float:
+    def required_capital(self, at_return: float = MEASURED_RETURN) -> float:
         """Capital that would meet the target at a given annual return."""
         if at_return <= 0:
             return float("inf")
@@ -114,7 +126,8 @@ class Objective:
         }
 
 
-def capital_table(objective: Objective, returns=(0.035, 0.10, 0.20, 0.66)) -> pd.DataFrame:
+def capital_table(objective: Objective,
+                  returns=(MEASURED_RETURN, 0.10, 0.20, 0.66)) -> pd.DataFrame:
     """Capital needed to hit the target, at each reference return.
 
     Reading this table is usually the moment the target becomes concrete: the same
@@ -215,8 +228,8 @@ def achieved(store, run_id: str = "daily", *, objective: Objective | None = None
                     cycles=int(len(curve)), start=start, end=end, note=note)
 
 
-def levers(objective: Objective, base_return: float = 0.035,
-           base_vol: float = 0.10) -> pd.DataFrame:
+def levers(objective: Objective, base_return: float = MEASURED_RETURN,
+           base_vol: float = MEASURED_VOL) -> pd.DataFrame:
     """The honest ways to raise currency-per-hour, and what each actually costs.
 
     There are only four, and three of them are the same lever wearing different names.

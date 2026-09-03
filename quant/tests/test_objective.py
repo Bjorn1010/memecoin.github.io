@@ -95,8 +95,17 @@ def test_levers_price_risk_honestly():
 
     dd = [float(s.replace("−", "").rstrip("%")) for s in table["drawdown_mauvaise_année"]]
     assert (np.diff(dd) > 0).all(), "more risk must show more drawdown"
-    # Even at 3x risk on 100k, the gain is nowhere near 100/hour.
-    assert gains.max() < 2.0
+
+    # The claim worth pinning: tripling the risk does not close the gap to the target,
+    # it closes a few per cent of it. Stated against the objective rather than as a
+    # magic constant — the previous version asserted `< 2.0`, which was the measured
+    # return of the day baked into a threshold, and it broke the moment the measurement
+    # was corrected upward for an entirely unrelated reason.
+    objective = Objective(100.0, 100_000.0)
+    assert gains.max() < 0.05 * objective.target_per_hour, (
+        "3x risk must remain nowhere near the target; if this passes easily, the "
+        "default return in objective.py has drifted away from what was measured"
+    )
 
 
 # ------------------------------------------------------------------ achieved
