@@ -1,0 +1,76 @@
+name: Deploy ONZE to GitHub Pages
+
+# Publishes the storefront to https://bjorn1010.github.io/onze/
+#
+# The site is a Next.js static export, so this only builds files and uploads
+# them — no server runs in production.
+#
+# Note: a Pages deployment replaces the whole site. This artifact contains only
+# the onze/ directory, so the domain root stays empty (404) until something else
+# is published there. To serve another project at the root, add its files to the
+# `site/` directory in the Assemble step rather than creating a second workflow —
+# two workflows deploying to Pages would overwrite each other.
+
+on:
+  push:
+    branches:
+      - main
+      # Lets the shop go live from the feature branch before it is merged.
+      - claude/ui-ux-pro-max-skill-install-1a4d38
+    paths:
+      - "onze/**"
+      - ".github/workflows/deploy-onze.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a running deploy finish rather than cancelling it midway, but never queue
+# more than one pending run.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: onze
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: onze/package-lock.json
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: Assemble the Pages artifact
+        run: |
+          mkdir -p ../site/onze
+          cp -r out/. ../site/onze/
+          # Without this, Pages runs the output through Jekyll, which silently
+          # drops every directory beginning with an underscore — including
+          # _next/, i.e. all the JS and CSS.
+          touch ../site/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -13,6 +13,6 @@ export default function robots(): MetadataRoute.Robots {
          crawl budget away from product pages. */
       disallow: ["/checkout", "/panier", "/compte", "/wishlist"],
     },
-    sitemap: "https://onze.example/sitemap.xml",
+    sitemap: "https://bjorn1010.github.io/onze/sitemap.xml",
   };
 }

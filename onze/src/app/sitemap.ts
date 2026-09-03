@@ -7,7 +7,7 @@ import { allTeams } from "@/lib/data/teams";
    inputs, but Next will not assume that. */
 export const dynamic = "force-static";
 
-const BASE = "https://onze.example";
+const BASE = "https://bjorn1010.github.io/onze";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();

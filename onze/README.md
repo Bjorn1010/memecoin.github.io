@@ -95,6 +95,29 @@ Le catalogue est **dérivé** de la table des équipes via un hash déterministe
 d'hydratation, et ajouter une équipe génère ses kits. À remplacer par une API
 commerce — tout le reste consomme le type `Product`, pas ce fichier.
 
+## Déploiement
+
+Publié sur **https://bjorn1010.github.io/onze/** par
+`.github/workflows/deploy-onze.yml` (à la racine du dépôt), à chaque push
+touchant `onze/`.
+
+Le site est un export statique : le workflow ne fait que construire des fichiers
+et les téléverser, aucun serveur ne tourne en production.
+
+Deux détails qui cassent un déploiement Pages si on les oublie :
+
+- **`.nojekyll`** à la racine de l'artefact. Sans lui, Pages passe la sortie
+  dans Jekyll, qui supprime silencieusement tout dossier commençant par un
+  underscore — donc `_next/`, c'est-à-dire tout le JS et le CSS.
+- **`basePath`**. Le site vit dans un sous-dossier, donc `next.config.ts` déclare
+  `basePath: "/onze"`. Pour servir à la racine d'un domaine, construire avec
+  `NEXT_PUBLIC_BASE_PATH=""`.
+
+Un déploiement Pages remplace **tout** le site. L'artefact ne contient que
+`onze/`, donc la racine du domaine reste vide (404). Pour publier autre chose à
+la racine, ajouter ses fichiers au dossier `site/` dans l'étape *Assemble* —
+deux workflows visant Pages s'écraseraient mutuellement.
+
 ## État d'avancement
 
 Fait : design system, système de motion, header + mega-menu + nav mobile,
