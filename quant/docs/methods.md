@@ -1024,3 +1024,60 @@ de +5,82 bp à +0,78 bp, et le trade médian rapporte −0,11 bp.
 | Erreur trouvée en chemin | Effet mesuré |
 |---|---|
 | Lire un t de 2,34 comme significatif après avoir balayé seize configurations | Le meilleur de seize tirages de bruit donne un t médian de 2,03. Le p honnête est 0,28, pas 0,02 |
+
+## Le plan d'épargne : la bonne reformulation de "vivre du trading"
+
+Chercher une stratégie qui transforme 500 € en un revenu de plusieurs milliers d'euros
+par mois est chercher un rendement de plusieurs milliers de pour cent par an — mesuré
+impossible, à plusieurs reprises, dans les sections précédentes. Investir de plus en
+plus au fil du temps, jusqu'à ce que le revenu suive, est une question différente : ce
+n'est plus une question de stratégie, c'est une question d'épargne et de temps.
+`qt/live/growth.py` et `scripts/plan_croissance.py` chiffrent cette question sans
+changer de stratégie — c'est toujours risk parity + 30 % de tendance, la seule mesurée
+positive après une déflation honnête.
+
+### Pourquoi une simulation, et pas une formule d'intérêts composés
+
+Un calcul à 6,6 % constant efface les −18,2 % de pire perte que ce livre a réellement
+traversés. Chaque trajectoire simulée est rééchantillonnée **par blocs de trois
+semaines** depuis l'historique réel du livre plutôt que jour par jour : un
+rééchantillonnage journalier détruirait l'autocorrélation d'une tendance et sous-
+estimerait à la fois les creux et les séries gagnantes. Le résultat est une
+**distribution**, pas un chiffre — la même stratégie, au même rythme de versement, met
+33 ans dans un tirage favorable et 43 dans un tirage défavorable, et donner un seul
+chiffre serait aussi trompeur que le calcul lisse qu'il remplace.
+
+### Ce que ça donne, pour 6 000 €/mois
+
+| | |
+|---|---|
+| Capital requis au rendement mesuré (6,63 %) | **1 086 499 €** |
+| Au rendement du S&P 500 (10 %) | 720 000 € |
+| Au rendement de Buffett (19,8 %, 1965-2023) | 363 636 € |
+| Au record absolu (Medallion, 66 %, fonds fermé) | 109 091 € |
+
+500 € seuls, réinvestis sans un euro ajouté, au rendement mesuré : **120 ans**. Ce n'est
+pas un défaut de la stratégie, c'est l'arithmétique de partir petit — et c'est
+exactement pourquoi verser est obligatoire, pas optionnel.
+
+Avec des versements mensuels en plus de la stratégie, simulé sur 3 000 trajectoires,
+plafonné à 45 ans :
+
+| Versement/mois | Atteint dans le délai | Médiane | p10 – p90 | Pire perte en chemin (médiane) |
+|---|---|---|---|---|
+| 100 € | 0 % | > 45 ans | — | −19 % |
+| 250 € | 24 % | 42,9 ans | 39,2 – 44,6 | −19 % |
+| **500 €** | **88 %** | **38,3 ans** | 33,3 – 43,1 | −18 % |
+| 1 000 € | 100 % | 29,6 ans | 25,4 – 34,5 | −18 % |
+| 2 000 € | 100 % | 20,9 ans | 18,1 – 24,6 | −17 % |
+| 3 000 € | 100 % | 16,6 ans | 14,5 – 19,4 | −16 % |
+
+La colonne « pire perte en chemin, p10 » (jusqu'à −26 % aux versements faibles) dit ce
+qu'il faut être prêt à tenir sans arrêter les versements ni vendre au pire moment —
+arrêter là referait repartir le compteur à zéro.
+
+Ce plan ne dépend d'aucune stratégie non mesurée dans ce dépôt. Il dépend de deux
+choses vérifiables : que la stratégie continue de se comporter comme sur 2010-2026 —
+ce que l'essai papier en cours vérifie en ce moment sur des données réelles — et que
+les versements soient tenus. La seconde est entièrement sous le contrôle de
+l'utilisateur ; la première ne l'est pas, et personne ne peut la garantir.
