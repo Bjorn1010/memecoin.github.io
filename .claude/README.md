@@ -46,43 +46,32 @@ npx ui-ux-pro-max-cli@latest init --ai claude
 Run it from the repo root — it writes to `.claude/skills/ui-ux-pro-max/`, the same path,
 so the update lands as a reviewable diff.
 
-## 2. Magic MCP (21st.dev)
+## 2. 21st.dev MCP (Magic)
 
-Configured in `.mcp.json` at the repo root. It generates UI components from natural
-language and pulls from the 21st.dev component library.
+Generates UI components from natural language and pulls from the 21st.dev component
+library. There is deliberately **no `.mcp.json` in this repo** — the server is
+registered per-developer so the API key never goes near version control.
 
-The config reads the key from the environment, so **no secret is committed**:
+Register it once on your own machine, from the repo root:
 
-```json
-{
-  "mcpServers": {
-    "magic": {
-      "type": "http",
-      "url": "https://21st.dev/api/mcp",
-      "headers": { "x-api-key": "${TWENTY_FIRST_API_KEY}" }
-    }
-  }
-}
+```bash
+claude mcp add --transport http 21st https://21st.dev/api/mcp \
+  --header "x-api-key: YOUR_21ST_API_KEY"
 ```
 
-### To activate it
+That writes to `~/.claude.json`, outside the repo. Get a key at <https://21st.dev/mcp>;
+keys issued for the old `@21st-dev/magic` npm server were reset upstream, so an old one
+will not work.
 
-1. Get an API key at <https://21st.dev/mcp>. Keys issued for the old `@21st-dev/magic`
-   server were reset — generate a fresh one.
-2. Export it in the shell you launch Claude Code from:
+Verify with `claude mcp list` or `/mcp` — `21st` should report `Connected`.
 
-   ```bash
-   export TWENTY_FIRST_API_KEY="your-key-here"
-   ```
+### Do not commit the key
 
-   Put it in your shell profile (`~/.zshrc`, `~/.bashrc`) to make it stick. Do not put
-   it in a file inside this repo.
-3. Restart Claude Code. Approve the project MCP server when prompted (project-scoped
-   servers from `.mcp.json` need a one-time approval per machine).
-4. Verify with `/mcp` — `magic` should show as connected.
+Never paste the key into `.mcp.json`, `.env`, or any other file inside this repo. If a
+key is ever exposed — pasted into a chat, a screenshot, a log, a commit — revoke it at
+<https://21st.dev/mcp> and issue a new one. Rotating is free; a leaked key is not.
 
-Until the key is set the server will fail to connect. That is expected and harmless;
-everything else in the repo works without it.
-
-Note: unlike the skill, this one is per-developer. `.mcp.json` is committed so the
-server definition is shared, but each person supplies their own key.
+An alternative is a committed `.mcp.json` that reads `${TWENTY_FIRST_API_KEY}` from the
+environment, which shares the server definition across a team without sharing the
+secret. That is worth adding if more people start working on this repo; for a single
+developer the `claude mcp add` route above is simpler and has one less moving part.
