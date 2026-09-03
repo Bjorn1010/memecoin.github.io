@@ -61,10 +61,21 @@ key comes from the environment so it never goes near version control.
 # once per machine
 claude plugin marketplace add 21st-dev/claude-code-plugin
 claude plugin install 21st@21st
-
-# in your shell profile (~/.zshrc, ~/.bashrc)
-export API_KEY_21ST="your-key-here"
 ```
+
+Then supply the key. Put it in `~/.claude/settings.json` (user scope, outside any repo,
+never committed):
+
+```json
+{
+  "env": { "API_KEY_21ST": "your-key-here" }
+}
+```
+
+Prefer this over `export API_KEY_21ST=…` in a shell profile. `~/.bashrc` returns early
+for non-interactive shells, so the variable is missing exactly when a tool launches
+Claude Code for you and the server reports `Needs authentication` even though the
+profile "has" it. The `env` block is read regardless of how the process was started.
 
 The variable name matters. The plugin's `.mcp.json` reads `${API_KEY_21ST}`
 specifically — not `TWENTY_FIRST_API_KEY`, which the older standalone setup used. With
