@@ -1,6 +1,7 @@
 "use client";
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { SlidersHorizontal, X } from "lucide-react";
 import type { Category, Product } from "@/lib/types";
@@ -17,7 +18,7 @@ import {
 import { FilterPanel, type FacetGroup } from "@/components/catalogue/FilterPanel";
 import { ProductGrid, ProductGridSkeleton } from "@/components/products/ProductGrid";
 import { Button } from "@/components/ui/Button";
-import { clubs, countries, leagues } from "@/lib/data/teams";
+import { clubs, countries, leagues, teamBySlug } from "@/lib/data/teams";
 import { priceBounds, seasons } from "@/lib/data/products";
 import { scrim, slideUpSheet, transition } from "@/lib/motion";
 import { cn } from "@/lib/utils";
@@ -54,7 +55,31 @@ export function CatalogueView({
   /** Facets the page fixes itself (a collection page locks its category). */
   lockedFacets?: (keyof Filters)[];
 }) {
-  const [filters, setFilters] = useState<Filters>({ ...emptyFilters, ...initialFilters });
+  /* Links from the mega-menu carry ?club=arsenal / ?pays=bresil / ?taille=L.
+     Read here rather than on the server so the route stays exportable. */
+  const params = useSearchParams();
+  const seeded = useMemo<Partial<Filters>>(() => {
+    const one = (k: string) => params.get(k);
+    const club = one("club");
+    const pays = one("pays");
+    const taille = one("taille");
+    const saison = one("saison");
+    return {
+      ...(club ? { club: [club] } : {}),
+      ...(pays ? { pays: [pays] } : {}),
+      ...(taille ? { taille: [taille] } : {}),
+      ...(saison ? { saison: [saison] } : {}),
+      ...initialFilters,
+    };
+  }, [params, initialFilters]);
+
+  const [filters, setFilters] = useState<Filters>({ ...emptyFilters, ...seeded });
+
+  /* Re-seed when the query changes: navigating from one club to another in the
+     mega-menu keeps this component mounted, so state would otherwise be stale. */
+  useEffect(() => {
+    setFilters({ ...emptyFilters, ...seeded });
+  }, [seeded]);
   const [sort, setSort] = useState<SortKey>("pertinence");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [visible, setVisible] = useState(PAGE);
@@ -150,15 +175,23 @@ export function CatalogueView({
   const active = countActive(filters);
   const shown = results.slice(0, visible);
 
+  /* When the query narrows to a single team, the page heading should say so —
+     "Arsenal", not "Tous les maillots". The server used to derive this; it now
+     happens here so the route can stay static. */
+  const focusSlug = params.get("club") ?? params.get("pays");
+  const focusTeam = focusSlug ? teamBySlug(focusSlug) : undefined;
+  const heading = focusTeam?.name ?? title;
+  const kicker = focusTeam?.league ?? eyebrow;
+
   return (
     <div className="mx-auto max-w-[1600px] px-5 pt-32 lg:px-10">
       <header className="mb-10">
         <p className="label-mono mb-4 flex items-center gap-3 text-pitch">
           <span className="inline-block h-px w-8 bg-pitch" />
-          {eyebrow}
+          {kicker}
         </p>
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <h1 className="font-display text-display text-ink">{title}</h1>
+          <h1 className="font-display text-display text-ink">{heading}</h1>
           <p className="scoreboard text-2xl text-steel-400">
             {results.length}
             <span className="ml-2 font-sans text-xs font-normal uppercase tracking-[0.16em] text-steel-600">
@@ -177,7 +210,7 @@ export function CatalogueView({
               {active > 0 && (
                 <button
                   type="button"
-                  onClick={() => setFilters({ ...emptyFilters, ...initialFilters })}
+                  onClick={() => setFilters({ ...emptyFilters, ...seeded })}
                   className="label-mono text-steel-500 transition-colors hover:text-sale"
                 >
                   Effacer ({active})
@@ -243,7 +276,7 @@ export function CatalogueView({
                 variant="outline"
                 size="sm"
                 className="relative mt-6"
-                onClick={() => setFilters({ ...emptyFilters, ...initialFilters })}
+                onClick={() => setFilters({ ...emptyFilters, ...seeded })}
               >
                 Réinitialiser les filtres
               </Button>
@@ -319,7 +352,7 @@ export function CatalogueView({
                 <Button
                   variant="outline"
                   className={cn("flex-1", active === 0 && "opacity-50")}
-                  onClick={() => setFilters({ ...emptyFilters, ...initialFilters })}
+                  onClick={() => setFilters({ ...emptyFilters, ...seeded })}
                 >
                   Effacer
                 </Button>

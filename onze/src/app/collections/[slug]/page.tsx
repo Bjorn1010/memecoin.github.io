@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { CatalogueView } from "@/components/catalogue/CatalogueView";
 import { collections, collectionBySlug } from "@/lib/data/collections";
 import { products } from "@/lib/data/products";
@@ -38,13 +39,17 @@ export default async function CollectionPage(props: PageProps<"/collections/[slu
   const initialFilters: Partial<Filters> =
     collection.category === "nouveautes" ? {} : { category: [collection.category] };
 
+  /* CatalogueView reads query parameters client-side, which requires a Suspense
+     boundary for the static export to prerender this page. */
   return (
-    <CatalogueView
-      products={scoped}
-      eyebrow="Collection"
-      title={collection.title}
-      initialFilters={initialFilters}
-      lockedFacets={isNew ? [] : ["category"]}
-    />
+    <Suspense fallback={<div className="min-h-[60svh]" />}>
+      <CatalogueView
+        products={scoped}
+        eyebrow="Collection"
+        title={collection.title}
+        initialFilters={initialFilters}
+        lockedFacets={isNew ? [] : ["category"]}
+      />
+    </Suspense>
   );
 }

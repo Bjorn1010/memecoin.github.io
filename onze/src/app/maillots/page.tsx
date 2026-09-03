@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { CatalogueView } from "@/components/catalogue/CatalogueView";
 import { products } from "@/lib/data/products";
-import { teamBySlug } from "@/lib/data/teams";
-import type { Filters } from "@/lib/catalogue";
 
 export const metadata: Metadata = {
   title: "Tous les maillots",
@@ -11,34 +10,13 @@ export const metadata: Metadata = {
   alternates: { canonical: "/maillots" },
 };
 
-/* searchParams seeds the filters so links from the mega-menu ("?club=arsenal")
-   land pre-narrowed. In Next 16 it is a Promise and must be awaited. */
-export default async function MaillotsPage(props: PageProps<"/maillots">) {
-  const sp = await props.searchParams;
-
-  const one = (v: string | string[] | undefined) =>
-    Array.isArray(v) ? v[0] : v;
-
-  const club = one(sp.club);
-  const pays = one(sp.pays);
-  const taille = one(sp.taille);
-  const saison = one(sp.saison);
-
-  const initialFilters: Partial<Filters> = {
-    club: club ? [club] : [],
-    pays: pays ? [pays] : [],
-    taille: taille ? [taille] : [],
-    saison: saison ? [saison] : [],
-  };
-
-  const team = club ? teamBySlug(club) : pays ? teamBySlug(pays) : undefined;
-
+/* Query parameters are read client-side rather than on the server, which keeps
+ * this route statically exportable — the whole site can then ship as flat HTML
+ * to any static host. useSearchParams needs a Suspense boundary to do that. */
+export default function MaillotsPage() {
   return (
-    <CatalogueView
-      products={products}
-      eyebrow={team ? team.league : "Catalogue complet"}
-      title={team ? team.name : "Tous les maillots"}
-      initialFilters={initialFilters}
-    />
+    <Suspense fallback={<div className="min-h-[60svh]" />}>
+      <CatalogueView products={products} eyebrow="Catalogue complet" title="Tous les maillots" />
+    </Suspense>
   );
 }

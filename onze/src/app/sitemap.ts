@@ -3,6 +3,10 @@ import { products } from "@/lib/data/products";
 import { collections } from "@/lib/data/collections";
 import { allTeams } from "@/lib/data/teams";
 
+/* Static export needs this declared explicitly: the route has no dynamic
+   inputs, but Next will not assume that. */
+export const dynamic = "force-static";
+
 const BASE = "https://onze.example";
 
 export default function sitemap(): MetadataRoute.Sitemap {
