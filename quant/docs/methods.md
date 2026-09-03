@@ -881,3 +881,19 @@ faudrait environ 25 000 €.
 | Supposer qu'un livre de quinze poids est un livre de quinze positions | Sur 500 €, trois positions sur quinze et 28 % du capital investi. L'essai aurait mesuré correctement une stratégie que le compte ne peut pas tenir |
 | Ignorer le taux de change sur des ETF cotés en dollars | Surestime le nombre d'actions achetables, toujours dans le sens flatteur. Le taux est maintenant un paramètre explicite |
 | Annualiser un Sharpe sur deux semaines de papier | Un nombre sans information, et toujours celui qu'on cite. `performance` le retient jusqu'à 60 jours de rendements |
+
+### Comment l'essai tourne tout seul
+
+`scripts/daily_paper.sh` fait une journée complète sur une machine neuve : il crée
+l'environnement s'il manque, rafraîchit les cours, exécute le cycle, puis commite et
+pousse le journal. Une routine planifiée le déclenche à 23 h UTC du lundi au vendredi —
+après la clôture américaine dans les deux fuseaux, heure d'été comme heure d'hiver.
+
+Le lac de données est ignoré par git et disparaît avec le conteneur, mais ce n'est pas un
+problème : `yahoo.daily()` demande la fenêtre maximale à chaque appel, donc l'historique
+se reconstruit seul. La seule chose à conserver entre deux exécutions est le journal, et
+c'est précisément pour ça qu'il est versionné.
+
+Le script est idempotent — relancer le même jour remplace la ligne du jour — et il
+commite même les cycles en échec, parce que ce sont eux qui expliquent un trou dans la
+courbe.
