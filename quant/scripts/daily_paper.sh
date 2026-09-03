@@ -30,6 +30,12 @@ echo "== cycle du $(date -u +%Y-%m-%d)"
 set +e
 .venv/bin/python -u scripts/paper_day.py
 STATUS=$?
+
+# Le day trading tourne à côté du livre quotidien, sur le même relevé versionné.
+# Il est mesuré perdant ; il tourne quand même, parce qu'un relevé qui s'accumule
+# tranche mieux qu'une affirmation, et qu'il ne coûte rien puisque rien n'est réel.
+echo "== day trading du $(date -u +%Y-%m-%d)"
+.venv/bin/python -u scripts/intraday_day.py
 set -e
 
 # ------------------------------------------------------------------ le relevé

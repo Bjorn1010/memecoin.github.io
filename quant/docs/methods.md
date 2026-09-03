@@ -897,3 +897,95 @@ c'est précisément pour ça qu'il est versionné.
 Le script est idempotent — relancer le même jour remplace la ligne du jour — et il
 commite même les cycles en échec, parce que ce sont eux qui expliquent un trou dans la
 courbe.
+
+## Le day trading, testé pour de bon
+
+Un trou dans le travail précédent, et il était important. `research_prediction.py`
+demandait « un modèle peut-il prédire la direction ? » — non, 49,96 %. Mais **aucun day
+trader ne fait ça**. Le day trading classique ne prédit pas la direction : il parie que
+ce qui vient de trop bouger revient. Hypothèse structurellement différente, jamais testée
+ici jusqu'à maintenant.
+
+### Cinq stratégies, quinze actifs, un seul jeu de paramètres
+
+Barres de 5 minutes, aucune position à travers la clôture, entrée retardée d'une barre.
+
+| Stratégie | Brut | Net (3 bp d'aller-retour) | Actifs positifs |
+|---|---|---|---|
+| **fade d'extrême (z)** | **+1,927 bp** | −1,073 bp | 4 / 15 |
+| fade du gap | +0,995 bp | −2,005 bp | 4 / 14 |
+| retour au VWAP | +0,134 bp | −2,866 bp | 0 / 15 |
+| cassure d'ouverture | −0,107 bp | −3,107 bp | 0 / 15 |
+| retournement de série | −0,322 bp | −3,322 bp | 0 / 15 |
+
+Le résultat qui compte n'est pas « tout est négatif ». C'est que **l'avantage brut
+existe** : le prix revient bien après un écart, +8,6 bp sur EEM, +7,5 sur SLV, +7,1 sur
+QQQ. Ce qui n'existe pas, c'est ce qu'il en reste après la fourchette.
+
+### Le fade d'extrême, poussé jusqu'au bout
+
+Seul candidat sérieux, donc traité comme tel : coûts par actif (0,5 bp d'aller-retour sur
+SPY, 8 bp sur DBC), trois ans d'horaire, paramètres choisis sur la première moitié et
+mesurés sur la seconde.
+
+| | Hors échantillon |
+|---|---|
+| Gain net moyen | **−4,12 bp** |
+| Actifs positifs | 3 / 7 |
+| t du livre équipondéré | **−0,87** |
+
+Et la sensibilité aux coûts, parce que le verdict en dépend entièrement :
+
+| Multiplicateur de fourchette | Gain net |
+|---|---|
+| x0,5 | −3,29 bp |
+| x1,0 | −4,12 bp |
+| x2,0 | −5,78 bp |
+
+Même en divisant mes estimations de fourchette par deux, c'est négatif. Le verdict ne
+repose donc pas sur mon estimation du coût.
+
+### Le moteur en papier, et le piège qu'il a failli tendre
+
+`qt/live/intraday_paper.py` fait tourner ce fade sur SPY et QQQ — les deux fourchettes
+les plus serrées — avec stop, plafond de trades par séance, et sortie avant la clôture.
+Sur 60 séances et 656 trades : **+2,291 bp net, t = 2,06, +15,03 €**.
+
+C'est positif. C'est aussi le moment exact où il faut se méfier le plus, parce que c'est
+le résultat que tout le monde espère.
+
+| | Gain net moyen |
+|---|---|
+| Les 656 trades | +2,291 bp |
+| Sans les **5** meilleurs | +1,180 bp |
+| Sans les **10** meilleurs | +0,397 bp |
+| **Trade médian** | **−0,861 bp** |
+
+Dix trades sur six cent cinquante-six portent 83 % du résultat, et **le trade typique
+perd**. Aucune des deux moitiés de l'échantillon n'est significative prise seule (t=1,77
+et t=1,06). Une moyenne positive portée par une poignée de coups n'est pas un avantage,
+c'est une loterie gagnée — et `summarise` publie désormais la médiane et l'ablation à
+côté de la moyenne, plutôt que de les laisser à qui pense à les calculer.
+
+| Erreur trouvée en chemin | Effet mesuré |
+|---|---|
+| N'avoir testé que la prédiction de direction | Concluait « pas de signal » alors que le retour à la moyenne a un avantage brut réel (+1,93 bp). La conclusion finale ne change pas ; le raisonnement qui y menait était faux |
+| Un coût moyen de 3 bp pour tout le livre | Condamne SPY (0,5 bp réel) à tort et absout DBC (8 bp) à tort. C'est le paramètre qui décide, il ne peut pas être une constante |
+| Publier la moyenne sans la médiane | +2,29 bp de moyenne contre −0,86 bp de médiane. La moyenne seule décrit comme gagnante une stratégie qui perd presque à chaque fois |
+
+### Ce que ça donne face à l'objectif
+
+Le relevé tourne tous les jours et s'écrit dans `journal/RAPPORT_DAY_TRADING.md`. Au
+rythme mesuré : **+5,26 € par mois** sur 500 € de capital. L'objectif de 10 000 €/mois
+demande un facteur **1 901**.
+
+Et l'arithmétique du capital, qui ne dépend d'aucune stratégie :
+
+| Rendement annuel | Référence | Capital requis pour 10 000 €/mois |
+|---|---|---|
+| 6,6 % | ce bot, mesuré | 1 818 182 € |
+| 10 % | S&P 500 long terme | 1 200 000 € |
+| 19,8 % | Buffett, 1965-2023 | 606 061 € |
+| 66 % | Medallion, record absolu, fonds fermé | **181 818 €** |
+
+Avec 500 € il faudrait **24 000 % par an**.
