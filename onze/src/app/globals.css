@@ -258,6 +258,81 @@ summary {
 }
 
 /* =========================================================================
+   FOOTBALL MOTIFS
+   The cues that make this read as football rather than as generic premium
+   retail. All of them are cheap CSS — no images, no extra requests.
+   ========================================================================= */
+
+/* Mown pitch stripes. Very low contrast on purpose: it should register as
+   texture underfoot, not as a green pattern. */
+.pitch-stripes {
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgb(255 255 255 / 0.015) 0 64px,
+    transparent 64px 128px
+  );
+}
+
+/* Penalty-box geometry, drawn with borders. Used as a section backdrop. */
+.pitch-lines {
+  position: relative;
+}
+
+.pitch-lines::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: min(520px, 62%);
+  height: 190px;
+  translate: -50% 0;
+  border: 1px solid rgb(255 255 255 / 0.06);
+  border-top: 0;
+  pointer-events: none;
+}
+
+.pitch-lines::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 190px;
+  width: 150px;
+  height: 150px;
+  translate: -50% -50%;
+  border: 1px solid rgb(255 255 255 / 0.06);
+  border-radius: 50%;
+  clip-path: inset(50% 0 0 0);
+  pointer-events: none;
+}
+
+/* Floodlight wash from above — the single strongest "stadium at night" cue. */
+.floodlight {
+  background:
+    radial-gradient(58% 44% at 50% -8%, rgb(255 255 255 / 0.1), transparent 68%),
+    radial-gradient(38% 30% at 12% 0%, #ccff0014, transparent 70%),
+    radial-gradient(38% 30% at 88% 0%, #4a7cff14, transparent 70%);
+}
+
+/* Scoreboard readout: tight tabular figures for prices, counts and countdowns
+   that need to feel like a stadium display rather than body copy. */
+.scoreboard {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-feature-settings: "ss01";
+}
+
+/* Kit-number plate, used for the size selector so choosing a size feels like
+   picking a squad number. */
+.number-plate {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* =========================================================================
    UTILITIES
    ========================================================================= */
 

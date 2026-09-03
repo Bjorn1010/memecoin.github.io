@@ -20,7 +20,13 @@ const BODY =
 
 const VB = { x: -20, y: 0, w: 240, h: 260 };
 
-export function createJerseyTexture(colorway: Colorway, monogram: string, number: string) {
+export function createJerseyTexture(
+  colorway: Colorway,
+  monogram: string,
+  number: string,
+  view: "front" | "back" = "front",
+  playerName?: string,
+) {
   const canvas = document.createElement("canvas");
   canvas.width = SIZE;
   canvas.height = SIZE;
@@ -112,19 +118,51 @@ export function createJerseyTexture(colorway: Colorway, monogram: string, number
   ctx.fill();
   ctx.globalAlpha = 1;
 
-  /* Squad number, centred on the torso. */
-  ctx.fillStyle = accent;
-  ctx.globalAlpha = 0.3;
-  ctx.font = `800 ${SIZE * 0.34}px Archivo, Arial Narrow, sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(number, SIZE * 0.5, SIZE * 0.62);
-  ctx.globalAlpha = 1;
 
-  /* Crest stand-in, upper chest. */
-  ctx.fillStyle = accent;
-  ctx.font = `800 ${SIZE * 0.05}px Archivo, Arial Narrow, sans-serif`;
-  ctx.fillText(monogram, SIZE * 0.66, SIZE * 0.28);
+  if (view === "back") {
+    /* The flocage. Name arched over a full-strength number — on the back the
+       number is the graphic, not a watermark. */
+    if (playerName) {
+      const label = playerName.toUpperCase().slice(0, 12);
+      ctx.save();
+      ctx.fillStyle = accent;
+      ctx.font = `800 ${SIZE * 0.075}px Archivo, Arial Narrow, sans-serif`;
+      /* Lay the letters along an arc by rotating each one about the shirt's
+         centre — canvas has no textPath. */
+      const radius = SIZE * 0.42;
+      const spread = Math.min(0.055 * label.length, 0.62);
+      ctx.translate(SIZE * 0.5, SIZE * 0.34 + radius);
+      for (let i = 0; i < label.length; i++) {
+        const t = label.length === 1 ? 0 : i / (label.length - 1) - 0.5;
+        const angle = t * spread;
+        ctx.save();
+        ctx.rotate(angle);
+        ctx.fillText(label[i], 0, -radius);
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+
+    ctx.fillStyle = accent;
+    ctx.strokeStyle = primary;
+    ctx.lineWidth = SIZE * 0.006;
+    ctx.font = `800 ${SIZE * 0.42}px Archivo, Arial Narrow, sans-serif`;
+    ctx.strokeText(number.slice(0, 2), SIZE * 0.5, SIZE * 0.63);
+    ctx.fillText(number.slice(0, 2), SIZE * 0.5, SIZE * 0.63);
+  } else {
+    /* Front: number as a faint watermark, crest stand-in on the chest. */
+    ctx.fillStyle = accent;
+    ctx.globalAlpha = 0.3;
+    ctx.font = `800 ${SIZE * 0.34}px Archivo, Arial Narrow, sans-serif`;
+    ctx.fillText(number, SIZE * 0.5, SIZE * 0.62);
+    ctx.globalAlpha = 1;
+
+    ctx.fillStyle = accent;
+    ctx.font = `800 ${SIZE * 0.05}px Archivo, Arial Narrow, sans-serif`;
+    ctx.fillText(monogram, SIZE * 0.66, SIZE * 0.28);
+  }
 
   /* Shading, still inside the clip: a diagonal falloff plus a soft key
      highlight, so the flat fill gains volume before the lights touch it. */

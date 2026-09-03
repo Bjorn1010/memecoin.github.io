@@ -24,8 +24,7 @@ const GROUPS = [
   {
     title: "Maison",
     links: [
-      { label: "À propos", href: "/a-propos" },
-      { label: "Mentions légales", href: "/legal" },
+      { label: "Mentions légales", href: "/legal/mentions" },
       { label: "Confidentialité", href: "/legal/confidentialite" },
       { label: "CGV", href: "/legal/cgv" },
     ],
@@ -46,7 +45,7 @@ export function Footer() {
               Nouveautés chaque semaine.
             </p>
 
-            <form className="mt-8" action="/newsletter" method="post">
+            <form className="mt-8">
               <label htmlFor="newsletter" className="label-mono text-steel-500">
                 Nouveautés en avant-première
               </label>

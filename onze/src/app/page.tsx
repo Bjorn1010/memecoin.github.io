@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { Hero } from "@/components/sections/Hero";
+import { FlocageTeaser } from "@/components/sections/FlocageTeaser";
 import { SectionHeader } from "@/components/sections/SectionHeader";
 import { TeamCard } from "@/components/sections/TeamRail";
 import { ProductGrid } from "@/components/products/ProductGrid";
@@ -67,6 +68,8 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      <FlocageTeaser />
 
       {/* PROMOTIONS */}
       <section className="relative overflow-hidden border-y border-white/8 bg-base py-24 lg:py-32">

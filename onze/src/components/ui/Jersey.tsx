@@ -15,6 +15,10 @@ interface JerseyProps {
   className?: string;
   /** Adds the rim light and contact shadow. Off for dense grids. */
   detailed?: boolean;
+  /** Back view drives the flocage preview: arched name over a large number. */
+  view?: "front" | "back";
+  /** Player name printed above the number, back view only. */
+  playerName?: string;
 }
 
 /* The torso outline, reused as both the fill shape and the clip path so
@@ -28,11 +32,14 @@ export function Jersey({
   number,
   className,
   detailed = true,
+  view = "front",
+  playerName,
 }: JerseyProps) {
   const { primary, secondary, accent, pattern } = colorway;
   /* Ids must be unique per instance or multiple jerseys on one page share
      gradients and clip paths. */
-  const uid = `${primary}${secondary}${pattern}`.replace(/[^a-z0-9]/gi, "");
+  const uid = `${primary}${secondary}${pattern}${view}`.replace(/[^a-z0-9]/gi, "");
+  const isBack = view === "back";
 
   return (
     <svg
@@ -114,16 +121,34 @@ export function Jersey({
         <path d="M68 96 L68 250 M132 96 L132 250" stroke="#000" strokeOpacity="0.12" strokeWidth="1" />
       </g>
 
-      {/* Collar sits outside the clip so it can overhang the neckline. */}
-      <path
-        d="M100 26 L57 12 C66 30 82 42 100 42 C118 42 134 30 143 12 Z"
-        fill={accent}
-        opacity="0.92"
-      />
-      <path d="M100 42 C82 42 66 30 57 12" fill="none" stroke="#000" strokeOpacity="0.2" strokeWidth="1.5" />
+      {/* Collar sits outside the clip so it can overhang the neckline. The back
+          of a shirt has a shallow band, not the deep V of the front — drawing
+          the front shape on both made the back read as a hood. */}
+      {isBack ? (
+        <path
+          d="M100 24 L57 12 C68 22 82 28 100 28 C118 28 132 22 143 12 Z"
+          fill={accent}
+          opacity="0.92"
+        />
+      ) : (
+        <>
+          <path
+            d="M100 26 L57 12 C66 30 82 42 100 42 C118 42 134 30 143 12 Z"
+            fill={accent}
+            opacity="0.92"
+          />
+          <path
+            d="M100 42 C82 42 66 30 57 12"
+            fill="none"
+            stroke="#000"
+            strokeOpacity="0.2"
+            strokeWidth="1.5"
+          />
+        </>
+      )}
 
-      {/* Crest stand-in and squad number. */}
-      {monogram && (
+      {/* FRONT — crest stand-in, small chest number. */}
+      {!isBack && monogram && (
         <text
           x="138"
           y="86"
@@ -138,7 +163,7 @@ export function Jersey({
           {monogram}
         </text>
       )}
-      {number && (
+      {!isBack && number && (
         <text
           x="100"
           y="192"
@@ -151,6 +176,47 @@ export function Jersey({
         >
           {number}
         </text>
+      )}
+
+      {/* BACK — the flocage. Name arches over the number the way it is actually
+          heat-pressed onto a shirt; the number is full-strength here because on
+          the back it *is* the graphic. */}
+      {isBack && (
+        <>
+          <defs>
+            <path id={`arc-${uid}`} d="M44 118 Q100 96 156 118" fill="none" />
+          </defs>
+          {playerName && (
+            <text
+              className="font-display"
+              fontSize="19"
+              fontWeight="800"
+              letterSpacing="1.5"
+              fill={accent}
+              textAnchor="middle"
+            >
+              <textPath href={`#arc-${uid}`} startOffset="50%">
+                {playerName.toUpperCase().slice(0, 12)}
+              </textPath>
+            </text>
+          )}
+          {number && (
+            <text
+              x="100"
+              y={playerName ? 212 : 200}
+              textAnchor="middle"
+              className="font-display"
+              fontSize="98"
+              fontWeight="800"
+              fill={accent}
+              stroke={primary}
+              strokeWidth="1.5"
+              paintOrder="stroke"
+            >
+              {number.slice(0, 2)}
+            </text>
+          )}
+        </>
       )}
 
       {detailed && (

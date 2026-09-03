@@ -92,12 +92,17 @@ commerce — tout le reste consomme le type `Product`, pas ce fichier.
 ## État d'avancement
 
 Fait : design system, système de motion, header + mega-menu + nav mobile,
-recherche, homepage complète, cartes produits, aperçu rapide, panier (drawer +
-state), hero 3D.
+recherche, homepage, catalogue avec facettes et compteurs, fiche produit avec
+viewer 3D 360° et flocage live, collections, panier, checkout, pages aide et
+légales, sitemap, robots, JSON-LD produit. 158 pages prérendues.
 
-Reste à faire : pages catalogue (`/maillots`), fiche produit
-(`/produit/[slug]`), pages collections, checkout, viewer 3D 360° sur la fiche
-produit, audit Lighthouse.
+Limites connues :
 
-Les liens vers ces routes existent déjà dans la navigation — ils renvoient 404
-tant que les pages ne sont pas créées.
+- Les survêtements et vestes sont rendus par le composant `Jersey`, donc ils
+  ressemblent à des maillots. Il faut une silhouette dédiée par type de
+  vêtement.
+- La wishlist est locale à chaque carte et n'est pas persistée.
+- `/compte` est un formulaire sans backend, signalé comme tel sur la page.
+- Le panier vit en mémoire : un rechargement le vide. À brancher sur
+  `localStorage` ou une session serveur.
+- Pas encore d'audit Lighthouse chiffré.

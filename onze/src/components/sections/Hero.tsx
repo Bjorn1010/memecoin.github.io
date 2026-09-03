@@ -55,11 +55,13 @@ export function Hero() {
   return (
     <section
       ref={ref}
-      className="grain relative flex min-h-[100svh] items-center overflow-hidden pt-24"
+      className="grain pitch-stripes relative flex min-h-[100svh] items-center overflow-hidden pt-24"
       aria-label="Nouvelle collection"
     >
       {/* Ambient field. Pure CSS, so it paints on the first frame. */}
-      <div aria-hidden className="mesh-volt pointer-events-none absolute inset-0" />
+      {/* Floodlight from above the stand, then the volt/blue mesh under it. */}
+      <div aria-hidden className="floodlight pointer-events-none absolute inset-0" />
+      <div aria-hidden className="mesh-volt pointer-events-none absolute inset-0 opacity-70" />
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-void to-transparent"
