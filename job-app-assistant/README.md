@@ -75,6 +75,13 @@ Ouvre http://localhost:5173 (le frontend redirige les appels API vers le port 87
 la première requête après une pause peut prendre ~30 secondes à répondre, c'est
 normal.
 
+⚠️ Le plan gratuit de Render ne permet pas de disque persistant : la base de
+données (profil, entreprises, lettres générées) est donc **réinitialisée à chaque
+redéploiement** (par exemple si tu modifies le code) — mais pas lors d'une simple
+mise en veille/réveil. Pour un usage plus durable, passe au plan payant le moins
+cher de Render (~7 $/mois) et réajoute un bloc `disk` dans `render.yaml`, ou héberge
+sur un service avec stockage persistant inclus (un petit VPS, par exemple).
+
 Tu peux aussi déployer l'image Docker (`Dockerfile` à la racine) sur n'importe quel
 autre hébergeur (Railway, Fly.io, un VPS…).
 
