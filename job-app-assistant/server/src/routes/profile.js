@@ -72,3 +72,14 @@ profileRouter.post("/cv", upload.single("file"), async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+profileRouter.post("/cover-letter", upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: "Aucun fichier reçu" });
+    const text = await extractTextFromDocx(req.file.buffer);
+    const updated = updateProfile({ cover_letter_text: text });
+    res.json(serializeProfile(updated));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});

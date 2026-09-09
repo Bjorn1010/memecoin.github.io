@@ -57,6 +57,19 @@ export default function Setup() {
     }
   };
 
+  const handleCoverLetterUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError("");
+    try {
+      const updated = await api.uploadCoverLetter(file);
+      setProfile({ ...profile, ...updated, smtp_pass: "" });
+      setMessage("Lettre de motivation importée et texte extrait avec succès.");
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <section className="bg-white border border-slate-200 rounded-xl p-5">
@@ -81,9 +94,11 @@ export default function Setup() {
       <section className="bg-white border border-slate-200 rounded-xl p-5">
         <h2 className="font-semibold text-slate-800 mb-1">Lettre de motivation de référence</h2>
         <p className="text-sm text-slate-500 mb-3">
-          Colle ici ta lettre de motivation "de base" (texte). Elle sert de style et de contenu de
-          départ : l'IA l'adapte à 100% à chaque entreprise, et l'améliore si besoin.
+          Glisse un fichier Word (.docx) — comme pour le CV — ou colle directement le texte
+          ci-dessous. Elle sert de style et de contenu de départ : l'IA l'adapte à 100% à chaque
+          entreprise, et l'améliore si besoin.
         </p>
+        <input type="file" accept=".docx" onChange={handleCoverLetterUpload} className="mb-3" />
         <textarea
           className={inputClass}
           rows={10}
