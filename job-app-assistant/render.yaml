@@ -14,7 +14,7 @@ services:
         sync: false
       - key: SESSION_SECRET
         generateValue: true
-      - key: GEMINI_API_KEY
+      - key: MISTRAL_API_KEY
         sync: false
       - key: PORT
         value: 8787

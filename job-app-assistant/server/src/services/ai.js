@@ -1,25 +1,38 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-function getModel() {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error(
-      "GEMINI_API_KEY manquante. Crée une clé gratuite sur https://aistudio.google.com/apikey et ajoute-la dans server/.env"
-    );
-  }
-  const genAI = new GoogleGenerativeAI(apiKey);
-  return genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-}
+const MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions";
 
 async function askJson(prompt) {
-  const model = getModel();
-  const result = await model.generateContent(prompt);
-  const text = result.response.text();
-  const match = text.match(/\{[\s\S]*\}/);
-  if (!match) {
-    throw new Error("Réponse IA invalide (pas de JSON trouvé) : " + text.slice(0, 300));
+  const apiKey = process.env.MISTRAL_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "MISTRAL_API_KEY manquante. Crée une clé gratuite sur https://console.mistral.ai/api-keys et ajoute-la dans server/.env"
+    );
   }
-  return JSON.parse(match[0]);
+
+  const res = await fetch(MISTRAL_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "mistral-small-latest",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+      temperature: 0.7,
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(`Erreur API Mistral (${res.status}) : ${errText.slice(0, 300)}`);
+  }
+
+  const data = await res.json();
+  const text = data.choices?.[0]?.message?.content;
+  if (!text) {
+    throw new Error("Réponse IA vide ou invalide.");
+  }
+  return JSON.parse(text);
 }
 
 /**
