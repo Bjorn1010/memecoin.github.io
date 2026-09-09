@@ -1,6 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
-import { getProfile, updateProfile } from "../db.js";
+import { getEffectiveProfile, updateProfile } from "../db.js";
 import { extractTextFromDocx } from "../services/docx.js";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -21,11 +21,12 @@ function serializeProfile(p) {
     smtp_pass_set: !!p.smtp_pass,
     smtp_from_name: p.smtp_from_name,
     smtp_from_email: p.smtp_from_email,
+    smtp_env_configured: !!(process.env.SMTP_USER && process.env.SMTP_PASS),
   };
 }
 
 profileRouter.get("/", (req, res) => {
-  res.json(serializeProfile(getProfile()));
+  res.json(serializeProfile(getEffectiveProfile()));
 });
 
 profileRouter.put("/", (req, res) => {
@@ -54,20 +55,20 @@ profileRouter.put("/", (req, res) => {
   // Ne change le mot de passe SMTP que si un nouveau est fourni (évite d'écraser avec vide)
   if (smtp_pass) fields.smtp_pass = smtp_pass;
 
-  const updated = updateProfile(fields);
-  res.json(serializeProfile(updated));
+  updateProfile(fields);
+  res.json(serializeProfile(getEffectiveProfile()));
 });
 
 profileRouter.post("/cv", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "Aucun fichier reçu" });
     const text = await extractTextFromDocx(req.file.buffer);
-    const updated = updateProfile({
+    updateProfile({
       cv_docx: req.file.buffer,
       cv_filename: req.file.originalname,
       cv_text: text,
     });
-    res.json(serializeProfile(updated));
+    res.json(serializeProfile(getEffectiveProfile()));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -77,8 +78,8 @@ profileRouter.post("/cover-letter", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "Aucun fichier reçu" });
     const text = await extractTextFromDocx(req.file.buffer);
-    const updated = updateProfile({ cover_letter_text: text });
-    res.json(serializeProfile(updated));
+    updateProfile({ cover_letter_text: text });
+    res.json(serializeProfile(getEffectiveProfile()));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

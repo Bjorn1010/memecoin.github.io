@@ -109,10 +109,18 @@ export default function Setup() {
 
       <section className="bg-white border border-slate-200 rounded-xl p-5">
         <h2 className="font-semibold text-slate-800 mb-1">Envoi d'email (SMTP)</h2>
-        <p className="text-sm text-slate-500 mb-3">
-          Pour Gmail : hôte smtp.gmail.com, port 587, et un "mot de passe d'application" (pas ton
-          mot de passe normal) — à créer sur myaccount.google.com/apppasswords.
-        </p>
+        {profile.smtp_env_configured ? (
+          <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2 mb-3">
+            Déjà configuré via les variables d'environnement du serveur (SMTP_USER /
+            SMTP_PASS) — rien à faire ici. Les champs ci-dessous ne sont utilisés que si ces
+            variables ne sont pas définies.
+          </p>
+        ) : (
+          <p className="text-sm text-slate-500 mb-3">
+            Pour Gmail : hôte smtp.gmail.com, port 587, et un "mot de passe d'application" (pas ton
+            mot de passe normal) — à créer sur myaccount.google.com/apppasswords.
+          </p>
+        )}
         <div className="grid sm:grid-cols-2 gap-x-4">
           <Field label="Hôte SMTP">
             <input className={inputClass} value={profile.smtp_host || ""} onChange={set("smtp_host")} />

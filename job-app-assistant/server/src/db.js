@@ -56,6 +56,29 @@ export function getProfile() {
   return db.prepare("SELECT * FROM profile WHERE id = 1").get();
 }
 
+/**
+ * Profil avec les identifiants SMTP éventuellement surchargés par des variables
+ * d'environnement (SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS,
+ * SMTP_FROM_NAME, SMTP_FROM_EMAIL). Permet de configurer l'envoi d'email une
+ * seule fois côté hébergeur, sans jamais taper le mot de passe dans l'appli.
+ */
+export function getEffectiveProfile() {
+  const p = getProfile();
+  return {
+    ...p,
+    smtp_host: process.env.SMTP_HOST || p.smtp_host,
+    smtp_port: Number(process.env.SMTP_PORT) || p.smtp_port || 587,
+    smtp_secure:
+      process.env.SMTP_SECURE !== undefined
+        ? process.env.SMTP_SECURE === "true"
+        : !!p.smtp_secure,
+    smtp_user: process.env.SMTP_USER || p.smtp_user,
+    smtp_pass: process.env.SMTP_PASS || p.smtp_pass,
+    smtp_from_name: process.env.SMTP_FROM_NAME || p.smtp_from_name,
+    smtp_from_email: process.env.SMTP_FROM_EMAIL || p.smtp_from_email,
+  };
+}
+
 export function updateProfile(fields) {
   const allowed = [
     "full_name",
