@@ -37,9 +37,17 @@ application à déployer.
   Gemini).
 - **Envoi d'email (SMTP)** : pour Gmail, active la validation en 2 étapes puis crée
   un "mot de passe d'application" sur https://myaccount.google.com/apppasswords.
-  Utilise-le comme mot de passe SMTP dans la page **Profil** de l'application (hôte
-  `smtp.gmail.com`, port `587`). Tout autre fournisseur email (Outlook, OVH,
-  Infomaniak…) fonctionne aussi tant que tu as ses réglages SMTP.
+  Deux façons de le renseigner :
+  - **Variables d'environnement** `SMTP_USER` / `SMTP_PASS` (voir `.env.example` ou
+    `render.yaml`) : configuré une seule fois côté hébergeur, jamais tapé dans
+    l'appli, et — avantage supplémentaire sur le plan gratuit de Render — ça
+    survit à la réinitialisation de la base de données à chaque redéploiement.
+    **Recommandé.**
+  - Ou directement dans la page **Profil** de l'application (hôte `smtp.gmail.com`,
+    port `587`) — utilisé seulement si les variables d'environnement ci-dessus ne
+    sont pas définies.
+  Tout autre fournisseur email (Outlook, OVH, Infomaniak…) fonctionne aussi tant
+  que tu as ses réglages SMTP.
 - **Mot de passe de l'application** : comme le logiciel est hébergé en ligne et
   contient des informations personnelles (CV, identifiants email), une page de
   connexion protège tout par un mot de passe unique que tu choisis (`APP_PASSWORD`).
@@ -66,7 +74,9 @@ Ouvre http://localhost:5173 (le frontend redirige les appels API vers le port 87
    séparer ce projet). Render détecte `render.yaml` et propose de créer le service
    automatiquement.
 3. Renseigne les variables d'environnement demandées : `APP_PASSWORD`,
-   `GROQ_API_KEY` (le `SESSION_SECRET` est généré automatiquement).
+   `GROQ_API_KEY`, `SMTP_USER`, `SMTP_PASS` (mot de passe d'application Gmail) et
+   éventuellement `SMTP_FROM_NAME` (le `SESSION_SECRET` est généré
+   automatiquement).
 4. Render build l'image Docker et déploie. Une fois terminé, tu obtiens une URL du
    type `https://assistant-candidatures.onrender.com`, accessible depuis ton PC et
    ton téléphone.
