@@ -26,6 +26,11 @@ export const api = {
     fd.append("file", file);
     return request("/profile/cv", { method: "POST", body: fd });
   },
+  uploadCoverLetter: (file) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return request("/profile/cover-letter", { method: "POST", body: fd });
+  },
 
   listCompanies: () => request("/companies"),
   getCompany: (id) => request(`/companies/${id}`),
