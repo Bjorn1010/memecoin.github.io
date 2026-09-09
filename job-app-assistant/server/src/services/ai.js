@@ -1,21 +1,21 @@
-const MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions";
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 async function askJson(prompt) {
-  const apiKey = process.env.MISTRAL_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
     throw new Error(
-      "MISTRAL_API_KEY manquante. Crée une clé gratuite sur https://console.mistral.ai/api-keys et ajoute-la dans server/.env"
+      "GROQ_API_KEY manquante. Crée une clé gratuite sur https://console.groq.com/keys et ajoute-la dans server/.env"
     );
   }
 
-  const res = await fetch(MISTRAL_API_URL, {
+  const res = await fetch(GROQ_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "mistral-small-latest",
+      model: "llama-3.3-70b-versatile",
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },
       temperature: 0.7,
@@ -24,7 +24,7 @@ async function askJson(prompt) {
 
   if (!res.ok) {
     const errText = await res.text().catch(() => "");
-    throw new Error(`Erreur API Mistral (${res.status}) : ${errText.slice(0, 300)}`);
+    throw new Error(`Erreur API Groq (${res.status}) : ${errText.slice(0, 300)}`);
   }
 
   const data = await res.json();

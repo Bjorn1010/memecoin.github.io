@@ -5,7 +5,7 @@ Application web (PC + mobile, via le navigateur) qui automatise tes candidatures
 1. Tu renseignes une fois ton **CV** (.docx) et ta **lettre de motivation de référence**.
 2. Pour chaque entreprise, tu donnes son **nom**, un **lien** (offre d'emploi / site
    carrière) et/ou une **description**, et **où tu l'as trouvée**.
-3. L'IA (gratuite, via Mistral AI) :
+3. L'IA (gratuite, via Groq) :
    - récupère automatiquement le contenu de la page si tu as donné un lien,
    - réécrit ta lettre de motivation pour qu'elle corresponde à 100% à cette
      entreprise (et l'améliore si elle est faible),
@@ -22,7 +22,7 @@ chaque entreprise.
 ## Architecture
 
 - `server/` : API Node.js/Express + base de données SQLite (fichier local). Gère le
-  profil, les entreprises, la génération IA (Mistral AI) et l'envoi d'email (SMTP).
+  profil, les entreprises, la génération IA (Groq) et l'envoi d'email (SMTP).
 - `web/` : interface React + Tailwind, responsive (PC et mobile).
 
 En production, le serveur sert directement le frontend buildé : une seule
@@ -30,11 +30,11 @@ application à déployer.
 
 ## Configuration nécessaire
 
-- **Clé IA gratuite** : crée un compte sur https://console.mistral.ai (numéro de
-  téléphone à vérifier, aucune carte bancaire requise pour l'offre gratuite "La
-  Plateforme"), puis génère une clé sur https://console.mistral.ai/api-keys et
-  mets-la dans `MISTRAL_API_KEY`. Fonctionne depuis la Suisse (contrairement à l'API
-  gratuite de Google Gemini, non disponible en Suisse/UE).
+- **Clé IA gratuite** : crée un compte sur https://console.groq.com (aucune carte
+  bancaire requise), puis génère une clé sur https://console.groq.com/keys et
+  mets-la dans `GROQ_API_KEY`. Offre gratuite généreuse, sans restriction de pays
+  connue (fonctionne depuis la Suisse, contrairement à l'API gratuite de Google
+  Gemini).
 - **Envoi d'email (SMTP)** : pour Gmail, active la validation en 2 étapes puis crée
   un "mot de passe d'application" sur https://myaccount.google.com/apppasswords.
   Utilise-le comme mot de passe SMTP dans la page **Profil** de l'application (hôte
@@ -48,7 +48,7 @@ application à déployer.
 
 ```bash
 cd server && npm install && cp .env.example .env
-# édite .env : APP_PASSWORD, SESSION_SECRET, MISTRAL_API_KEY
+# édite .env : APP_PASSWORD, SESSION_SECRET, GROQ_API_KEY
 npm run dev        # démarre l'API sur http://localhost:8787
 
 # dans un autre terminal
@@ -66,7 +66,7 @@ Ouvre http://localhost:5173 (le frontend redirige les appels API vers le port 87
    séparer ce projet). Render détecte `render.yaml` et propose de créer le service
    automatiquement.
 3. Renseigne les variables d'environnement demandées : `APP_PASSWORD`,
-   `MISTRAL_API_KEY` (le `SESSION_SECRET` est généré automatiquement).
+   `GROQ_API_KEY` (le `SESSION_SECRET` est généré automatiquement).
 4. Render build l'image Docker et déploie. Une fois terminé, tu obtiens une URL du
    type `https://assistant-candidatures.onrender.com`, accessible depuis ton PC et
    ton téléphone.
