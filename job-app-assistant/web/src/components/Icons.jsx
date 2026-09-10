@@ -169,3 +169,55 @@ export function IconLink({ className }) {
     </svg>
   );
 }
+
+export function IconMenu({ className }) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  );
+}
+
+export function IconX({ className }) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M6 6l12 12M18 6 6 18" />
+    </svg>
+  );
+}
+
+export function IconChevronRight({ className }) {
+  return (
+    <svg {...base} className={className}>
+      <path d="m9 6 6 6-6 6" />
+    </svg>
+  );
+}
+
+export function IconClock({ className }) {
+  return (
+    <svg {...base} className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3.5 2" />
+    </svg>
+  );
+}
+
+export function IconInbox({ className }) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M4 13h4.2l1.4 2.5h4.8L15.8 13H20" />
+      <path d="M5.5 6h13l1.5 7v5a1.5 1.5 0 0 1-1.5 1.5H5.5A1.5 1.5 0 0 1 4 18v-5l1.5-7Z" />
+    </svg>
+  );
+}
+
+export function IconAlertCircle({ className }) {
+  return (
+    <svg {...base} className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 8v5" />
+      <path d="M12 16.2v.1" />
+    </svg>
+  );
+}

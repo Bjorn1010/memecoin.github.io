@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api.js";
+import { useToast } from "../components/Toast.jsx";
 import {
   IconBuilding,
   IconPlus,
@@ -9,6 +10,8 @@ import {
   IconMapPin,
   IconLoader,
   IconCheckCircle,
+  IconClock,
+  IconInbox,
 } from "../components/Icons.jsx";
 
 const statusLabel = {
@@ -22,13 +25,24 @@ const statusClass = {
   done: "bg-emerald-100 text-emerald-700",
 };
 
+function StatCard({ icon, label, value, tone }) {
+  return (
+    <div className="stat-card">
+      <span className={`grid place-items-center w-10 h-10 shrink-0 rounded-xl ${tone}`}>{icon}</span>
+      <div>
+        <p className="text-2xl font-display font-bold text-slate-900 leading-none">{value}</p>
+        <p className="text-xs text-slate-500 mt-1">{label}</p>
+      </div>
+    </div>
+  );
+}
+
 export default function Companies() {
+  const toast = useToast();
   const [companies, setCompanies] = useState(null);
   const [form, setForm] = useState({ name: "", url: "", description: "", source: "" });
   const [showForm, setShowForm] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [bulkMessage, setBulkMessage] = useState("");
-  const [error, setError] = useState("");
 
   const load = () => api.listCompanies().then(setCompanies);
   useEffect(() => {
@@ -37,14 +51,14 @@ export default function Companies() {
 
   const addCompany = async (e) => {
     e.preventDefault();
-    setError("");
     try {
       await api.addCompany(form);
       setForm({ name: "", url: "", description: "", source: "" });
       setShowForm(false);
       load();
+      toast.success("Entreprise ajoutée.");
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     }
   };
 
@@ -56,19 +70,23 @@ export default function Companies() {
 
   const generateAll = async () => {
     setBusy(true);
-    setBulkMessage("");
     try {
       const res = await api.generateAll();
-      setBulkMessage(`${res.processed} candidature(s) générée(s).`);
+      toast.success(`${res.processed} candidature(s) générée(s).`);
       load();
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     } finally {
       setBusy(false);
     }
   };
 
-  const pendingCount = (companies || []).filter((c) => c.status === "pending").length;
+  const counts = {
+    total: companies?.length || 0,
+    pending: (companies || []).filter((c) => c.status === "pending").length,
+    generated: (companies || []).filter((c) => c.status === "generated").length,
+    done: (companies || []).filter((c) => c.status === "done").length,
+  };
 
   return (
     <div className="space-y-6">
@@ -82,22 +100,52 @@ export default function Companies() {
             <IconPlus className="w-4 h-4" />
             Ajouter
           </button>
-          <button onClick={generateAll} disabled={busy || pendingCount === 0} className="btn-primary">
+          <button
+            onClick={generateAll}
+            disabled={busy || counts.pending === 0}
+            className="btn-primary"
+          >
             {busy ? (
               <IconLoader className="w-4 h-4 animate-spin-slow" />
             ) : (
               <IconSparkles className="w-4 h-4" />
             )}
-            Générer tout ({pendingCount})
+            Générer tout ({counts.pending})
           </button>
         </div>
       </div>
 
-      {bulkMessage && <p className="text-emerald-600 text-sm">{bulkMessage}</p>}
-      {error && <p className="text-red-600 text-sm">{error}</p>}
+      {companies && companies.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <StatCard
+            icon={<IconInbox className="w-5 h-5" />}
+            label="Total"
+            value={counts.total}
+            tone="bg-slate-100 text-slate-600"
+          />
+          <StatCard
+            icon={<IconClock className="w-5 h-5" />}
+            label="En attente"
+            value={counts.pending}
+            tone="bg-slate-100 text-slate-600"
+          />
+          <StatCard
+            icon={<IconSparkles className="w-5 h-5" />}
+            label="Prêtes"
+            value={counts.generated}
+            tone="bg-amber-100 text-amber-700"
+          />
+          <StatCard
+            icon={<IconCheckCircle className="w-5 h-5" />}
+            label="Envoyées"
+            value={counts.done}
+            tone="bg-emerald-100 text-emerald-700"
+          />
+        </div>
+      )}
 
       {showForm && (
-        <form onSubmit={addCompany} className="card card-pad space-y-3.5">
+        <form onSubmit={addCompany} className="card card-pad space-y-3.5 animate-fade-in">
           <div>
             <label className="label">Nom de l'entreprise *</label>
             <input
@@ -140,10 +188,11 @@ export default function Companies() {
       )}
 
       <div className="space-y-2.5">
-        {companies === null && <p className="text-slate-400 text-sm">Chargement…</p>}
+        {companies === null &&
+          [0, 1, 2].map((i) => <div key={i} className="skeleton h-[72px]" />)}
 
         {companies && companies.length === 0 && (
-          <div className="card card-pad text-center py-10">
+          <div className="card card-pad text-center py-12">
             <span className="grid place-items-center w-12 h-12 mx-auto rounded-2xl bg-indigo-50 text-indigo-500 mb-3">
               <IconBuilding className="w-6 h-6" />
             </span>
