@@ -1,8 +1,35 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../api.js";
+import {
+  IconArrowLeft,
+  IconBuilding,
+  IconSparkles,
+  IconTrash,
+  IconLoader,
+  IconFileText,
+  IconDownload,
+  IconCheckCircle,
+  IconGraduationCap,
+} from "../components/Icons.jsx";
 
-const inputClass = "w-full border border-slate-300 rounded-md px-3 py-2";
+function DocCard({ href, title, subtitle, icon }) {
+  return (
+    <a
+      href={href}
+      className="flex items-center gap-3 rounded-xl border border-slate-200 p-3.5 hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors group"
+    >
+      <span className="grid place-items-center w-10 h-10 shrink-0 rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100">
+        {icon}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="font-medium text-slate-900 text-sm truncate">{title}</p>
+        {subtitle && <p className="text-xs text-slate-500 truncate">{subtitle}</p>}
+      </div>
+      <IconDownload className="w-4 h-4 text-slate-400 shrink-0 group-hover:text-indigo-600" />
+    </a>
+  );
+}
 
 export default function CompanyDetail() {
   const { id } = useParams();
@@ -83,53 +110,61 @@ export default function CompanyDetail() {
   const hasGenerated = company.cover_letter_text || company.message_text;
 
   return (
-    <div className="space-y-5">
-      <button onClick={() => navigate("/entreprises")} className="text-sm text-indigo-600 hover:underline">
-        ← Retour
+    <div className="space-y-6">
+      <button
+        onClick={() => navigate("/entreprises")}
+        className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors"
+      >
+        <IconArrowLeft className="w-4 h-4" />
+        Entreprises
       </button>
 
-      <section className="bg-white border border-slate-200 rounded-xl p-5 space-y-3">
-        <div className="grid sm:grid-cols-2 gap-3">
+      <section className="card card-pad space-y-4">
+        <div className="flex items-center gap-3">
+          <span className="grid place-items-center w-10 h-10 shrink-0 rounded-xl bg-indigo-50 text-indigo-600">
+            <IconBuilding className="w-5 h-5" />
+          </span>
+          <input
+            className="font-display text-lg font-bold text-slate-900 bg-transparent border-0 focus:outline-none focus:ring-0 p-0 flex-1 min-w-0"
+            value={company.name}
+            onChange={set("name")}
+          />
+        </div>
+        <div className="grid sm:grid-cols-2 gap-3.5">
           <div>
-            <label className="block text-sm text-slate-600 mb-1">Nom de l'entreprise</label>
-            <input className={inputClass} value={company.name} onChange={set("name")} />
+            <label className="label">Où trouvée</label>
+            <input className="input" value={company.source} onChange={set("source")} />
           </div>
           <div>
-            <label className="block text-sm text-slate-600 mb-1">Où trouvée</label>
-            <input className={inputClass} value={company.source} onChange={set("source")} />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="block text-sm text-slate-600 mb-1">Lien</label>
-            <input className={inputClass} value={company.url} onChange={set("url")} />
+            <label className="label">Lien</label>
+            <input className="input" value={company.url} onChange={set("url")} />
           </div>
         </div>
         <div>
-          <label className="block text-sm text-slate-600 mb-1">Description</label>
-          <textarea className={inputClass} rows={3} value={company.description} onChange={set("description")} />
+          <label className="label">Description</label>
+          <textarea className="input" rows={3} value={company.description} onChange={set("description")} />
         </div>
       </section>
 
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={generate}
-          disabled={generating}
-          className="bg-indigo-600 text-white rounded-md px-4 py-2 font-medium hover:bg-indigo-700 disabled:opacity-50"
-        >
+      <div className="flex flex-wrap gap-2 items-center">
+        <button onClick={generate} disabled={generating} className="btn-primary">
+          {generating ? (
+            <IconLoader className="w-4 h-4 animate-spin-slow" />
+          ) : (
+            <IconSparkles className="w-4 h-4" />
+          )}
           {generating
             ? "Génération en cours…"
             : hasGenerated
-            ? "Régénérer la candidature (IA)"
+            ? "Régénérer (IA)"
             : "Générer la candidature (IA)"}
         </button>
-        <button
-          onClick={save}
-          disabled={saving}
-          className="bg-white border border-slate-300 rounded-md px-4 py-2 font-medium hover:bg-slate-100 disabled:opacity-50"
-        >
-          {saving ? "Enregistrement…" : "Enregistrer les modifications"}
+        <button onClick={save} disabled={saving} className="btn-secondary">
+          {saving ? "Enregistrement…" : "Enregistrer"}
         </button>
-        <button onClick={removeCompany} className="text-sm text-red-600 hover:underline ml-auto">
-          Supprimer l'entreprise
+        <button onClick={removeCompany} className="btn-ghost-danger ml-auto">
+          <IconTrash className="w-4 h-4" />
+          Supprimer
         </button>
       </div>
 
@@ -138,61 +173,61 @@ export default function CompanyDetail() {
 
       {hasGenerated && (
         <>
-          <section className="bg-white border border-slate-200 rounded-xl p-5 space-y-2">
-            <h2 className="font-semibold text-slate-800 mb-1">Documents à envoyer</h2>
-            <p className="text-sm text-slate-500 mb-2">
-              Télécharge tout et envoie-les toi-même (email, SMS, en main propre…) avec le message
-              ci-dessous.
-            </p>
-            <ul className="space-y-1 text-sm">
-              <li>
-                <a href="/api/profile/cv" className="text-indigo-600 hover:underline">
-                  📄 CV{profile.cv_filename ? ` (${profile.cv_filename})` : ""}
-                </a>
-              </li>
+          <section className="card card-pad space-y-3">
+            <div>
+              <h2 className="font-semibold text-slate-900">Documents à envoyer</h2>
+              <p className="text-sm text-slate-500 mt-0.5">
+                Télécharge et envoie-les toi-même (email, SMS, en main propre…) avec le message
+                ci-dessous.
+              </p>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-2.5">
+              <DocCard
+                href="/api/profile/cv"
+                title="CV"
+                subtitle={profile.cv_filename}
+                icon={<IconFileText className="w-5 h-5" />}
+              />
               {company.cv_modified_text && (
-                <li>
-                  <a
-                    href={`/api/companies/${company.id}/cv-modifie.docx`}
-                    className="text-indigo-600 hover:underline"
-                  >
-                    📄 CV modifié pour cette candidature
-                  </a>
-                  {company.cv_change_summary && (
-                    <span className="text-slate-500"> — {company.cv_change_summary}</span>
-                  )}
-                </li>
+                <DocCard
+                  href={`/api/companies/${company.id}/cv-modifie.docx`}
+                  title="CV modifié pour cette candidature"
+                  subtitle={company.cv_change_summary}
+                  icon={<IconFileText className="w-5 h-5" />}
+                />
               )}
-              <li>
-                <a
-                  href={`/api/companies/${company.id}/cover-letter.docx`}
-                  className="text-indigo-600 hover:underline"
-                >
-                  📄 Lettre de motivation ({company.name})
-                </a>
-              </li>
+              <DocCard
+                href={`/api/companies/${company.id}/cover-letter.docx`}
+                title="Lettre de motivation"
+                subtitle={company.name}
+                icon={<IconFileText className="w-5 h-5" />}
+              />
               {bulletins.map((n) => (
-                <li key={n}>
-                  <a href={`/api/profile/bulletin${n}`} className="text-indigo-600 hover:underline">
-                    📄 Bulletin {n} ({profile[`bulletin${n}_filename`]})
-                  </a>
-                </li>
+                <DocCard
+                  key={n}
+                  href={`/api/profile/bulletin${n}`}
+                  title={`Bulletin ${n}`}
+                  subtitle={profile[`bulletin${n}_filename`]}
+                  icon={<IconGraduationCap className="w-5 h-5" />}
+                />
               ))}
-              {bulletins.length === 0 && (
-                <li className="text-slate-400">
-                  Aucun bulletin importé — ajoute-les dans la page Profil.
-                </li>
-              )}
-            </ul>
+            </div>
+            {bulletins.length === 0 && (
+              <p className="text-sm text-slate-400">
+                Aucun bulletin importé — ajoute-les dans la page Profil.
+              </p>
+            )}
           </section>
 
-          <section className="bg-white border border-slate-200 rounded-xl p-5 space-y-3">
-            <h2 className="font-semibold text-slate-800">Petit message d'accompagnement</h2>
-            <p className="text-sm text-slate-500">
-              À copier-coller dans ton email/SMS en attachant les fichiers ci-dessus.
-            </p>
+          <section className="card card-pad space-y-3">
+            <div>
+              <h2 className="font-semibold text-slate-900">Petit message d'accompagnement</h2>
+              <p className="text-sm text-slate-500 mt-0.5">
+                À copier-coller dans ton email/SMS en attachant les fichiers ci-dessus.
+              </p>
+            </div>
             <textarea
-              className={inputClass}
+              className="input"
               rows={6}
               value={company.message_text || ""}
               onChange={set("message_text")}
@@ -202,9 +237,10 @@ export default function CompanyDetail() {
           <button
             onClick={markDone}
             disabled={company.status === "done"}
-            className="bg-emerald-600 text-white rounded-md px-4 py-2 font-medium hover:bg-emerald-700 disabled:opacity-50"
+            className="btn-success"
           >
-            {company.status === "done" ? "Marqué comme envoyé ✓" : "Marquer comme envoyé"}
+            <IconCheckCircle className="w-4 h-4" />
+            {company.status === "done" ? "Marqué comme envoyé" : "Marquer comme envoyé"}
           </button>
         </>
       )}

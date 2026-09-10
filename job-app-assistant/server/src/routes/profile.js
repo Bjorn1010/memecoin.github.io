@@ -1,7 +1,7 @@
 import { Router } from "express";
 import multer from "multer";
 import { getProfile, updateProfile } from "../db.js";
-import { extractTextFromDocx } from "../services/docx.js";
+import { extractTextFromDocx, extractDocxStyle } from "../services/docx.js";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
@@ -52,10 +52,13 @@ profileRouter.post("/cv", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "Aucun fichier reçu" });
     const text = await extractTextFromDocx(req.file.buffer);
+    const style = await extractDocxStyle(req.file.buffer);
     updateProfile({
       cv_docx: req.file.buffer,
       cv_filename: req.file.originalname,
       cv_text: text,
+      cv_font_family: style.fontFamily || "",
+      cv_font_size: style.fontSize,
     });
     res.json(serializeProfile(getProfile()));
   } catch (err) {
@@ -67,7 +70,12 @@ profileRouter.post("/cover-letter", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "Aucun fichier reçu" });
     const text = await extractTextFromDocx(req.file.buffer);
-    updateProfile({ cover_letter_text: text });
+    const style = await extractDocxStyle(req.file.buffer);
+    updateProfile({
+      cover_letter_text: text,
+      cover_letter_font_family: style.fontFamily || "",
+      cover_letter_font_size: style.fontSize,
+    });
     res.json(serializeProfile(getProfile()));
   } catch (err) {
     res.status(500).json({ error: err.message });

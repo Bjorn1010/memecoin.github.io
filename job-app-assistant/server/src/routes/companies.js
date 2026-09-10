@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db } from "../db.js";
+import { db, getProfile } from "../db.js";
 import { textToDocxBuffer } from "../services/docx.js";
 
 export const companiesRouter = Router();
@@ -68,8 +68,8 @@ companiesRouter.put("/:id", (req, res) => {
   res.json(row);
 });
 
-async function sendGeneratedDocx(res, { text, title, filename }) {
-  const buffer = await textToDocxBuffer(text, { title });
+async function sendGeneratedDocx(res, { text, title, filename, fontFamily, fontSize }) {
+  const buffer = await textToDocxBuffer(text, { title, fontFamily, fontSize });
   res.setHeader(
     "Content-Type",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -85,10 +85,13 @@ companiesRouter.get("/:id/cover-letter.docx", async (req, res) => {
     return res.status(400).json({ error: "Génère d'abord la lettre de motivation." });
   }
   try {
+    const profile = getProfile();
     await sendGeneratedDocx(res, {
       text: company.cover_letter_text,
       title: `Lettre de motivation - ${company.name}`,
       filename: `Lettre de motivation - ${company.name}.docx`,
+      fontFamily: profile.cover_letter_font_family || profile.cv_font_family,
+      fontSize: profile.cover_letter_font_size || profile.cv_font_size,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -102,10 +105,13 @@ companiesRouter.get("/:id/cv-modifie.docx", async (req, res) => {
     return res.status(404).json({ error: "Aucun CV modifié pour cette entreprise." });
   }
   try {
+    const profile = getProfile();
     await sendGeneratedDocx(res, {
       text: company.cv_modified_text,
       title: `CV - ${company.name}`,
       filename: `CV modifie - ${company.name}.docx`,
+      fontFamily: profile.cv_font_family,
+      fontSize: profile.cv_font_size,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
