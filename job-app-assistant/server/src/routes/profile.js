@@ -1,62 +1,51 @@
 import { Router } from "express";
 import multer from "multer";
-import { getEffectiveProfile, updateProfile } from "../db.js";
+import { getProfile, updateProfile } from "../db.js";
 import { extractTextFromDocx } from "../services/docx.js";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 export const profileRouter = Router();
 
+const BULLETIN_SLOTS = [1, 2, 3];
+
 function serializeProfile(p) {
-  return {
+  const out = {
     full_name: p.full_name,
     cv_text: p.cv_text,
     cv_filename: p.cv_filename,
     has_cv_docx: !!p.cv_docx,
     cover_letter_text: p.cover_letter_text,
-    smtp_host: p.smtp_host,
-    smtp_port: p.smtp_port,
-    smtp_secure: !!p.smtp_secure,
-    smtp_user: p.smtp_user,
-    smtp_pass_set: !!p.smtp_pass,
-    smtp_from_name: p.smtp_from_name,
-    smtp_from_email: p.smtp_from_email,
-    smtp_env_configured: !!(process.env.SMTP_USER && process.env.SMTP_PASS),
   };
+  for (const n of BULLETIN_SLOTS) {
+    out[`bulletin${n}_filename`] = p[`bulletin${n}_filename`];
+    out[`has_bulletin${n}`] = !!p[`bulletin${n}_file`];
+  }
+  return out;
 }
 
 profileRouter.get("/", (req, res) => {
-  res.json(serializeProfile(getEffectiveProfile()));
+  res.json(serializeProfile(getProfile()));
 });
 
 profileRouter.put("/", (req, res) => {
-  const {
-    full_name,
-    cover_letter_text,
-    smtp_host,
-    smtp_port,
-    smtp_secure,
-    smtp_user,
-    smtp_pass,
-    smtp_from_name,
-    smtp_from_email,
-  } = req.body || {};
-
-  const fields = {
+  const { full_name, cover_letter_text } = req.body || {};
+  updateProfile({
     full_name: full_name ?? "",
     cover_letter_text: cover_letter_text ?? "",
-    smtp_host: smtp_host ?? "",
-    smtp_port: Number(smtp_port) || 587,
-    smtp_secure: smtp_secure ? 1 : 0,
-    smtp_user: smtp_user ?? "",
-    smtp_from_name: smtp_from_name ?? "",
-    smtp_from_email: smtp_from_email ?? "",
-  };
-  // Ne change le mot de passe SMTP que si un nouveau est fourni (évite d'écraser avec vide)
-  if (smtp_pass) fields.smtp_pass = smtp_pass;
+  });
+  res.json(serializeProfile(getProfile()));
+});
 
-  updateProfile(fields);
-  res.json(serializeProfile(getEffectiveProfile()));
+profileRouter.get("/cv", (req, res) => {
+  const p = getProfile();
+  if (!p.cv_docx) return res.status(404).json({ error: "Aucun CV importé" });
+  res.setHeader(
+    "Content-Type",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  );
+  res.setHeader("Content-Disposition", `attachment; filename="${p.cv_filename || "CV.docx"}"`);
+  res.send(p.cv_docx);
 });
 
 profileRouter.post("/cv", upload.single("file"), async (req, res) => {
@@ -68,7 +57,7 @@ profileRouter.post("/cv", upload.single("file"), async (req, res) => {
       cv_filename: req.file.originalname,
       cv_text: text,
     });
-    res.json(serializeProfile(getEffectiveProfile()));
+    res.json(serializeProfile(getProfile()));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -79,8 +68,32 @@ profileRouter.post("/cover-letter", upload.single("file"), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: "Aucun fichier reçu" });
     const text = await extractTextFromDocx(req.file.buffer);
     updateProfile({ cover_letter_text: text });
-    res.json(serializeProfile(getEffectiveProfile()));
+    res.json(serializeProfile(getProfile()));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
+for (const n of BULLETIN_SLOTS) {
+  profileRouter.get(`/bulletin${n}`, (req, res) => {
+    const p = getProfile();
+    const file = p[`bulletin${n}_file`];
+    if (!file) return res.status(404).json({ error: "Aucun bulletin importé pour ce créneau" });
+    res.setHeader("Content-Type", p[`bulletin${n}_mimetype`] || "application/octet-stream");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${p[`bulletin${n}_filename`] || `bulletin-${n}`}"`
+    );
+    res.send(file);
+  });
+
+  profileRouter.post(`/bulletin${n}`, upload.single("file"), (req, res) => {
+    if (!req.file) return res.status(400).json({ error: "Aucun fichier reçu" });
+    updateProfile({
+      [`bulletin${n}_file`]: req.file.buffer,
+      [`bulletin${n}_filename`]: req.file.originalname,
+      [`bulletin${n}_mimetype`]: req.file.mimetype,
+    });
+    res.json(serializeProfile(getProfile()));
+  });
+}

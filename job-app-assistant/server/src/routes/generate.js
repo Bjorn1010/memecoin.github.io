@@ -24,8 +24,7 @@ async function generateForCompany(company, profile) {
     `UPDATE companies SET
        cover_letter_text = @cover_letter_text,
        cv_suggestions = @cv_suggestions,
-       email_subject = @email_subject,
-       email_body = @email_body,
+       message_text = @message_text,
        fetched_context = @fetched_context,
        status = 'generated',
        updated_at = datetime('now')
@@ -34,8 +33,7 @@ async function generateForCompany(company, profile) {
     id: company.id,
     cover_letter_text: result.coverLetter,
     cv_suggestions: JSON.stringify(result.cvSuggestions),
-    email_subject: result.emailSubject,
-    email_body: result.emailBody,
+    message_text: result.messageText,
     fetched_context: fetchedContext,
   });
 

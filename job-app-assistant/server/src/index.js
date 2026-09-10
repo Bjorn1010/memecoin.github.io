@@ -9,7 +9,6 @@ import { authRouter } from "./routes/auth.js";
 import { profileRouter } from "./routes/profile.js";
 import { companiesRouter } from "./routes/companies.js";
 import { generateRouter } from "./routes/generate.js";
-import { sendRouter } from "./routes/send.js";
 import { requireAuth } from "./auth.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -29,7 +28,6 @@ app.use("/api/auth", authRouter);
 app.use("/api/profile", requireAuth, profileRouter);
 app.use("/api/companies", requireAuth, companiesRouter);
 app.use("/api/generate", requireAuth, generateRouter);
-app.use("/api/send", requireAuth, sendRouter);
 
 // Sert le frontend React buildé (npm run build dans web/), s'il existe.
 const webDist = path.join(__dirname, "..", "..", "web", "dist");

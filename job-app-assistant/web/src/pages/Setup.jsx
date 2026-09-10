@@ -13,6 +13,12 @@ function Field({ label, children }) {
 const inputClass =
   "w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400";
 
+const BULLETIN_LABELS = {
+  1: "Bulletin - année 1 (la plus ancienne)",
+  2: "Bulletin - année 2",
+  3: "Bulletin - année 3 (la plus récente)",
+};
+
 export default function Setup() {
   const [profile, setProfile] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -26,8 +32,7 @@ export default function Setup() {
 
   if (!profile) return <p className="text-slate-500">Chargement…</p>;
 
-  const set = (key) => (e) =>
-    setProfile({ ...profile, [key]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
+  const set = (key) => (e) => setProfile({ ...profile, [key]: e.target.value });
 
   const save = async () => {
     setSaving(true);
@@ -35,7 +40,7 @@ export default function Setup() {
     setMessage("");
     try {
       const updated = await api.updateProfile(profile);
-      setProfile({ ...updated, smtp_pass: "" });
+      setProfile(updated);
       setMessage("Profil enregistré.");
     } catch (err) {
       setError(err.message);
@@ -50,7 +55,7 @@ export default function Setup() {
     setError("");
     try {
       const updated = await api.uploadCv(file);
-      setProfile({ ...profile, ...updated, smtp_pass: "" });
+      setProfile({ ...profile, ...updated });
       setMessage("CV importé et texte extrait avec succès.");
     } catch (err) {
       setError(err.message);
@@ -63,8 +68,21 @@ export default function Setup() {
     setError("");
     try {
       const updated = await api.uploadCoverLetter(file);
-      setProfile({ ...profile, ...updated, smtp_pass: "" });
+      setProfile({ ...profile, ...updated });
       setMessage("Lettre de motivation importée et texte extrait avec succès.");
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleBulletinUpload = (n) => async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError("");
+    try {
+      const updated = await api.uploadBulletin(n, file);
+      setProfile({ ...profile, ...updated });
+      setMessage("Bulletin importé avec succès.");
     } catch (err) {
       setError(err.message);
     }
@@ -74,7 +92,7 @@ export default function Setup() {
     <div className="space-y-8">
       <section className="bg-white border border-slate-200 rounded-xl p-5">
         <h2 className="font-semibold text-slate-800 mb-3">Mes informations</h2>
-        <Field label="Nom complet">
+        <Field label="Prénom / nom complet">
           <input className={inputClass} value={profile.full_name || ""} onChange={set("full_name")} />
         </Field>
       </section>
@@ -82,7 +100,7 @@ export default function Setup() {
       <section className="bg-white border border-slate-200 rounded-xl p-5">
         <h2 className="font-semibold text-slate-800 mb-1">CV</h2>
         <p className="text-sm text-slate-500 mb-3">
-          Fichier Word (.docx). Il sera joint tel quel à chaque candidature — il n'est modifié
+          Fichier Word (.docx). Il est utilisé tel quel pour chaque candidature — il n'est modifié
           que très rarement, sur ta décision, à partir des suggestions données par entreprise.
         </p>
         <input type="file" accept=".docx" onChange={handleCvUpload} className="mb-2" />
@@ -108,53 +126,24 @@ export default function Setup() {
       </section>
 
       <section className="bg-white border border-slate-200 rounded-xl p-5">
-        <h2 className="font-semibold text-slate-800 mb-1">Envoi d'email (SMTP)</h2>
-        {profile.smtp_env_configured ? (
-          <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2 mb-3">
-            Déjà configuré via les variables d'environnement du serveur (SMTP_USER /
-            SMTP_PASS) — rien à faire ici. Les champs ci-dessous ne sont utilisés que si ces
-            variables ne sont pas définies.
-          </p>
-        ) : (
-          <p className="text-sm text-slate-500 mb-3">
-            Pour Gmail : hôte smtp.gmail.com, port 587, et un "mot de passe d'application" (pas ton
-            mot de passe normal) — à créer sur myaccount.google.com/apppasswords.
-          </p>
-        )}
-        <div className="grid sm:grid-cols-2 gap-x-4">
-          <Field label="Hôte SMTP">
-            <input className={inputClass} value={profile.smtp_host || ""} onChange={set("smtp_host")} />
-          </Field>
-          <Field label="Port">
-            <input
-              type="number"
-              className={inputClass}
-              value={profile.smtp_port || 587}
-              onChange={set("smtp_port")}
-            />
-          </Field>
-          <Field label="Adresse email d'envoi (utilisateur)">
-            <input className={inputClass} value={profile.smtp_user || ""} onChange={set("smtp_user")} />
-          </Field>
-          <Field label={`Mot de passe${profile.smtp_pass_set ? " (déjà défini, laisser vide pour garder)" : ""}`}>
-            <input
-              type="password"
-              className={inputClass}
-              value={profile.smtp_pass || ""}
-              onChange={set("smtp_pass")}
-            />
-          </Field>
-          <Field label="Nom affiché comme expéditeur">
-            <input className={inputClass} value={profile.smtp_from_name || ""} onChange={set("smtp_from_name")} />
-          </Field>
-          <Field label="Email affiché comme expéditeur (souvent identique à l'utilisateur)">
-            <input className={inputClass} value={profile.smtp_from_email || ""} onChange={set("smtp_from_email")} />
-          </Field>
+        <h2 className="font-semibold text-slate-800 mb-1">Bulletins scolaires (3 dernières années)</h2>
+        <p className="text-sm text-slate-500 mb-3">
+          PDF, image ou Word — un fichier par année. Ils seront proposés au téléchargement pour
+          chaque candidature, comme le CV et la lettre.
+        </p>
+        <div className="space-y-3">
+          {[1, 2, 3].map((n) => (
+            <div key={n}>
+              <label className="block text-sm text-slate-600 mb-1">{BULLETIN_LABELS[n]}</label>
+              <input type="file" onChange={handleBulletinUpload(n)} className="mb-1" />
+              {profile[`bulletin${n}_filename`] && (
+                <p className="text-sm text-slate-600">
+                  Fichier actuel : {profile[`bulletin${n}_filename`]}
+                </p>
+              )}
+            </div>
+          ))}
         </div>
-        <label className="flex items-center gap-2 text-sm text-slate-600 mt-1">
-          <input type="checkbox" checked={!!profile.smtp_secure} onChange={set("smtp_secure")} />
-          Connexion sécurisée directe (SSL, généralement port 465 uniquement)
-        </label>
       </section>
 
       {error && <p className="text-red-600 text-sm">{error}</p>}
