@@ -1,10 +1,19 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api.js";
+import {
+  IconBuilding,
+  IconPlus,
+  IconSparkles,
+  IconTrash,
+  IconMapPin,
+  IconLoader,
+  IconCheckCircle,
+} from "../components/Icons.jsx";
 
 const statusLabel = {
   pending: "En attente",
-  generated: "Lettre générée",
+  generated: "Prête",
   done: "Envoyée",
 };
 const statusClass = {
@@ -14,7 +23,7 @@ const statusClass = {
 };
 
 export default function Companies() {
-  const [companies, setCompanies] = useState([]);
+  const [companies, setCompanies] = useState(null);
   const [form, setForm] = useState({ name: "", url: "", description: "", source: "" });
   const [showForm, setShowForm] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -50,7 +59,7 @@ export default function Companies() {
     setBulkMessage("");
     try {
       const res = await api.generateAll();
-      setBulkMessage(`${res.processed} lettre(s) générée(s).`);
+      setBulkMessage(`${res.processed} candidature(s) générée(s).`);
       load();
     } catch (err) {
       setError(err.message);
@@ -59,25 +68,27 @@ export default function Companies() {
     }
   };
 
-  const pendingCount = companies.filter((c) => c.status === "pending").length;
+  const pendingCount = (companies || []).filter((c) => c.status === "pending").length;
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap gap-2 justify-between items-center">
-        <h1 className="text-xl font-semibold text-slate-800">Entreprises</h1>
+    <div className="space-y-6">
+      <div className="flex flex-wrap gap-3 justify-between items-end">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-slate-900">Entreprises</h1>
+          <p className="text-sm text-slate-500 mt-1">Une fiche par candidature à préparer.</p>
+        </div>
         <div className="flex gap-2 flex-wrap">
-          <button
-            onClick={() => setShowForm((v) => !v)}
-            className="bg-indigo-600 text-white rounded-md px-3 py-2 text-sm font-medium hover:bg-indigo-700"
-          >
-            + Ajouter une entreprise
+          <button onClick={() => setShowForm((v) => !v)} className="btn-secondary">
+            <IconPlus className="w-4 h-4" />
+            Ajouter
           </button>
-          <button
-            onClick={generateAll}
-            disabled={busy || pendingCount === 0}
-            className="bg-white border border-slate-300 rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-50"
-          >
-            Générer tout ({pendingCount} en attente)
+          <button onClick={generateAll} disabled={busy || pendingCount === 0} className="btn-primary">
+            {busy ? (
+              <IconLoader className="w-4 h-4 animate-spin-slow" />
+            ) : (
+              <IconSparkles className="w-4 h-4" />
+            )}
+            Générer tout ({pendingCount})
           </button>
         </div>
       </div>
@@ -86,80 +97,91 @@ export default function Companies() {
       {error && <p className="text-red-600 text-sm">{error}</p>}
 
       {showForm && (
-        <form onSubmit={addCompany} className="bg-white border border-slate-200 rounded-xl p-5 space-y-3">
+        <form onSubmit={addCompany} className="card card-pad space-y-3.5">
           <div>
-            <label className="block text-sm text-slate-600 mb-1">Nom de l'entreprise *</label>
+            <label className="label">Nom de l'entreprise *</label>
             <input
               required
-              className="w-full border border-slate-300 rounded-md px-3 py-2"
+              autoFocus
+              className="input"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
           </div>
           <div>
-            <label className="block text-sm text-slate-600 mb-1">
-              Lien (offre d'emploi, site carrière…)
-            </label>
+            <label className="label">Lien (offre d'emploi, site carrière…)</label>
             <input
-              className="w-full border border-slate-300 rounded-md px-3 py-2"
+              className="input"
               placeholder="https://…"
               value={form.url}
               onChange={(e) => setForm({ ...form, url: e.target.value })}
             />
           </div>
           <div>
-            <label className="block text-sm text-slate-600 mb-1">
-              Description (si pas de lien, ou infos en plus)
-            </label>
+            <label className="label">Description (si pas de lien, ou infos en plus)</label>
             <textarea
-              className="w-full border border-slate-300 rounded-md px-3 py-2"
+              className="input"
               rows={3}
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
           </div>
           <div>
-            <label className="block text-sm text-slate-600 mb-1">
-              Où as-tu trouvé cette offre/entreprise ?
-            </label>
+            <label className="label">Où as-tu trouvé cette offre/entreprise ?</label>
             <input
-              className="w-full border border-slate-300 rounded-md px-3 py-2"
+              className="input"
               placeholder="Ex : offre LinkedIn, site carrière, salon, recommandation…"
               value={form.source}
               onChange={(e) => setForm({ ...form, source: e.target.value })}
             />
           </div>
-          <button className="bg-indigo-600 text-white rounded-md px-4 py-2 font-medium hover:bg-indigo-700">
-            Ajouter
-          </button>
+          <button className="btn-primary">Ajouter</button>
         </form>
       )}
 
-      <div className="space-y-2">
-        {companies.length === 0 && (
-          <p className="text-slate-500 text-sm">Aucune entreprise pour l'instant. Ajoutes-en une !</p>
+      <div className="space-y-2.5">
+        {companies === null && <p className="text-slate-400 text-sm">Chargement…</p>}
+
+        {companies && companies.length === 0 && (
+          <div className="card card-pad text-center py-10">
+            <span className="grid place-items-center w-12 h-12 mx-auto rounded-2xl bg-indigo-50 text-indigo-500 mb-3">
+              <IconBuilding className="w-6 h-6" />
+            </span>
+            <p className="font-medium text-slate-700">Aucune entreprise pour l'instant</p>
+            <p className="text-sm text-slate-500 mt-1">Ajoutes-en une pour commencer.</p>
+          </div>
         )}
-        {companies.map((c) => (
+
+        {companies?.map((c) => (
           <div
             key={c.id}
-            className="bg-white border border-slate-200 rounded-xl p-4 flex items-center justify-between gap-3 flex-wrap"
+            className="card card-pad flex items-center justify-between gap-3 flex-wrap hover:shadow-card transition-shadow"
           >
-            <div>
-              <Link to={`/entreprises/${c.id}`} className="font-medium text-indigo-700 hover:underline">
-                {c.name}
-              </Link>
-              <div className="text-xs text-slate-500">{c.source || c.url || "—"}</div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className={`text-xs px-2 py-1 rounded-full font-medium ${statusClass[c.status]}`}>
+            <Link to={`/entreprises/${c.id}`} className="flex items-center gap-3 min-w-0 flex-1">
+              <span className="grid place-items-center w-10 h-10 shrink-0 rounded-xl bg-indigo-50 text-indigo-600">
+                <IconBuilding className="w-5 h-5" />
+              </span>
+              <div className="min-w-0">
+                <p className="font-semibold text-slate-900 truncate">{c.name}</p>
+                {(c.source || c.url) && (
+                  <p className="flex items-center gap-1 text-xs text-slate-500 truncate mt-0.5">
+                    <IconMapPin className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">{c.source || c.url}</span>
+                  </p>
+                )}
+              </div>
+            </Link>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className={`badge ${statusClass[c.status]}`}>
+                {c.status === "done" && <IconCheckCircle className="w-3.5 h-3.5" />}
                 {statusLabel[c.status] || c.status}
               </span>
               <button
                 onClick={() => removeCompany(c.id)}
-                className="text-slate-400 hover:text-red-600 text-sm"
+                className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                 title="Supprimer"
               >
-                ✕
+                <IconTrash className="w-4 h-4" />
               </button>
             </div>
           </div>
