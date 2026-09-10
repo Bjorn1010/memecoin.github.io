@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { useToast } from "../components/Toast.jsx";
 import {
   IconUserCircle,
   IconFileText,
@@ -51,30 +52,35 @@ const BULLETIN_LABELS = {
 };
 
 export default function Setup() {
+  const toast = useToast();
   const [profile, setProfile] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
 
   const load = () => api.getProfile().then(setProfile);
   useEffect(() => {
     load();
   }, []);
 
-  if (!profile) return <p className="text-slate-500">Chargement…</p>;
+  if (!profile) {
+    return (
+      <div className="space-y-4">
+        <div className="skeleton h-8 w-40" />
+        <div className="skeleton h-28" />
+        <div className="skeleton h-28" />
+      </div>
+    );
+  }
 
   const set = (key) => (e) => setProfile({ ...profile, [key]: e.target.value });
 
   const save = async () => {
     setSaving(true);
-    setError("");
-    setMessage("");
     try {
       const updated = await api.updateProfile(profile);
       setProfile(updated);
-      setMessage("Profil enregistré.");
+      toast.success("Profil enregistré.");
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     } finally {
       setSaving(false);
     }
@@ -83,41 +89,49 @@ export default function Setup() {
   const handleCvUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setError("");
     try {
       const updated = await api.uploadCv(file);
       setProfile({ ...profile, ...updated });
-      setMessage("CV importé et texte extrait avec succès.");
+      toast.success("CV importé et texte extrait avec succès.");
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     }
   };
 
   const handleCoverLetterUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setError("");
     try {
       const updated = await api.uploadCoverLetter(file);
       setProfile({ ...profile, ...updated });
-      setMessage("Lettre de motivation importée et texte extrait avec succès.");
+      toast.success("Lettre de motivation importée et texte extrait avec succès.");
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     }
   };
 
   const handleBulletinUpload = (n) => async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setError("");
     try {
       const updated = await api.uploadBulletin(n, file);
       setProfile({ ...profile, ...updated });
-      setMessage("Bulletin importé avec succès.");
+      toast.success("Bulletin importé avec succès.");
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     }
   };
+
+  const steps = [
+    !!profile.full_name,
+    profile.has_cv_docx,
+    !!profile.cover_letter_text,
+    profile.has_bulletin1,
+    profile.has_bulletin2,
+    profile.has_bulletin3,
+  ];
+  const doneCount = steps.filter(Boolean).length;
+  const complete = doneCount === steps.length;
 
   return (
     <div className="space-y-6 pb-24">
@@ -126,6 +140,23 @@ export default function Setup() {
         <p className="text-sm text-slate-500 mt-1">
           À remplir une seule fois — sert de base pour toutes tes candidatures.
         </p>
+      </div>
+
+      <div className="card card-pad">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-sm font-medium text-slate-700">
+            {complete ? "Profil complet" : "Progression du profil"}
+          </p>
+          <p className="text-sm text-slate-500">{doneCount}/{steps.length}</p>
+        </div>
+        <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-500 ${
+              complete ? "bg-emerald-500" : "bg-gradient-to-r from-indigo-500 to-violet-500"
+            }`}
+            style={{ width: `${(doneCount / steps.length) * 100}%` }}
+          />
+        </div>
       </div>
 
       <section className="card card-pad">
@@ -177,15 +208,12 @@ export default function Setup() {
         </div>
       </section>
 
-      {error && <p className="text-red-600 text-sm">{error}</p>}
-
       <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur border-t border-slate-200 px-4 py-3 sm:static sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:px-0 sm:py-0">
-        <div className="max-w-4xl mx-auto flex items-center gap-3">
+        <div className="max-w-3xl mx-auto flex items-center gap-3">
           <button onClick={save} disabled={saving} className="btn-primary">
             {saving && <IconLoader className="w-4 h-4 animate-spin-slow" />}
             {saving ? "Enregistrement…" : "Enregistrer"}
           </button>
-          {message && <p className="text-emerald-600 text-sm">{message}</p>}
         </div>
       </div>
     </div>

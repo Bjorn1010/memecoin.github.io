@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../api.js";
+import { useToast } from "../components/Toast.jsx";
 import {
   IconArrowLeft,
   IconBuilding,
@@ -12,6 +13,13 @@ import {
   IconCheckCircle,
   IconGraduationCap,
 } from "../components/Icons.jsx";
+
+const statusLabel = { pending: "En attente", generated: "Prête", done: "Envoyée" };
+const statusClass = {
+  pending: "bg-slate-100 text-slate-600",
+  generated: "bg-amber-100 text-amber-700",
+  done: "bg-emerald-100 text-emerald-700",
+};
 
 function DocCard({ href, title, subtitle, icon }) {
   return (
@@ -34,12 +42,11 @@ function DocCard({ href, title, subtitle, icon }) {
 export default function CompanyDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [company, setCompany] = useState(null);
   const [profile, setProfile] = useState(null);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
 
   const load = () => {
     api.getCompany(id).then(setCompany);
@@ -50,14 +57,20 @@ export default function CompanyDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  if (!company || !profile) return <p className="text-slate-500">Chargement…</p>;
+  if (!company || !profile) {
+    return (
+      <div className="space-y-4">
+        <div className="skeleton h-5 w-24" />
+        <div className="skeleton h-40" />
+        <div className="skeleton h-24" />
+      </div>
+    );
+  }
 
   const set = (key) => (e) => setCompany({ ...company, [key]: e.target.value });
 
-  const save = async () => {
+  const save = async (silent) => {
     setSaving(true);
-    setError("");
-    setMessage("");
     try {
       const updated = await api.updateCompany(id, {
         name: company.name,
@@ -67,9 +80,9 @@ export default function CompanyDetail() {
         message_text: company.message_text,
       });
       setCompany(updated);
-      setMessage("Modifications enregistrées.");
+      if (!silent) toast.success("Modifications enregistrées.");
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     } finally {
       setSaving(false);
     }
@@ -77,15 +90,13 @@ export default function CompanyDetail() {
 
   const generate = async () => {
     setGenerating(true);
-    setError("");
-    setMessage("");
     try {
-      await save();
+      await save(true);
       const updated = await api.generateOne(id);
       setCompany(updated);
-      setMessage("Documents générés — télécharge-les ci-dessous.");
+      toast.success("Documents générés — télécharge-les ci-dessous.");
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     } finally {
       setGenerating(false);
     }
@@ -95,8 +106,9 @@ export default function CompanyDetail() {
     try {
       const updated = await api.updateCompany(id, { status: "done" });
       setCompany(updated);
+      toast.success("Marqué comme envoyé.");
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     }
   };
 
@@ -129,6 +141,9 @@ export default function CompanyDetail() {
             value={company.name}
             onChange={set("name")}
           />
+          <span className={`badge shrink-0 ${statusClass[company.status]}`}>
+            {statusLabel[company.status] || company.status}
+          </span>
         </div>
         <div className="grid sm:grid-cols-2 gap-3.5">
           <div>
@@ -159,7 +174,7 @@ export default function CompanyDetail() {
             ? "Régénérer (IA)"
             : "Générer la candidature (IA)"}
         </button>
-        <button onClick={save} disabled={saving} className="btn-secondary">
+        <button onClick={() => save(false)} disabled={saving} className="btn-secondary">
           {saving ? "Enregistrement…" : "Enregistrer"}
         </button>
         <button onClick={removeCompany} className="btn-ghost-danger ml-auto">
@@ -168,12 +183,9 @@ export default function CompanyDetail() {
         </button>
       </div>
 
-      {error && <p className="text-red-600 text-sm">{error}</p>}
-      {message && <p className="text-emerald-600 text-sm">{message}</p>}
-
       {hasGenerated && (
         <>
-          <section className="card card-pad space-y-3">
+          <section className="card card-pad space-y-3 animate-fade-in">
             <div>
               <h2 className="font-semibold text-slate-900">Documents à envoyer</h2>
               <p className="text-sm text-slate-500 mt-0.5">
@@ -219,7 +231,7 @@ export default function CompanyDetail() {
             )}
           </section>
 
-          <section className="card card-pad space-y-3">
+          <section className="card card-pad space-y-3 animate-fade-in">
             <div>
               <h2 className="font-semibold text-slate-900">Petit message d'accompagnement</h2>
               <p className="text-sm text-slate-500 mt-0.5">
@@ -234,11 +246,7 @@ export default function CompanyDetail() {
             />
           </section>
 
-          <button
-            onClick={markDone}
-            disabled={company.status === "done"}
-            className="btn-success"
-          >
+          <button onClick={markDone} disabled={company.status === "done"} className="btn-success">
             <IconCheckCircle className="w-4 h-4" />
             {company.status === "done" ? "Marqué comme envoyé" : "Marquer comme envoyé"}
           </button>

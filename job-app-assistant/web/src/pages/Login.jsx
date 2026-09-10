@@ -22,10 +22,16 @@ export default function Login({ onSuccess }) {
   };
 
   return (
-    <div className="min-h-screen grid place-items-center px-4 bg-gradient-to-b from-indigo-50 via-slate-50 to-slate-50">
-      <form onSubmit={handleSubmit} className="card card-pad w-full max-w-sm">
+    <div className="relative min-h-screen grid place-items-center px-4 overflow-hidden bg-slate-50">
+      <div className="pointer-events-none absolute -top-32 -left-24 w-96 h-96 rounded-full bg-indigo-300/25 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 -right-24 w-96 h-96 rounded-full bg-violet-300/25 blur-3xl" />
+
+      <form
+        onSubmit={handleSubmit}
+        className="relative card card-pad w-full max-w-sm animate-fade-in"
+      >
         <div className="flex flex-col items-center text-center mb-6">
-          <span className="grid place-items-center w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-200 mb-3">
+          <span className="grid place-items-center w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-300/50 mb-3">
             <IconSparkles className="w-6 h-6" />
           </span>
           <h1 className="font-display text-xl font-bold text-slate-900">Assistant Candidatures</h1>
