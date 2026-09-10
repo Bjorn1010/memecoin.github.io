@@ -8,18 +8,22 @@ export default function CompanyDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [company, setCompany] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [generating, setGenerating] = useState(false);
-  const [sending, setSending] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
-  const load = () => api.getCompany(id).then(setCompany);
+  const load = () => {
+    api.getCompany(id).then(setCompany);
+    api.getProfile().then(setProfile);
+  };
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  if (!company) return <p className="text-slate-500">Chargement…</p>;
+  if (!company || !profile) return <p className="text-slate-500">Chargement…</p>;
 
   const cvSuggestions = (() => {
     try {
@@ -41,10 +45,8 @@ export default function CompanyDetail() {
         url: company.url,
         description: company.description,
         source: company.source,
-        contact_email: company.contact_email,
         cover_letter_text: company.cover_letter_text,
-        email_subject: company.email_subject,
-        email_body: company.email_body,
+        message_text: company.message_text,
       });
       setCompany(updated);
       setMessage("Modifications enregistrées.");
@@ -63,7 +65,7 @@ export default function CompanyDetail() {
       await save();
       const updated = await api.generateOne(id);
       setCompany(updated);
-      setMessage("Lettre de motivation et email générés.");
+      setMessage("Lettre de motivation et message générés.");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -71,20 +73,12 @@ export default function CompanyDetail() {
     }
   };
 
-  const send = async () => {
-    if (!confirm(`Envoyer la candidature à ${company.contact_email} ?`)) return;
-    setSending(true);
-    setError("");
-    setMessage("");
+  const markDone = async () => {
     try {
-      await save();
-      const updated = await api.sendOne(id);
+      const updated = await api.updateCompany(id, { status: "done" });
       setCompany(updated);
-      setMessage("Candidature envoyée !");
     } catch (err) {
       setError(err.message);
-    } finally {
-      setSending(false);
     }
   };
 
@@ -93,6 +87,8 @@ export default function CompanyDetail() {
     await api.deleteCompany(id);
     navigate("/entreprises");
   };
+
+  const bulletins = [1, 2, 3].filter((n) => profile[`has_bulletin${n}`]);
 
   return (
     <div className="space-y-5">
@@ -107,16 +103,12 @@ export default function CompanyDetail() {
             <input className={inputClass} value={company.name} onChange={set("name")} />
           </div>
           <div>
-            <label className="block text-sm text-slate-600 mb-1">Email de contact</label>
-            <input className={inputClass} value={company.contact_email} onChange={set("contact_email")} />
-          </div>
-          <div>
-            <label className="block text-sm text-slate-600 mb-1">Lien</label>
-            <input className={inputClass} value={company.url} onChange={set("url")} />
-          </div>
-          <div>
             <label className="block text-sm text-slate-600 mb-1">Où trouvée</label>
             <input className={inputClass} value={company.source} onChange={set("source")} />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-sm text-slate-600 mb-1">Lien</label>
+            <input className={inputClass} value={company.url} onChange={set("url")} />
           </div>
         </div>
         <div>
@@ -148,7 +140,7 @@ export default function CompanyDetail() {
       {error && <p className="text-red-600 text-sm">{error}</p>}
       {message && <p className="text-emerald-600 text-sm">{message}</p>}
 
-      {(company.cover_letter_text || company.email_body) && (
+      {(company.cover_letter_text || company.message_text) && (
         <>
           <section className="bg-white border border-slate-200 rounded-xl p-5">
             <h2 className="font-semibold text-slate-800 mb-2">Lettre de motivation générée</h2>
@@ -174,33 +166,54 @@ export default function CompanyDetail() {
           )}
 
           <section className="bg-white border border-slate-200 rounded-xl p-5 space-y-3">
-            <h2 className="font-semibold text-slate-800">Email de candidature</h2>
-            <div>
-              <label className="block text-sm text-slate-600 mb-1">Objet</label>
-              <input className={inputClass} value={company.email_subject || ""} onChange={set("email_subject")} />
-            </div>
-            <div>
-              <label className="block text-sm text-slate-600 mb-1">Corps du message</label>
-              <textarea
-                className={inputClass}
-                rows={8}
-                value={company.email_body || ""}
-                onChange={set("email_body")}
-              />
-            </div>
-            <p className="text-xs text-slate-500">
-              Le CV et la lettre de motivation (au format .docx) seront joints automatiquement.
+            <h2 className="font-semibold text-slate-800">Petit message d'accompagnement</h2>
+            <textarea
+              className={inputClass}
+              rows={6}
+              value={company.message_text || ""}
+              onChange={set("message_text")}
+            />
+          </section>
+
+          <section className="bg-white border border-slate-200 rounded-xl p-5 space-y-2">
+            <h2 className="font-semibold text-slate-800 mb-1">Documents à envoyer</h2>
+            <p className="text-sm text-slate-500 mb-2">
+              Télécharge tout et envoie-les toi-même (email, SMS, en main propre…) avec le message
+              ci-dessus.
             </p>
+            <ul className="space-y-1 text-sm">
+              <li>
+                <a href="/api/profile/cv" className="text-indigo-600 hover:underline">
+                  📄 CV{profile.cv_filename ? ` (${profile.cv_filename})` : ""}
+                </a>
+              </li>
+              <li>
+                <a
+                  href={`/api/companies/${company.id}/cover-letter.docx`}
+                  className="text-indigo-600 hover:underline"
+                >
+                  📄 Lettre de motivation ({company.name})
+                </a>
+              </li>
+              {bulletins.map((n) => (
+                <li key={n}>
+                  <a href={`/api/profile/bulletin${n}`} className="text-indigo-600 hover:underline">
+                    📄 Bulletin {n} ({profile[`bulletin${n}_filename`]})
+                  </a>
+                </li>
+              ))}
+              {bulletins.length === 0 && (
+                <li className="text-slate-400">
+                  Aucun bulletin importé — ajoute-les dans la page Profil.
+                </li>
+              )}
+            </ul>
             <button
-              onClick={send}
-              disabled={sending || company.status === "sent"}
-              className="bg-emerald-600 text-white rounded-md px-4 py-2 font-medium hover:bg-emerald-700 disabled:opacity-50"
+              onClick={markDone}
+              disabled={company.status === "done"}
+              className="mt-2 bg-emerald-600 text-white rounded-md px-4 py-2 font-medium hover:bg-emerald-700 disabled:opacity-50"
             >
-              {company.status === "sent"
-                ? `Envoyée le ${new Date(company.sent_at).toLocaleString("fr-FR")}`
-                : sending
-                ? "Envoi…"
-                : "Envoyer l'email"}
+              {company.status === "done" ? "Marqué comme envoyé ✓" : "Marquer comme envoyé"}
             </button>
           </section>
         </>

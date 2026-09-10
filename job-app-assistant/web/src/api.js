@@ -31,6 +31,11 @@ export const api = {
     fd.append("file", file);
     return request("/profile/cover-letter", { method: "POST", body: fd });
   },
+  uploadBulletin: (n, file) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return request(`/profile/bulletin${n}`, { method: "POST", body: fd });
+  },
 
   listCompanies: () => request("/companies"),
   getCompany: (id) => request(`/companies/${id}`),
@@ -42,7 +47,4 @@ export const api = {
 
   generateOne: (id) => request(`/generate/${id}`, { method: "POST" }),
   generateAll: () => request("/generate", { method: "POST" }),
-
-  sendOne: (id) => request(`/send/${id}`, { method: "POST" }),
-  sendAll: () => request("/send", { method: "POST" }),
 };

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { db } from "../db.js";
+import { textToDocxBuffer } from "../services/docx.js";
 
 export const companiesRouter = Router();
 
@@ -19,21 +20,20 @@ companiesRouter.get("/:id", (req, res) => {
 });
 
 companiesRouter.post("/", (req, res) => {
-  const { name, url, description, source, contact_email } = req.body || {};
+  const { name, url, description, source } = req.body || {};
   if (!name || !name.trim()) {
     return res.status(400).json({ error: "Le nom de l'entreprise est requis" });
   }
   const info = db
     .prepare(
-      `INSERT INTO companies (name, url, description, source, contact_email)
-       VALUES (@name, @url, @description, @source, @contact_email)`
+      `INSERT INTO companies (name, url, description, source)
+       VALUES (@name, @url, @description, @source)`
     )
     .run({
       name: name.trim(),
       url: url || "",
       description: description || "",
       source: source || "",
-      contact_email: contact_email || "",
     });
   const row = db.prepare("SELECT * FROM companies WHERE id = ?").get(info.lastInsertRowid);
   res.status(201).json(row);
@@ -48,11 +48,9 @@ companiesRouter.put("/:id", (req, res) => {
     "url",
     "description",
     "source",
-    "contact_email",
     "status",
     "cover_letter_text",
-    "email_subject",
-    "email_body",
+    "message_text",
   ];
   const fields = {};
   for (const k of allowed) {
@@ -68,6 +66,30 @@ companiesRouter.put("/:id", (req, res) => {
   }
   const row = db.prepare("SELECT * FROM companies WHERE id = ?").get(req.params.id);
   res.json(row);
+});
+
+companiesRouter.get("/:id/cover-letter.docx", async (req, res) => {
+  const company = db.prepare("SELECT * FROM companies WHERE id = ?").get(req.params.id);
+  if (!company) return res.status(404).json({ error: "Introuvable" });
+  if (!company.cover_letter_text) {
+    return res.status(400).json({ error: "Génère d'abord la lettre de motivation." });
+  }
+  try {
+    const buffer = await textToDocxBuffer(company.cover_letter_text, {
+      title: `Lettre de motivation - ${company.name}`,
+    });
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="Lettre de motivation - ${company.name}.docx"`
+    );
+    res.send(buffer);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 companiesRouter.delete("/:id", (req, res) => {

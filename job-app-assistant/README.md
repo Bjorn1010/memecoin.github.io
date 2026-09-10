@@ -1,56 +1,44 @@
 # Assistant Candidatures
 
-Application web (PC + mobile, via le navigateur) qui automatise tes candidatures :
+Application web (PC + mobile, via le navigateur) qui prépare tes candidatures :
 
-1. Tu renseignes une fois ton **CV** (.docx) et ta **lettre de motivation de référence**.
-2. Pour chaque entreprise, tu donnes son **nom**, un **lien** (offre d'emploi / site
-   carrière) et/ou une **description**, et **où tu l'as trouvée**.
+1. Tu renseignes une fois ton **CV** (.docx), ta **lettre de motivation de référence**, et tes
+   **bulletins scolaires des 3 dernières années**.
+2. Pour chaque entreprise, tu donnes son **nom**, un **lien** (offre d'emploi / site carrière)
+   et/ou une **description**, et **où tu l'as trouvée**.
 3. L'IA (gratuite, via Groq) :
    - récupère automatiquement le contenu de la page si tu as donné un lien,
-   - réécrit ta lettre de motivation pour qu'elle corresponde à 100% à cette
-     entreprise (et l'améliore si elle est faible),
-   - propose (rarement) des ajustements de CV — jamais appliqués automatiquement,
-     c'est toi qui décides,
-   - rédige un email d'accompagnement expliquant pourquoi tu postules et où tu as
-     trouvé l'offre.
-4. Tu relis/modifies si besoin, puis tu envoies l'email (CV + lettre en pièce jointe)
-   en un clic — ou tu envoies **en masse** à toutes les entreprises prêtes d'un coup.
+   - réécrit ta lettre de motivation pour qu'elle corresponde à 100% à cette entreprise (et
+     l'améliore si elle est faible),
+   - propose (rarement) des ajustements de CV — jamais appliqués automatiquement, c'est toi qui
+     décides,
+   - rédige un petit message d'accompagnement (style : "je viens de vous appeler, vous trouverez
+     ci-dessous mon CV, ma lettre de motivation et mes bulletins scolaires...").
+4. Tu relis/modifies si besoin, puis tu **télécharges** le CV, la lettre adaptée et les bulletins
+   depuis la page de l'entreprise, et tu les envoies toi-même (email, SMS, en main propre…) avec
+   le message généré.
 
-Tout est centralisé : plus besoin de retaper une lettre ou un email à la main pour
-chaque entreprise.
+Le logiciel ne t'évite pas l'envoi lui-même (volontairement, pour rester simple et fiable) : il
+prépare tout — texte et fichiers — pour que ça prenne 30 secondes au lieu de tout refaire à la
+main à chaque entreprise.
 
 ## Architecture
 
-- `server/` : API Node.js/Express + base de données SQLite (fichier local). Gère le
-  profil, les entreprises, la génération IA (Groq) et l'envoi d'email (SMTP).
+- `server/` : API Node.js/Express + base de données SQLite (fichier local). Gère le profil
+  (CV, lettre, bulletins) et la génération IA par entreprise (Groq).
 - `web/` : interface React + Tailwind, responsive (PC et mobile).
 
-En production, le serveur sert directement le frontend buildé : une seule
-application à déployer.
+En production, le serveur sert directement le frontend buildé : une seule application à
+déployer.
 
 ## Configuration nécessaire
 
-- **Clé IA gratuite** : crée un compte sur https://console.groq.com (aucune carte
-  bancaire requise), puis génère une clé sur https://console.groq.com/keys et
-  mets-la dans `GROQ_API_KEY`. Offre gratuite généreuse, sans restriction de pays
-  connue (fonctionne depuis la Suisse, contrairement à l'API gratuite de Google
-  Gemini).
-- **Envoi d'email (SMTP)** : pour Gmail, active la validation en 2 étapes puis crée
-  un "mot de passe d'application" sur https://myaccount.google.com/apppasswords.
-  Deux façons de le renseigner :
-  - **Variables d'environnement** `SMTP_USER` / `SMTP_PASS` (voir `.env.example` ou
-    `render.yaml`) : configuré une seule fois côté hébergeur, jamais tapé dans
-    l'appli, et — avantage supplémentaire sur le plan gratuit de Render — ça
-    survit à la réinitialisation de la base de données à chaque redéploiement.
-    **Recommandé.**
-  - Ou directement dans la page **Profil** de l'application (hôte `smtp.gmail.com`,
-    port `587`) — utilisé seulement si les variables d'environnement ci-dessus ne
-    sont pas définies.
-  Tout autre fournisseur email (Outlook, OVH, Infomaniak…) fonctionne aussi tant
-  que tu as ses réglages SMTP.
-- **Mot de passe de l'application** : comme le logiciel est hébergé en ligne et
-  contient des informations personnelles (CV, identifiants email), une page de
-  connexion protège tout par un mot de passe unique que tu choisis (`APP_PASSWORD`).
+- **Clé IA gratuite** : crée un compte sur https://console.groq.com (aucune carte bancaire
+  requise), puis génère une clé sur https://console.groq.com/keys et mets-la dans
+  `GROQ_API_KEY`.
+- **Mot de passe de l'application** : comme le logiciel est hébergé en ligne et contient des
+  informations personnelles (CV, bulletins scolaires), une page de connexion protège tout par un
+  mot de passe unique que tu choisis (`APP_PASSWORD`).
 
 ## Lancer en local
 
@@ -68,43 +56,37 @@ Ouvre http://localhost:5173 (le frontend redirige les appels API vers le port 87
 
 ## Déployer en ligne gratuitement (Render.com)
 
-1. Crée un compte gratuit sur https://render.com (aucune carte bancaire nécessaire
-   pour le plan gratuit).
-2. "New +" → "Blueprint", pointe vers ce dépôt (ou vers un fork si tu préfères
-   séparer ce projet). Render détecte `render.yaml` et propose de créer le service
-   automatiquement.
-3. Renseigne les variables d'environnement demandées : `APP_PASSWORD`,
-   `GROQ_API_KEY`, `SMTP_USER`, `SMTP_PASS` (mot de passe d'application Gmail) et
-   éventuellement `SMTP_FROM_NAME` (le `SESSION_SECRET` est généré
-   automatiquement).
-4. Render build l'image Docker et déploie. Une fois terminé, tu obtiens une URL du
-   type `https://assistant-candidatures.onrender.com`, accessible depuis ton PC et
-   ton téléphone.
+1. Crée un compte gratuit sur https://render.com (aucune carte bancaire nécessaire pour le plan
+   gratuit).
+2. "New +" → "Blueprint", pointe vers ce dépôt. Render détecte `render.yaml` (dans
+   `job-app-assistant/`) et propose de créer le service automatiquement.
+3. Renseigne les variables d'environnement demandées : `APP_PASSWORD`, `GROQ_API_KEY` (le
+   `SESSION_SECRET` est généré automatiquement).
+4. Render build l'image Docker et déploie. Une fois terminé, tu obtiens une URL du type
+   `https://assistant-candidatures.onrender.com`, accessible depuis ton PC et ton téléphone.
 
-⚠️ Le plan gratuit de Render met le service en veille après un moment d'inactivité :
-la première requête après une pause peut prendre ~30 secondes à répondre, c'est
-normal.
+⚠️ Le plan gratuit de Render met le service en veille après un moment d'inactivité : la première
+requête après une pause peut prendre ~30 secondes à répondre, c'est normal.
 
-⚠️ Le plan gratuit de Render ne permet pas de disque persistant : la base de
-données (profil, entreprises, lettres générées) est donc **réinitialisée à chaque
-redéploiement** (par exemple si tu modifies le code) — mais pas lors d'une simple
-mise en veille/réveil. Pour un usage plus durable, passe au plan payant le moins
-cher de Render (~7 $/mois) et réajoute un bloc `disk` dans `render.yaml`, ou héberge
-sur un service avec stockage persistant inclus (un petit VPS, par exemple).
+⚠️ Le plan gratuit de Render ne permet pas de disque persistant : la base de données (profil,
+entreprises, lettres générées) est donc **réinitialisée à chaque redéploiement** (par exemple si
+tu modifies le code) — mais pas lors d'une simple mise en veille/réveil. Pour un usage plus
+durable, passe au plan payant le moins cher de Render (~7 $/mois) et ajoute un bloc `disk` dans
+`render.yaml`, ou héberge sur un service avec stockage persistant inclus (un petit VPS, par
+exemple).
 
-Tu peux aussi déployer l'image Docker (`Dockerfile` à la racine) sur n'importe quel
-autre hébergeur (Railway, Fly.io, un VPS…).
+Tu peux aussi déployer l'image Docker (`Dockerfile` à la racine du dossier `job-app-assistant/`)
+sur n'importe quel autre hébergeur (Railway, Fly.io, un VPS…).
 
 ## Limites connues
 
-- La génération et l'envoi "en masse" traitent les entreprises l'une après l'autre
-  (pas en parallèle), pour rester dans les limites gratuites de l'API IA et éviter
-  d'être marqué comme spam par les serveurs email.
-- Le CV n'est jamais modifié automatiquement : l'IA ne fait que proposer des pistes
-  texte, à appliquer toi-même dans ton fichier .docx si tu les juges pertinentes,
-  puis à réimporter dans la page Profil.
-- La lettre de motivation générée est envoyée sous forme de nouveau fichier .docx
-  avec une mise en page simple et propre (pas une copie pixel-perfect d'une mise en
-  page existante).
-- Une seule "identité" (profil) par installation : pensé pour un usage personnel,
-  pas multi-utilisateurs.
+- Le CV n'est jamais modifié automatiquement : l'IA ne fait que proposer des pistes texte, à
+  appliquer toi-même dans ton fichier .docx si tu les juges pertinentes, puis à réimporter dans
+  la page Profil.
+- La lettre de motivation générée est fournie en téléchargement sous forme de nouveau fichier
+  .docx avec une mise en page simple et propre (pas une copie pixel-perfect d'une mise en page
+  existante).
+- Pas d'envoi automatique d'email : tu télécharges les documents et envoies toi-même. C'est un
+  choix volontaire pour éviter la complexité et les pannes liées à l'envoi SMTP.
+- Une seule "identité" (profil) par installation : pensé pour un usage personnel, pas
+  multi-utilisateurs.
