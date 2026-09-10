@@ -20,9 +20,9 @@ const statusLabel = {
   done: "Envoyée",
 };
 const statusClass = {
-  pending: "bg-slate-100 text-slate-600",
-  generated: "bg-amber-100 text-amber-700",
-  done: "bg-emerald-100 text-emerald-700",
+  pending: "bg-slate-800 text-slate-300",
+  generated: "bg-amber-500/15 text-amber-400",
+  done: "bg-emerald-500/15 text-emerald-400",
 };
 
 function StatCard({ icon, label, value, tone }) {
@@ -30,8 +30,8 @@ function StatCard({ icon, label, value, tone }) {
     <div className="stat-card">
       <span className={`grid place-items-center w-10 h-10 shrink-0 rounded-xl ${tone}`}>{icon}</span>
       <div>
-        <p className="text-2xl font-display font-bold text-slate-900 leading-none">{value}</p>
-        <p className="text-xs text-slate-500 mt-1">{label}</p>
+        <p className="text-2xl font-display font-bold text-white leading-none">{value}</p>
+        <p className="text-xs text-slate-400 mt-1">{label}</p>
       </div>
     </div>
   );
@@ -92,8 +92,8 @@ export default function Companies() {
     <div className="space-y-6">
       <div className="flex flex-wrap gap-3 justify-between items-end">
         <div>
-          <h1 className="font-display text-2xl font-bold text-slate-900">Entreprises</h1>
-          <p className="text-sm text-slate-500 mt-1">Une fiche par candidature à préparer.</p>
+          <h1 className="font-display text-2xl font-bold text-white">Entreprises</h1>
+          <p className="text-sm text-slate-400 mt-1">Une fiche par candidature à préparer.</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           <button onClick={() => setShowForm((v) => !v)} className="btn-secondary">
@@ -121,25 +121,25 @@ export default function Companies() {
             icon={<IconInbox className="w-5 h-5" />}
             label="Total"
             value={counts.total}
-            tone="bg-slate-100 text-slate-600"
+            tone="bg-slate-800 text-slate-300"
           />
           <StatCard
             icon={<IconClock className="w-5 h-5" />}
             label="En attente"
             value={counts.pending}
-            tone="bg-slate-100 text-slate-600"
+            tone="bg-slate-800 text-slate-300"
           />
           <StatCard
             icon={<IconSparkles className="w-5 h-5" />}
             label="Prêtes"
             value={counts.generated}
-            tone="bg-amber-100 text-amber-700"
+            tone="bg-amber-500/15 text-amber-400"
           />
           <StatCard
             icon={<IconCheckCircle className="w-5 h-5" />}
             label="Envoyées"
             value={counts.done}
-            tone="bg-emerald-100 text-emerald-700"
+            tone="bg-emerald-500/15 text-emerald-400"
           />
         </div>
       )}
@@ -193,11 +193,11 @@ export default function Companies() {
 
         {companies && companies.length === 0 && (
           <div className="card card-pad text-center py-12">
-            <span className="grid place-items-center w-12 h-12 mx-auto rounded-2xl bg-indigo-50 text-indigo-500 mb-3">
+            <span className="grid place-items-center w-12 h-12 mx-auto rounded-2xl bg-indigo-500/15 text-indigo-400 mb-3">
               <IconBuilding className="w-6 h-6" />
             </span>
-            <p className="font-medium text-slate-700">Aucune entreprise pour l'instant</p>
-            <p className="text-sm text-slate-500 mt-1">Ajoutes-en une pour commencer.</p>
+            <p className="font-medium text-slate-200">Aucune entreprise pour l'instant</p>
+            <p className="text-sm text-slate-400 mt-1">Ajoutes-en une pour commencer.</p>
           </div>
         )}
 
@@ -207,13 +207,13 @@ export default function Companies() {
             className="card card-pad flex items-center justify-between gap-3 flex-wrap hover:shadow-card transition-shadow"
           >
             <Link to={`/entreprises/${c.id}`} className="flex items-center gap-3 min-w-0 flex-1">
-              <span className="grid place-items-center w-10 h-10 shrink-0 rounded-xl bg-indigo-50 text-indigo-600">
+              <span className="grid place-items-center w-10 h-10 shrink-0 rounded-xl bg-indigo-500/15 text-indigo-400">
                 <IconBuilding className="w-5 h-5" />
               </span>
               <div className="min-w-0">
-                <p className="font-semibold text-slate-900 truncate">{c.name}</p>
+                <p className="font-semibold text-white truncate">{c.name}</p>
                 {(c.source || c.url) && (
-                  <p className="flex items-center gap-1 text-xs text-slate-500 truncate mt-0.5">
+                  <p className="flex items-center gap-1 text-xs text-slate-400 truncate mt-0.5">
                     <IconMapPin className="w-3.5 h-3.5 shrink-0" />
                     <span className="truncate">{c.source || c.url}</span>
                   </p>
@@ -227,7 +227,7 @@ export default function Companies() {
               </span>
               <button
                 onClick={() => removeCompany(c.id)}
-                className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                className="p-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                 title="Supprimer"
               >
                 <IconTrash className="w-4 h-4" />

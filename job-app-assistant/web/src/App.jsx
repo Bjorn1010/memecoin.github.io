@@ -3,7 +3,7 @@ import { Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { api } from "./api.js";
 import { ToastProvider } from "./components/Toast.jsx";
 import Sidebar from "./components/Sidebar.jsx";
-import { IconMenu, IconSparkles } from "./components/Icons.jsx";
+import { IconMenu } from "./components/Icons.jsx";
 import Login from "./pages/Login.jsx";
 import Setup from "./pages/Setup.jsx";
 import Companies from "./pages/Companies.jsx";
@@ -22,18 +22,16 @@ function Shell({ onLogout }) {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} onLogout={onLogout} />
 
       <div className="flex-1 min-w-0">
-        <header className="md:hidden sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-slate-200 h-14 flex items-center gap-3 px-4">
+        <header className="md:hidden sticky top-0 z-20 bg-slate-950/90 backdrop-blur border-b border-slate-800 h-14 flex items-center gap-3 px-4">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-1.5 -ml-1.5 rounded-lg text-slate-500 hover:bg-slate-100"
+            className="p-1.5 -ml-1.5 rounded-lg text-slate-400 hover:bg-slate-800"
           >
             <IconMenu className="w-5 h-5" />
           </button>
-          <div className="flex items-center gap-2 font-display font-bold text-slate-900">
-            <span className="grid place-items-center w-6 h-6 rounded-md bg-gradient-to-br from-indigo-600 to-violet-600 text-white">
-              <IconSparkles className="w-3.5 h-3.5" />
-            </span>
-            Assistant Candidatures
+          <div className="flex items-center gap-2 font-display font-bold text-white">
+            <img src="/logo.png" alt="CandidAI" className="w-6 h-6 rounded-md" />
+            CandidAI
           </div>
         </header>
 
