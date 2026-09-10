@@ -1,16 +1,29 @@
-import Database from "better-sqlite3";
+import { createClient } from "@libsql/client";
 import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dataDir = path.join(__dirname, "..", "data");
-fs.mkdirSync(dataDir, { recursive: true });
 
-export const db = new Database(path.join(dataDir, "app.db"));
-db.pragma("journal_mode = WAL");
+/**
+ * En production, pointe vers une base Turso distante (persistante, gratuite)
+ * via TURSO_DATABASE_URL/TURSO_AUTH_TOKEN. En local, sans ces variables,
+ * retombe sur un fichier SQLite local (pratique pour développer hors ligne).
+ */
+export const db = process.env.TURSO_DATABASE_URL
+  ? createClient({
+      url: process.env.TURSO_DATABASE_URL,
+      authToken: process.env.TURSO_AUTH_TOKEN,
+    })
+  : createClient({
+      url: `file:${(() => {
+        const dataDir = path.join(__dirname, "..", "data");
+        fs.mkdirSync(dataDir, { recursive: true });
+        return path.join(dataDir, "app.db");
+      })()}`,
+    });
 
-db.exec(`
+await db.executeMultiple(`
   CREATE TABLE IF NOT EXISTS profile (
     id INTEGER PRIMARY KEY CHECK (id = 1),
     full_name TEXT DEFAULT '',
@@ -50,16 +63,22 @@ db.exec(`
   );
 `);
 
-const profileRow = db.prepare("SELECT id FROM profile WHERE id = 1").get();
-if (!profileRow) {
-  db.prepare("INSERT INTO profile (id) VALUES (1)").run();
+const { rows: profileRows } = await db.execute("SELECT id FROM profile WHERE id = 1");
+if (profileRows.length === 0) {
+  await db.execute("INSERT INTO profile (id) VALUES (1)");
 }
 
-export function getProfile() {
-  return db.prepare("SELECT * FROM profile WHERE id = 1").get();
+/** Convertit une colonne BLOB renvoyée par libsql (ArrayBuffer/Uint8Array) en Buffer Node. */
+export function toBuffer(value) {
+  return value == null ? null : Buffer.from(value);
 }
 
-export function updateProfile(fields) {
+export async function getProfile() {
+  const { rows } = await db.execute("SELECT * FROM profile WHERE id = 1");
+  return rows[0];
+}
+
+export async function updateProfile(fields) {
   const allowed = [
     "full_name",
     "cv_text",
@@ -82,7 +101,8 @@ export function updateProfile(fields) {
   ];
   const keys = Object.keys(fields).filter((k) => allowed.includes(k));
   if (keys.length === 0) return getProfile();
-  const setClause = keys.map((k) => `${k} = @${k}`).join(", ");
-  db.prepare(`UPDATE profile SET ${setClause} WHERE id = 1`).run(fields);
+  const setClause = keys.map((k) => `${k} = ?`).join(", ");
+  const args = keys.map((k) => fields[k]);
+  await db.execute({ sql: `UPDATE profile SET ${setClause} WHERE id = 1`, args });
   return getProfile();
 }
