@@ -15,6 +15,14 @@ export function buildTransport(profile) {
       user: profile.smtp_user,
       pass: profile.smtp_pass,
     },
+    // Certains hébergeurs (dont Render) ont un chemin IPv6 cassé vers Gmail :
+    // la connexion reste bloquée jusqu'au timeout de la plateforme (→ 502) au
+    // lieu d'échouer proprement. On force IPv4 et on met des délais courts
+    // pour échouer vite avec un message clair.
+    family: 4,
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 20000,
   });
 }
 
