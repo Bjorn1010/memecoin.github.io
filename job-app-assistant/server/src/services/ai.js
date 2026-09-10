@@ -76,10 +76,14 @@ Tâches :
    le candidat, et améliore la lettre de base si elle est faible (ton, structure, clarté, accroche,
    conclusion). Garde le style et les informations personnelles réelles du candidat (ne pas inventer
    de diplômes/expériences qui ne sont pas dans le CV ou la lettre de base). Longueur : 250 à 400 mots.
-2. Indique si le CV a besoin d'être modifié pour ce poste précis. C'est RARE : ne propose des
-   changements QUE si c'est vraiment utile (ex: réordonner 2 expériences, mettre en avant une
-   compétence déjà présente dans le CV). Ne jamais inventer de contenu absent du CV. Si rien à changer,
-   renvoie une liste vide.
+2. Décide si le CV a besoin d'être modifié pour ce poste précis. C'est RARE : ne le fais QUE si
+   c'est vraiment utile (ex: réordonner 2 expériences, mettre en avant une compétence déjà
+   présente dans le CV, reformuler un intitulé pour mieux correspondre à l'offre). Ne JAMAIS
+   inventer de diplôme, expérience ou compétence absente du CV fourni.
+   - Si un changement est justifié : renvoie dans "cv_modifie" le TEXTE COMPLET du CV modifié
+     (toutes les sections, pas seulement la partie changée, pour pouvoir régénérer le document
+     en entier), et dans "cv_changement_resume" une phrase expliquant ce qui a changé et pourquoi.
+   - Si rien à changer (cas le plus fréquent) : renvoie une chaîne vide ("") pour ces deux champs.
 3. Rédige un petit message court (3-4 phrases maximum, en français) qui accompagne l'envoi des
    documents suite à un appel téléphonique que le candidat vient de passer à l'entreprise. Le message
    doit : mentionner que le candidat vient d'appeler, dire qu'il joint ci-dessous son CV, sa lettre de
@@ -89,7 +93,8 @@ Tâches :
 Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, au format exact :
 {
   "cover_letter": "texte complet de la lettre",
-  "cv_suggestions": ["suggestion 1", "suggestion 2"],
+  "cv_modifie": "texte complet du CV modifié, ou chaîne vide si aucun changement",
+  "cv_changement_resume": "explication courte du changement, ou chaîne vide",
   "message_text": "le petit message d'accompagnement (signé ${fullName || "(prénom du candidat)"})"
 }
 `.trim();
@@ -97,7 +102,8 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, au format exac
   const data = await askJson(prompt);
   return {
     coverLetter: data.cover_letter || "",
-    cvSuggestions: Array.isArray(data.cv_suggestions) ? data.cv_suggestions : [],
+    cvModifiedText: data.cv_modifie || "",
+    cvChangeSummary: data.cv_changement_resume || "",
     messageText: data.message_text || "",
   };
 }

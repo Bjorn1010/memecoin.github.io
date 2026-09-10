@@ -25,14 +25,6 @@ export default function CompanyDetail() {
 
   if (!company || !profile) return <p className="text-slate-500">Chargement…</p>;
 
-  const cvSuggestions = (() => {
-    try {
-      return JSON.parse(company.cv_suggestions || "[]");
-    } catch {
-      return [];
-    }
-  })();
-
   const set = (key) => (e) => setCompany({ ...company, [key]: e.target.value });
 
   const save = async () => {
@@ -45,7 +37,6 @@ export default function CompanyDetail() {
         url: company.url,
         description: company.description,
         source: company.source,
-        cover_letter_text: company.cover_letter_text,
         message_text: company.message_text,
       });
       setCompany(updated);
@@ -65,7 +56,7 @@ export default function CompanyDetail() {
       await save();
       const updated = await api.generateOne(id);
       setCompany(updated);
-      setMessage("Lettre de motivation et message générés.");
+      setMessage("Documents générés — télécharge-les ci-dessous.");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -89,6 +80,7 @@ export default function CompanyDetail() {
   };
 
   const bulletins = [1, 2, 3].filter((n) => profile[`has_bulletin${n}`]);
+  const hasGenerated = company.cover_letter_text || company.message_text;
 
   return (
     <div className="space-y-5">
@@ -123,7 +115,11 @@ export default function CompanyDetail() {
           disabled={generating}
           className="bg-indigo-600 text-white rounded-md px-4 py-2 font-medium hover:bg-indigo-700 disabled:opacity-50"
         >
-          {generating ? "Génération en cours…" : "Générer la candidature (IA)"}
+          {generating
+            ? "Génération en cours…"
+            : hasGenerated
+            ? "Régénérer la candidature (IA)"
+            : "Générer la candidature (IA)"}
         </button>
         <button
           onClick={save}
@@ -140,46 +136,13 @@ export default function CompanyDetail() {
       {error && <p className="text-red-600 text-sm">{error}</p>}
       {message && <p className="text-emerald-600 text-sm">{message}</p>}
 
-      {(company.cover_letter_text || company.message_text) && (
+      {hasGenerated && (
         <>
-          <section className="bg-white border border-slate-200 rounded-xl p-5">
-            <h2 className="font-semibold text-slate-800 mb-2">Lettre de motivation générée</h2>
-            <textarea
-              className={inputClass}
-              rows={14}
-              value={company.cover_letter_text || ""}
-              onChange={set("cover_letter_text")}
-            />
-          </section>
-
-          {cvSuggestions.length > 0 && (
-            <section className="bg-amber-50 border border-amber-200 rounded-xl p-5">
-              <h2 className="font-semibold text-amber-800 mb-2">
-                Suggestions de modification du CV (à toi de décider — le CV n'est pas modifié automatiquement)
-              </h2>
-              <ul className="list-disc list-inside text-sm text-amber-900 space-y-1">
-                {cvSuggestions.map((s, i) => (
-                  <li key={i}>{s}</li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          <section className="bg-white border border-slate-200 rounded-xl p-5 space-y-3">
-            <h2 className="font-semibold text-slate-800">Petit message d'accompagnement</h2>
-            <textarea
-              className={inputClass}
-              rows={6}
-              value={company.message_text || ""}
-              onChange={set("message_text")}
-            />
-          </section>
-
           <section className="bg-white border border-slate-200 rounded-xl p-5 space-y-2">
             <h2 className="font-semibold text-slate-800 mb-1">Documents à envoyer</h2>
             <p className="text-sm text-slate-500 mb-2">
               Télécharge tout et envoie-les toi-même (email, SMS, en main propre…) avec le message
-              ci-dessus.
+              ci-dessous.
             </p>
             <ul className="space-y-1 text-sm">
               <li>
@@ -187,6 +150,19 @@ export default function CompanyDetail() {
                   📄 CV{profile.cv_filename ? ` (${profile.cv_filename})` : ""}
                 </a>
               </li>
+              {company.cv_modified_text && (
+                <li>
+                  <a
+                    href={`/api/companies/${company.id}/cv-modifie.docx`}
+                    className="text-indigo-600 hover:underline"
+                  >
+                    📄 CV modifié pour cette candidature
+                  </a>
+                  {company.cv_change_summary && (
+                    <span className="text-slate-500"> — {company.cv_change_summary}</span>
+                  )}
+                </li>
+              )}
               <li>
                 <a
                   href={`/api/companies/${company.id}/cover-letter.docx`}
@@ -208,14 +184,28 @@ export default function CompanyDetail() {
                 </li>
               )}
             </ul>
-            <button
-              onClick={markDone}
-              disabled={company.status === "done"}
-              className="mt-2 bg-emerald-600 text-white rounded-md px-4 py-2 font-medium hover:bg-emerald-700 disabled:opacity-50"
-            >
-              {company.status === "done" ? "Marqué comme envoyé ✓" : "Marquer comme envoyé"}
-            </button>
           </section>
+
+          <section className="bg-white border border-slate-200 rounded-xl p-5 space-y-3">
+            <h2 className="font-semibold text-slate-800">Petit message d'accompagnement</h2>
+            <p className="text-sm text-slate-500">
+              À copier-coller dans ton email/SMS en attachant les fichiers ci-dessus.
+            </p>
+            <textarea
+              className={inputClass}
+              rows={6}
+              value={company.message_text || ""}
+              onChange={set("message_text")}
+            />
+          </section>
+
+          <button
+            onClick={markDone}
+            disabled={company.status === "done"}
+            className="bg-emerald-600 text-white rounded-md px-4 py-2 font-medium hover:bg-emerald-700 disabled:opacity-50"
+          >
+            {company.status === "done" ? "Marqué comme envoyé ✓" : "Marquer comme envoyé"}
+          </button>
         </>
       )}
     </div>

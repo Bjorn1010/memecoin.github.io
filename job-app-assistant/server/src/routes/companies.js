@@ -68,6 +68,16 @@ companiesRouter.put("/:id", (req, res) => {
   res.json(row);
 });
 
+async function sendGeneratedDocx(res, { text, title, filename }) {
+  const buffer = await textToDocxBuffer(text, { title });
+  res.setHeader(
+    "Content-Type",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  );
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  res.send(buffer);
+}
+
 companiesRouter.get("/:id/cover-letter.docx", async (req, res) => {
   const company = db.prepare("SELECT * FROM companies WHERE id = ?").get(req.params.id);
   if (!company) return res.status(404).json({ error: "Introuvable" });
@@ -75,18 +85,28 @@ companiesRouter.get("/:id/cover-letter.docx", async (req, res) => {
     return res.status(400).json({ error: "Génère d'abord la lettre de motivation." });
   }
   try {
-    const buffer = await textToDocxBuffer(company.cover_letter_text, {
+    await sendGeneratedDocx(res, {
+      text: company.cover_letter_text,
       title: `Lettre de motivation - ${company.name}`,
+      filename: `Lettre de motivation - ${company.name}.docx`,
     });
-    res.setHeader(
-      "Content-Type",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    );
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="Lettre de motivation - ${company.name}.docx"`
-    );
-    res.send(buffer);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+companiesRouter.get("/:id/cv-modifie.docx", async (req, res) => {
+  const company = db.prepare("SELECT * FROM companies WHERE id = ?").get(req.params.id);
+  if (!company) return res.status(404).json({ error: "Introuvable" });
+  if (!company.cv_modified_text) {
+    return res.status(404).json({ error: "Aucun CV modifié pour cette entreprise." });
+  }
+  try {
+    await sendGeneratedDocx(res, {
+      text: company.cv_modified_text,
+      title: `CV - ${company.name}`,
+      filename: `CV modifie - ${company.name}.docx`,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
