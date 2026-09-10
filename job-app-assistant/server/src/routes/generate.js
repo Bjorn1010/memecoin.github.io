@@ -23,7 +23,8 @@ async function generateForCompany(company, profile) {
   db.prepare(
     `UPDATE companies SET
        cover_letter_text = @cover_letter_text,
-       cv_suggestions = @cv_suggestions,
+       cv_modified_text = @cv_modified_text,
+       cv_change_summary = @cv_change_summary,
        message_text = @message_text,
        fetched_context = @fetched_context,
        status = 'generated',
@@ -32,7 +33,8 @@ async function generateForCompany(company, profile) {
   ).run({
     id: company.id,
     cover_letter_text: result.coverLetter,
-    cv_suggestions: JSON.stringify(result.cvSuggestions),
+    cv_modified_text: result.cvModifiedText,
+    cv_change_summary: result.cvChangeSummary,
     message_text: result.messageText,
     fetched_context: fetchedContext,
   });
