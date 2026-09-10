@@ -1,4 +1,4 @@
-# Assistant Candidatures
+# CandidAI
 
 Application web (PC + mobile, via le navigateur) qui prépare tes candidatures :
 

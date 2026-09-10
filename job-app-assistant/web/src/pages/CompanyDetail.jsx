@@ -16,25 +16,25 @@ import {
 
 const statusLabel = { pending: "En attente", generated: "Prête", done: "Envoyée" };
 const statusClass = {
-  pending: "bg-slate-100 text-slate-600",
-  generated: "bg-amber-100 text-amber-700",
-  done: "bg-emerald-100 text-emerald-700",
+  pending: "bg-slate-800 text-slate-300",
+  generated: "bg-amber-500/15 text-amber-400",
+  done: "bg-emerald-500/15 text-emerald-400",
 };
 
 function DocCard({ href, title, subtitle, icon }) {
   return (
     <a
       href={href}
-      className="flex items-center gap-3 rounded-xl border border-slate-200 p-3.5 hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors group"
+      className="flex items-center gap-3 rounded-xl border border-slate-800 p-3.5 hover:border-indigo-500/50 hover:bg-indigo-500/10 transition-colors group"
     >
-      <span className="grid place-items-center w-10 h-10 shrink-0 rounded-lg bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100">
+      <span className="grid place-items-center w-10 h-10 shrink-0 rounded-lg bg-indigo-500/15 text-indigo-400 group-hover:bg-indigo-500/25">
         {icon}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="font-medium text-slate-900 text-sm truncate">{title}</p>
-        {subtitle && <p className="text-xs text-slate-500 truncate">{subtitle}</p>}
+        <p className="font-medium text-white text-sm truncate">{title}</p>
+        {subtitle && <p className="text-xs text-slate-400 truncate">{subtitle}</p>}
       </div>
-      <IconDownload className="w-4 h-4 text-slate-400 shrink-0 group-hover:text-indigo-600" />
+      <IconDownload className="w-4 h-4 text-slate-500 shrink-0 group-hover:text-indigo-400" />
     </a>
   );
 }
@@ -125,7 +125,7 @@ export default function CompanyDetail() {
     <div className="space-y-6">
       <button
         onClick={() => navigate("/entreprises")}
-        className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors"
+        className="flex items-center gap-1.5 text-sm font-medium text-slate-400 hover:text-white transition-colors"
       >
         <IconArrowLeft className="w-4 h-4" />
         Entreprises
@@ -133,11 +133,11 @@ export default function CompanyDetail() {
 
       <section className="card card-pad space-y-4">
         <div className="flex items-center gap-3">
-          <span className="grid place-items-center w-10 h-10 shrink-0 rounded-xl bg-indigo-50 text-indigo-600">
+          <span className="grid place-items-center w-10 h-10 shrink-0 rounded-xl bg-indigo-500/15 text-indigo-400">
             <IconBuilding className="w-5 h-5" />
           </span>
           <input
-            className="font-display text-lg font-bold text-slate-900 bg-transparent border-0 focus:outline-none focus:ring-0 p-0 flex-1 min-w-0"
+            className="font-display text-lg font-bold text-white bg-transparent border-0 focus:outline-none focus:ring-0 p-0 flex-1 min-w-0"
             value={company.name}
             onChange={set("name")}
           />
@@ -187,8 +187,8 @@ export default function CompanyDetail() {
         <>
           <section className="card card-pad space-y-3 animate-fade-in">
             <div>
-              <h2 className="font-semibold text-slate-900">Documents à envoyer</h2>
-              <p className="text-sm text-slate-500 mt-0.5">
+              <h2 className="font-semibold text-white">Documents à envoyer</h2>
+              <p className="text-sm text-slate-400 mt-0.5">
                 Télécharge et envoie-les toi-même (email, SMS, en main propre…) avec le message
                 ci-dessous.
               </p>
@@ -233,8 +233,8 @@ export default function CompanyDetail() {
 
           <section className="card card-pad space-y-3 animate-fade-in">
             <div>
-              <h2 className="font-semibold text-slate-900">Petit message d'accompagnement</h2>
-              <p className="text-sm text-slate-500 mt-0.5">
+              <h2 className="font-semibold text-white">Petit message d'accompagnement</h2>
+              <p className="text-sm text-slate-400 mt-0.5">
                 À copier-coller dans ton email/SMS en attachant les fichiers ci-dessus.
               </p>
             </div>

@@ -38,10 +38,10 @@ export function ToastProvider({ children }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`pointer-events-auto flex items-start gap-2.5 w-full sm:w-auto sm:min-w-[300px] max-w-sm rounded-xl border px-4 py-3 shadow-card animate-toast-in ${
+            className={`pointer-events-auto flex items-start gap-2.5 w-full sm:w-auto sm:min-w-[300px] max-w-sm rounded-xl border bg-slate-900 px-4 py-3 shadow-card animate-toast-in ${
               t.variant === "success"
-                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                : "bg-red-50 border-red-200 text-red-800"
+                ? "border-emerald-500/40 text-emerald-300"
+                : "border-red-500/40 text-red-300"
             }`}
           >
             {t.variant === "success" ? (

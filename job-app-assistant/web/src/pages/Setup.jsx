@@ -13,12 +13,12 @@ import {
 function SectionHeader({ icon, title, subtitle }) {
   return (
     <div className="flex items-start gap-3 mb-4">
-      <span className="grid place-items-center w-9 h-9 shrink-0 rounded-xl bg-indigo-50 text-indigo-600">
+      <span className="grid place-items-center w-9 h-9 shrink-0 rounded-xl bg-indigo-500/15 text-indigo-400">
         {icon}
       </span>
       <div>
-        <h2 className="font-semibold text-slate-900">{title}</h2>
-        {subtitle && <p className="text-sm text-slate-500 mt-0.5">{subtitle}</p>}
+        <h2 className="font-semibold text-white">{title}</h2>
+        {subtitle && <p className="text-sm text-slate-400 mt-0.5">{subtitle}</p>}
       </div>
     </div>
   );
@@ -36,7 +36,7 @@ function FileField({ label, accept, filename, onChange }) {
         <input type="file" accept={accept} onChange={onChange} className="hidden" />
       </label>
       {filename && (
-        <p className="flex items-center gap-1.5 text-sm text-emerald-700 mt-2">
+        <p className="flex items-center gap-1.5 text-sm text-emerald-400 mt-2">
           <IconCheckCircle className="w-4 h-4 shrink-0" />
           {filename}
         </p>
@@ -136,20 +136,20 @@ export default function Setup() {
   return (
     <div className="space-y-6 pb-24">
       <div>
-        <h1 className="font-display text-2xl font-bold text-slate-900">Ton profil</h1>
-        <p className="text-sm text-slate-500 mt-1">
+        <h1 className="font-display text-2xl font-bold text-white">Ton profil</h1>
+        <p className="text-sm text-slate-400 mt-1">
           À remplir une seule fois — sert de base pour toutes tes candidatures.
         </p>
       </div>
 
       <div className="card card-pad">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-medium text-slate-700">
+          <p className="text-sm font-medium text-slate-200">
             {complete ? "Profil complet" : "Progression du profil"}
           </p>
-          <p className="text-sm text-slate-500">{doneCount}/{steps.length}</p>
+          <p className="text-sm text-slate-400">{doneCount}/{steps.length}</p>
         </div>
-        <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+        <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
           <div
             className={`h-full rounded-full transition-all duration-500 ${
               complete ? "bg-emerald-500" : "bg-gradient-to-r from-indigo-500 to-violet-500"
@@ -208,7 +208,7 @@ export default function Setup() {
         </div>
       </section>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur border-t border-slate-200 px-4 py-3 sm:static sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:px-0 sm:py-0">
+      <div className="fixed bottom-0 left-0 right-0 bg-slate-950/90 backdrop-blur border-t border-slate-800 px-4 py-3 sm:static sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:px-0 sm:py-0">
         <div className="max-w-3xl mx-auto flex items-center gap-3">
           <button onClick={save} disabled={saving} className="btn-primary">
             {saving && <IconLoader className="w-4 h-4 animate-spin-slow" />}
