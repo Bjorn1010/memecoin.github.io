@@ -24,8 +24,8 @@ main à chaque entreprise.
 
 ## Architecture
 
-- `server/` : API Node.js/Express + base de données SQLite (fichier local). Gère le profil
-  (CV, lettre, bulletins) et la génération IA par entreprise (Groq).
+- `server/` : API Node.js/Express + base de données SQLite compatible Turso (persistante,
+  hébergée). Gère le profil (CV, lettre, bulletins) et la génération IA par entreprise (Groq).
 - `web/` : interface React + Tailwind, responsive (PC et mobile).
 
 En production, le serveur sert directement le frontend buildé : une seule application à
@@ -39,12 +39,22 @@ déployer.
 - **Mot de passe de l'application** : comme le logiciel est hébergé en ligne et contient des
   informations personnelles (CV, bulletins scolaires), une page de connexion protège tout par un
   mot de passe unique que tu choisis (`APP_PASSWORD`).
+- **Base de données Turso (gratuite, persistante)** : sans ça, tes données (profil, CV, lettres,
+  entreprises) seraient effacées à chaque redéploiement sur le plan gratuit de Render.
+  1. Crée un compte gratuit sur https://turso.tech (aucune carte bancaire requise).
+  2. Crée une base de données (bouton "Create Database" dans le dashboard, n'importe quel nom,
+     n'importe quelle région).
+  3. Dans la page de la base, récupère l'**URL** (commence par `libsql://…`) et crée un **token**
+     ("Create Token") — copie les deux.
+  4. Mets l'URL dans `TURSO_DATABASE_URL` et le token dans `TURSO_AUTH_TOKEN`.
 
 ## Lancer en local
 
 ```bash
 cd server && npm install && cp .env.example .env
 # édite .env : APP_PASSWORD, SESSION_SECRET, GROQ_API_KEY
+# (TURSO_DATABASE_URL/TURSO_AUTH_TOKEN sont optionnels en local : sans eux, un
+# fichier SQLite local est utilisé automatiquement — voir server/data/app.db)
 npm run dev        # démarre l'API sur http://localhost:8787
 
 # dans un autre terminal
@@ -60,7 +70,8 @@ Ouvre http://localhost:5173 (le frontend redirige les appels API vers le port 87
    gratuit).
 2. "New +" → "Blueprint", pointe vers ce dépôt. Render détecte `render.yaml` (dans
    `job-app-assistant/`) et propose de créer le service automatiquement.
-3. Renseigne les variables d'environnement demandées : `APP_PASSWORD`, `GROQ_API_KEY` (le
+3. Renseigne les variables d'environnement demandées : `APP_PASSWORD`, `GROQ_API_KEY`,
+   `TURSO_DATABASE_URL` et `TURSO_AUTH_TOKEN` (voir "Configuration nécessaire" ci-dessus ; le
    `SESSION_SECRET` est généré automatiquement).
 4. Render build l'image Docker et déploie. Une fois terminé, tu obtiens une URL du type
    `https://assistant-candidatures.onrender.com`, accessible depuis ton PC et ton téléphone.
@@ -68,12 +79,9 @@ Ouvre http://localhost:5173 (le frontend redirige les appels API vers le port 87
 ⚠️ Le plan gratuit de Render met le service en veille après un moment d'inactivité : la première
 requête après une pause peut prendre ~30 secondes à répondre, c'est normal.
 
-⚠️ Le plan gratuit de Render ne permet pas de disque persistant : la base de données (profil,
-entreprises, lettres générées) est donc **réinitialisée à chaque redéploiement** (par exemple si
-tu modifies le code) — mais pas lors d'une simple mise en veille/réveil. Pour un usage plus
-durable, passe au plan payant le moins cher de Render (~7 $/mois) et ajoute un bloc `disk` dans
-`render.yaml`, ou héberge sur un service avec stockage persistant inclus (un petit VPS, par
-exemple).
+Grâce à Turso, tes données (profil, CV, lettres, entreprises) sont conservées même quand le code
+est mis à jour et redéployé — contrairement à un stockage sur disque local, qui serait effacé à
+chaque redéploiement sur le plan gratuit de Render.
 
 Tu peux aussi déployer l'image Docker (`Dockerfile` à la racine du dossier `job-app-assistant/`)
 sur n'importe quel autre hébergeur (Railway, Fly.io, un VPS…).

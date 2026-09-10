@@ -1,6 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
-import { getProfile, updateProfile } from "../db.js";
+import { getProfile, updateProfile, toBuffer } from "../db.js";
 import { extractTextFromDocx, extractDocxStyle } from "../services/docx.js";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -24,28 +24,28 @@ function serializeProfile(p) {
   return out;
 }
 
-profileRouter.get("/", (req, res) => {
-  res.json(serializeProfile(getProfile()));
+profileRouter.get("/", async (req, res) => {
+  res.json(serializeProfile(await getProfile()));
 });
 
-profileRouter.put("/", (req, res) => {
+profileRouter.put("/", async (req, res) => {
   const { full_name, cover_letter_text } = req.body || {};
-  updateProfile({
+  await updateProfile({
     full_name: full_name ?? "",
     cover_letter_text: cover_letter_text ?? "",
   });
-  res.json(serializeProfile(getProfile()));
+  res.json(serializeProfile(await getProfile()));
 });
 
-profileRouter.get("/cv", (req, res) => {
-  const p = getProfile();
+profileRouter.get("/cv", async (req, res) => {
+  const p = await getProfile();
   if (!p.cv_docx) return res.status(404).json({ error: "Aucun CV importé" });
   res.setHeader(
     "Content-Type",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
   );
   res.setHeader("Content-Disposition", `attachment; filename="${p.cv_filename || "CV.docx"}"`);
-  res.send(p.cv_docx);
+  res.send(toBuffer(p.cv_docx));
 });
 
 profileRouter.post("/cv", upload.single("file"), async (req, res) => {
@@ -53,14 +53,14 @@ profileRouter.post("/cv", upload.single("file"), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: "Aucun fichier reçu" });
     const text = await extractTextFromDocx(req.file.buffer);
     const style = await extractDocxStyle(req.file.buffer);
-    updateProfile({
+    await updateProfile({
       cv_docx: req.file.buffer,
       cv_filename: req.file.originalname,
       cv_text: text,
       cv_font_family: style.fontFamily || "",
       cv_font_size: style.fontSize,
     });
-    res.json(serializeProfile(getProfile()));
+    res.json(serializeProfile(await getProfile()));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -71,20 +71,20 @@ profileRouter.post("/cover-letter", upload.single("file"), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: "Aucun fichier reçu" });
     const text = await extractTextFromDocx(req.file.buffer);
     const style = await extractDocxStyle(req.file.buffer);
-    updateProfile({
+    await updateProfile({
       cover_letter_text: text,
       cover_letter_font_family: style.fontFamily || "",
       cover_letter_font_size: style.fontSize,
     });
-    res.json(serializeProfile(getProfile()));
+    res.json(serializeProfile(await getProfile()));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
 for (const n of BULLETIN_SLOTS) {
-  profileRouter.get(`/bulletin${n}`, (req, res) => {
-    const p = getProfile();
+  profileRouter.get(`/bulletin${n}`, async (req, res) => {
+    const p = await getProfile();
     const file = p[`bulletin${n}_file`];
     if (!file) return res.status(404).json({ error: "Aucun bulletin importé pour ce créneau" });
     res.setHeader("Content-Type", p[`bulletin${n}_mimetype`] || "application/octet-stream");
@@ -92,16 +92,16 @@ for (const n of BULLETIN_SLOTS) {
       "Content-Disposition",
       `attachment; filename="${p[`bulletin${n}_filename`] || `bulletin-${n}`}"`
     );
-    res.send(file);
+    res.send(toBuffer(file));
   });
 
-  profileRouter.post(`/bulletin${n}`, upload.single("file"), (req, res) => {
+  profileRouter.post(`/bulletin${n}`, upload.single("file"), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: "Aucun fichier reçu" });
-    updateProfile({
+    await updateProfile({
       [`bulletin${n}_file`]: req.file.buffer,
       [`bulletin${n}_filename`]: req.file.originalname,
       [`bulletin${n}_mimetype`]: req.file.mimetype,
     });
-    res.json(serializeProfile(getProfile()));
+    res.json(serializeProfile(await getProfile()));
   });
 }

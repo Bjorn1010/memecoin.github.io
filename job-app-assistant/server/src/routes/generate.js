@@ -5,6 +5,11 @@ import { generateApplication } from "../services/ai.js";
 
 export const generateRouter = Router();
 
+async function getCompany(id) {
+  const { rows } = await db.execute({ sql: "SELECT * FROM companies WHERE id = ?", args: [id] });
+  return rows[0];
+}
+
 async function generateForCompany(company, profile) {
   const fetchedContext = company.url
     ? await fetchCompanyContext(company.url)
@@ -20,33 +25,34 @@ async function generateForCompany(company, profile) {
     source: company.source,
   });
 
-  db.prepare(
-    `UPDATE companies SET
-       cover_letter_text = @cover_letter_text,
-       cv_modified_text = @cv_modified_text,
-       cv_change_summary = @cv_change_summary,
-       message_text = @message_text,
-       fetched_context = @fetched_context,
+  await db.execute({
+    sql: `UPDATE companies SET
+       cover_letter_text = ?,
+       cv_modified_text = ?,
+       cv_change_summary = ?,
+       message_text = ?,
+       fetched_context = ?,
        status = 'generated',
        updated_at = datetime('now')
-     WHERE id = @id`
-  ).run({
-    id: company.id,
-    cover_letter_text: result.coverLetter,
-    cv_modified_text: result.cvModifiedText,
-    cv_change_summary: result.cvChangeSummary,
-    message_text: result.messageText,
-    fetched_context: fetchedContext,
+     WHERE id = ?`,
+    args: [
+      result.coverLetter,
+      result.cvModifiedText,
+      result.cvChangeSummary,
+      result.messageText,
+      fetchedContext,
+      company.id,
+    ],
   });
 
-  return db.prepare("SELECT * FROM companies WHERE id = ?").get(company.id);
+  return getCompany(company.id);
 }
 
 generateRouter.post("/:id", async (req, res) => {
-  const company = db.prepare("SELECT * FROM companies WHERE id = ?").get(req.params.id);
+  const company = await getCompany(req.params.id);
   if (!company) return res.status(404).json({ error: "Introuvable" });
   try {
-    const profile = getProfile();
+    const profile = await getProfile();
     const updated = await generateForCompany(company, profile);
     res.json(updated);
   } catch (err) {
@@ -56,10 +62,10 @@ generateRouter.post("/:id", async (req, res) => {
 
 // Génère pour toutes les entreprises en attente, une par une.
 generateRouter.post("/", async (req, res) => {
-  const profile = getProfile();
-  const pending = db
-    .prepare("SELECT * FROM companies WHERE status = 'pending' ORDER BY created_at ASC")
-    .all();
+  const profile = await getProfile();
+  const { rows: pending } = await db.execute(
+    "SELECT * FROM companies WHERE status = 'pending' ORDER BY created_at ASC"
+  );
 
   const results = [];
   for (const company of pending) {
