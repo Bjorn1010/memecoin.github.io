@@ -92,6 +92,44 @@ function placeholderHint(placeholder) {
   );
 }
 
+// L'IA ignore parfois les consignes de grammaire (ex: répond par un infinitif
+// seul après "parce que", ou omet l'article après "lié à"). Plutôt que de
+// compter uniquement sur le prompt, on corrige ces erreurs connues au niveau
+// du code — un filet de sécurité déterministe, comme pour la longueur.
+const DETERMINER_OR_PRONOUN_RE =
+  /^(le|la|l['’]|les|un|une|des|du|de la|de l['’]|votre|vos|mon|ma|mes|ce|cette|ces|cet|je|j['’]|ça|cela|c['’]|il|elle|on|nous|vous)\b/i;
+const VOWEL_SOUND_RE = /^[aeiouhâàéèêëîïôöûü]/i;
+const BARE_INFINITIVE_RE = /^[a-zàâäéèêëîïôöùûü]+(er|ir|re)$/i;
+
+function fixGrammar(placeholder, value) {
+  const v = (value || "").trim();
+  if (!v) return v;
+
+  // Groupe nominal attendu avec son article (ex: après "au secteur de", "lié à") :
+  // ajoute l'article élidé "l'" si la valeur commence par une voyelle et n'a pas
+  // déjà de déterminant (pas de règle fiable pour choisir "le"/"la" sans dico).
+  if (
+    (placeholder === "[secteur / domaine de l'entreprise]" ||
+      placeholder === "[domaine / technologie / type d'infrastructure]") &&
+    !DETERMINER_OR_PRONOUN_RE.test(v) &&
+    VOWEL_SOUND_RE.test(v)
+  ) {
+    return `l'${v}`;
+  }
+
+  // Proposition attendue avec sujet + verbe conjugué (après "parce que") : si
+  // l'IA a répondu par un verbe à l'infinitif seul ("aider les dentistes..."),
+  // ça n'a aucun sens grammaticalement — on le transforme en phrase correcte.
+  if (placeholder === "[ce qui t'intéresse dans ce domaine]" && !DETERMINER_OR_PRONOUN_RE.test(v)) {
+    const firstWord = v.split(" ")[0] || "";
+    if (BARE_INFINITIVE_RE.test(firstWord)) {
+      return `j'aime ${v}`;
+    }
+  }
+
+  return v;
+}
+
 /** Coupe une valeur trop longue à la dernière limite de mot plutôt qu'en plein milieu. */
 function truncateAtWord(value, maxLen) {
   const text = (value || "").trim();
@@ -256,7 +294,7 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, au format exac
   if (hasPlaceholders) {
     coverLetterReplacements = {};
     for (const p of placeholders) {
-      coverLetterReplacements[p] = (data.champs && data.champs[p]) || "";
+      coverLetterReplacements[p] = fixGrammar(p, (data.champs && data.champs[p]) || "");
     }
 
     // L'IA renvoie parfois l'adresse trouvée uniquement dans "adresse_entreprise" sans
