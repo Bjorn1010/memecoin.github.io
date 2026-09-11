@@ -23,6 +23,7 @@ async function generateForCompany(company, profile) {
     cvText: profile.cv_text,
     baseCoverLetter: profile.cover_letter_text,
     companyName: company.name,
+    companyAddress: company.address,
     companyDescription: company.description,
     fetchedContext,
     source: company.source,

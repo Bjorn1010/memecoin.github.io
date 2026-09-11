@@ -75,6 +75,7 @@ export default function CompanyDetail() {
       const updated = await api.updateCompany(id, {
         name: company.name,
         url: company.url,
+        address: company.address,
         description: company.description,
         source: company.source,
         message_text: company.message_text,
@@ -153,6 +154,15 @@ export default function CompanyDetail() {
           <div>
             <label className="label">Lien</label>
             <input className="input" value={company.url} onChange={set("url")} />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="label">Adresse de l'entreprise (optionnel)</label>
+            <input
+              className="input"
+              placeholder="Rue, code postal, ville"
+              value={company.address || ""}
+              onChange={set("address")}
+            />
           </div>
         </div>
         <div>

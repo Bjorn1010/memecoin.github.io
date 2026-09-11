@@ -27,13 +27,13 @@ companiesRouter.get("/:id", async (req, res) => {
 });
 
 companiesRouter.post("/", async (req, res) => {
-  const { name, url, description, source } = req.body || {};
+  const { name, url, address, description, source } = req.body || {};
   if (!name || !name.trim()) {
     return res.status(400).json({ error: "Le nom de l'entreprise est requis" });
   }
   const info = await db.execute({
-    sql: `INSERT INTO companies (user_id, name, url, description, source) VALUES (?, ?, ?, ?, ?)`,
-    args: [req.session.userId, name.trim(), url || "", description || "", source || ""],
+    sql: `INSERT INTO companies (user_id, name, url, address, description, source) VALUES (?, ?, ?, ?, ?, ?)`,
+    args: [req.session.userId, name.trim(), url || "", address || "", description || "", source || ""],
   });
   const row = await getCompany(Number(info.lastInsertRowid), req.session.userId);
   res.status(201).json(row);
@@ -46,6 +46,7 @@ companiesRouter.put("/:id", async (req, res) => {
   const allowed = [
     "name",
     "url",
+    "address",
     "description",
     "source",
     "status",
