@@ -37,6 +37,49 @@ async function askJson(prompt) {
   return JSON.parse(text);
 }
 
+// Limites de longueur (en caractères) pour garantir que la lettre tienne sur une
+// seule page quoi que renvoie l'IA — filet de sécurité déterministe en plus des
+// consignes données dans le prompt.
+const INLINE_PLACEHOLDER_MAX = 45;
+const STANDALONE_PLACEHOLDER_MAX = 120;
+
+/** Coupe une valeur trop longue à la dernière limite de mot plutôt qu'en plein milieu. */
+function truncateAtWord(value, maxLen) {
+  const text = (value || "").trim();
+  if (text.length <= maxLen) return text;
+  const cut = text.slice(0, maxLen);
+  const lastSpace = cut.lastIndexOf(" ");
+  const trimmed = lastSpace > maxLen * 0.5 ? cut.slice(0, lastSpace) : cut;
+  return trimmed.trim().replace(/[,;:\-–—]+$/, "");
+}
+
+/**
+ * Vérifie qu'un texte de longueur donnée se termine par une ponctuation de fin
+ * de phrase (utile pour les emplacements qui forment un paragraphe entier).
+ */
+function ensureSentenceEnd(value) {
+  if (!value) return value;
+  return /[.!?…]$/.test(value) ? value : `${value}.`;
+}
+
+/**
+ * Applique une limite stricte de longueur à chaque valeur de remplacement selon
+ * qu'elle s'insère au milieu d'une phrase existante ou qu'elle forme, seule, un
+ * paragraphe entier de la lettre de base (auquel cas on lui laisse plus de place
+ * et on s'assure qu'elle se termine par une phrase complète).
+ */
+function capReplacementLengths(replacements, baseCoverLetter) {
+  const lines = new Set((baseCoverLetter || "").split("\n").map((l) => l.trim()));
+  const capped = {};
+  for (const [placeholder, value] of Object.entries(replacements)) {
+    const isStandalone = lines.has(placeholder);
+    const maxLen = isStandalone ? STANDALONE_PLACEHOLDER_MAX : INLINE_PLACEHOLDER_MAX;
+    const truncated = truncateAtWord(value, maxLen);
+    capped[placeholder] = isStandalone ? ensureSentenceEnd(truncated) : truncated;
+  }
+  return capped;
+}
+
 /**
  * Génère une lettre de motivation adaptée à 100% à l'entreprise, une suggestion
  * de modification du CV (rare), et un petit message d'accompagnement.
@@ -97,11 +140,15 @@ Tâches :
    Ne produis PAS le texte complet de la lettre : uniquement le dictionnaire de remplacement
    demandé dans "champs" ci-dessous.
    Contraintes très importantes sur le CONTENU et le TON de chaque valeur :
-   - La lettre finale doit tenir sur UNE SEULE PAGE A4. La mise en page ne bouge pas, donc reste
-     COURT : les emplacements insérés dans une phrase (comme le secteur, la raison de l'intérêt,
-     un projet) = quelques mots seulement, jamais une phrase complète. Les emplacements qui
-     forment un paragraphe entier à eux seuls (ex: "[À adapter pour chaque entreprise]",
-     "[À adapter si nécessaire]") = 1 à 2 phrases courtes maximum, pas plus.
+   - La lettre finale doit tenir sur UNE SEULE PAGE A4, SANS EXCEPTION. La mise en page ne bouge
+     pas, donc chaque valeur a une limite STRICTE de longueur (ce qui dépasse sera de toute façon
+     coupé automatiquement, donc reste dans la limite plutôt que de risquer une phrase tronquée) :
+     - emplacement inséré au milieu d'une phrase (secteur, raison de l'intérêt, projet,
+       technologie...) : 45 caractères MAXIMUM, quelques mots seulement, jamais une phrase
+       complète ;
+     - emplacement qui forme à lui seul un paragraphe entier (ex: "[À adapter pour chaque
+       entreprise]", "[À adapter si nécessaire]") : 120 caractères MAXIMUM, une seule phrase
+       courte et concise.
    - Écris comme un vrai apprenti de 16-18 ans le ferait, avec ses mots à lui : simple, direct,
      naturel, un peu maladroit si besoin — surtout PAS un ton marketing/corporate ni des
      formulations qui sonnent "généré par une IA" (pas de tournures pompeuses, pas de mots
@@ -179,6 +226,10 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, au format exac
         coverLetterReplacements[cityKey] = parts[parts.length - 1];
       }
     }
+
+    // Filet de sécurité : quoi que l'IA ait renvoyé, on garantit que la lettre
+    // tienne sur une page en limitant strictement la longueur de chaque valeur.
+    coverLetterReplacements = capReplacementLengths(coverLetterReplacements, baseCoverLetter);
 
     coverLetterText = applyReplacements(baseCoverLetter, coverLetterReplacements);
   } else {
