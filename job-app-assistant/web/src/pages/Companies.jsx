@@ -40,7 +40,7 @@ function StatCard({ icon, label, value, tone }) {
 export default function Companies() {
   const toast = useToast();
   const [companies, setCompanies] = useState(null);
-  const [form, setForm] = useState({ name: "", url: "", address: "", description: "", source: "" });
+  const [form, setForm] = useState({ name: "", url: "", description: "", source: "" });
   const [showForm, setShowForm] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -53,7 +53,7 @@ export default function Companies() {
     e.preventDefault();
     try {
       await api.addCompany(form);
-      setForm({ name: "", url: "", address: "", description: "", source: "" });
+      setForm({ name: "", url: "", description: "", source: "" });
       setShowForm(false);
       load();
       toast.success("Entreprise ajoutée.");
@@ -163,15 +163,6 @@ export default function Companies() {
               placeholder="https://…"
               value={form.url}
               onChange={(e) => setForm({ ...form, url: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="label">Adresse de l'entreprise (optionnel)</label>
-            <input
-              className="input"
-              placeholder="Rue, code postal, ville"
-              value={form.address}
-              onChange={(e) => setForm({ ...form, address: e.target.value })}
             />
           </div>
           <div>
