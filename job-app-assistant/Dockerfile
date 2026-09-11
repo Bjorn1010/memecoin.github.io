@@ -10,6 +10,8 @@ WORKDIR /app
 
 COPY server/package*.json ./server/
 RUN cd server && npm install --omit=dev
+# Chromium headless (+ ses dépendances système) pour générer les PDF (lettre, CV).
+RUN cd server && npx playwright install --with-deps chromium
 
 COPY server/ ./server/
 COPY --from=web-build /app/web/dist ./web/dist

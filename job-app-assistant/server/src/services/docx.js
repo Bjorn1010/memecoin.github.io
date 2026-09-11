@@ -195,3 +195,120 @@ export async function fillDocxTemplate(buffer, replacements) {
   zip.file(docPath, xml);
   return zip.generateAsync({ type: "nodebuffer" });
 }
+
+function unescapeXmlEntities(value) {
+  return (value || "")
+    .replace(/&apos;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
+}
+
+function escapeHtml(value) {
+  return (value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+const JC_TO_CSS = { right: "right", center: "center", both: "justify", left: "left" };
+
+/** Twentièmes de point (dxa), unité docx pour les marges/espacements -> points CSS. */
+function dxaToPt(value) {
+  return value == null ? null : Number(value) / 20;
+}
+
+/** Twentièmes de point -> pouces, pour les dimensions de page passées à Playwright. */
+function dxaToInches(value) {
+  return value == null ? null : Number(value) / 1440;
+}
+
+/**
+ * Convertit le XML d'un .docx en un fragment HTML fidèle (alignement, gras,
+ * italique, couleur, police et taille par run, espacement entre paragraphes),
+ * pour pouvoir ensuite l'imprimer en PDF avec un moteur de rendu web. Renvoie
+ * aussi la taille de page et les marges lues dans le document, pour que le
+ * PDF garde la même mise en page que le fichier Word d'origine.
+ */
+export async function docxBufferToHtml(buffer) {
+  const zip = await JSZip.loadAsync(buffer);
+  const xml = await zip.file("word/document.xml").async("string");
+  const defaultStyle = await extractDocxStyle(buffer);
+  const defaultFont = defaultStyle.fontFamily || "Calibri";
+  const defaultSizePt = defaultStyle.fontSize ? defaultStyle.fontSize / 2 : 11;
+
+  const pgSzMatch = xml.match(/<w:pgSz\s+([^/]*)\/>/);
+  const pgMarMatch = xml.match(/<w:pgMar\s+([^/]*)\/>/);
+  const pgAttr = (attrs, name) => {
+    if (!attrs) return null;
+    const m = attrs.match(new RegExp(`w:${name}="(\\d+)"`));
+    return m ? Number(m[1]) : null;
+  };
+  const page = {
+    widthIn: dxaToInches(pgAttr(pgSzMatch?.[1], "w")) || 8.27,
+    heightIn: dxaToInches(pgAttr(pgSzMatch?.[1], "h")) || 11.69,
+    marginTopIn: dxaToInches(pgAttr(pgMarMatch?.[1], "top")) || 1,
+    marginRightIn: dxaToInches(pgAttr(pgMarMatch?.[1], "right")) || 1,
+    marginBottomIn: dxaToInches(pgAttr(pgMarMatch?.[1], "bottom")) || 1,
+    marginLeftIn: dxaToInches(pgAttr(pgMarMatch?.[1], "left")) || 1,
+  };
+
+  const paragraphs = xml.match(/<w:p(?:\s[^>]*)?>[\s\S]*?<\/w:p>/g) || [];
+  const bodyParas = paragraphs.filter((p) => !/<w:sectPr/.test(p) || /<w:r>/.test(p));
+
+  const paraHtml = bodyParas.map((p) => {
+    const pPrMatch = p.match(/<w:pPr>([\s\S]*?)<\/w:pPr>/);
+    const pPr = pPrMatch ? pPrMatch[1] : "";
+    const jcMatch = pPr.match(/<w:jc w:val="(\w+)"/);
+    const textAlign = JC_TO_CSS[jcMatch?.[1]] || "left";
+    const afterPt = dxaToPt(pPr.match(/<w:spacing[^>]*w:after="(\d+)"/)?.[1]) ?? 8;
+    const beforePt = dxaToPt(pPr.match(/<w:spacing[^>]*w:before="(\d+)"/)?.[1]) ?? 0;
+
+    const runs = p.match(/<w:r>[\s\S]*?<\/w:r>/g) || [];
+    const runHtml = runs
+      .map((r) => {
+        const rPrMatch = r.match(/<w:rPr>([\s\S]*?)<\/w:rPr>/);
+        const rPr = rPrMatch ? rPrMatch[1] : "";
+        const bold = /<w:b\/>/.test(rPr);
+        const italic = /<w:i\/>/.test(rPr);
+        const color = rPr.match(/<w:color w:val="([0-9A-Fa-f]{6})"/)?.[1];
+        const font = rPr.match(/<w:rFonts[^>]*w:ascii="([^"]+)"/)?.[1] || defaultFont;
+        const szMatch = rPr.match(/<w:sz w:val="(\d+)"/);
+        const sizePt = szMatch ? Number(szMatch[1]) / 2 : defaultSizePt;
+
+        const textPieces = [...r.matchAll(/<w:t[^>]*>([^<]*)<\/w:t>/g)].map((m) =>
+          escapeHtml(unescapeXmlEntities(m[1]))
+        );
+        const hasTab = /<w:tab\/>/.test(r);
+        const text = textPieces.join("") + (hasTab ? "&emsp;" : "");
+        if (!text) return "";
+
+        const style = [
+          `font-family:'${font}', sans-serif`,
+          `font-size:${sizePt}pt`,
+          bold ? "font-weight:bold" : "font-weight:normal",
+          italic ? "font-style:italic" : "",
+          color ? `color:#${color}` : "",
+        ]
+          .filter(Boolean)
+          .join(";");
+        return `<span style="${style}">${text}</span>`;
+      })
+      .join("");
+
+    const style = [
+      `text-align:${textAlign}`,
+      `margin:${beforePt}pt 0 ${afterPt}pt 0`,
+      "padding:0",
+    ].join(";");
+    return `<p style="${style}">${runHtml || "&nbsp;"}</p>`;
+  });
+
+  return {
+    bodyHtml: paraHtml.join("\n"),
+    page,
+    defaultFont,
+    defaultSizePt,
+  };
+}

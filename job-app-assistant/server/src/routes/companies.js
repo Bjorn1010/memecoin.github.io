@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, getProfile, toBuffer } from "../db.js";
 import { textToDocxBuffer, fillDocxTemplate } from "../services/docx.js";
+import { docxBufferToPdf } from "../services/pdf.js";
 
 export const companiesRouter = Router();
 
@@ -71,8 +72,29 @@ companiesRouter.put("/:id", async (req, res) => {
   res.json(row);
 });
 
-async function sendGeneratedDocx(res, { text, title, filename, fontFamily, fontSize }) {
-  const buffer = await textToDocxBuffer(text, { title, fontFamily, fontSize });
+async function buildCoverLetterDocx(company, profile) {
+  if (profile.cover_letter_docx && company.cover_letter_replacements) {
+    // Remplacement chirurgical dans le fichier .docx original : préserve
+    // à 100% la mise en page, la police et le style de la lettre de base.
+    const replacements = JSON.parse(company.cover_letter_replacements);
+    return fillDocxTemplate(toBuffer(profile.cover_letter_docx), replacements);
+  }
+  return textToDocxBuffer(company.cover_letter_text, {
+    title: `Lettre de motivation - ${company.name}`,
+    fontFamily: profile.cover_letter_font_family || profile.cv_font_family,
+    fontSize: profile.cover_letter_font_size || profile.cv_font_size,
+  });
+}
+
+function buildCvModifieDocx(company, profile) {
+  return textToDocxBuffer(company.cv_modified_text, {
+    title: `CV - ${company.name}`,
+    fontFamily: profile.cv_font_family,
+    fontSize: profile.cv_font_size,
+  });
+}
+
+function sendDocx(res, buffer, filename) {
   res.setHeader(
     "Content-Type",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -81,7 +103,14 @@ async function sendGeneratedDocx(res, { text, title, filename, fontFamily, fontS
   res.send(buffer);
 }
 
-companiesRouter.get("/:id/cover-letter.docx", async (req, res) => {
+async function sendPdf(res, docxBuffer, filename) {
+  const pdf = await docxBufferToPdf(docxBuffer);
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  res.send(pdf);
+}
+
+companiesRouter.get("/:id/cover-letter.:ext(docx|pdf)", async (req, res) => {
   const company = await getCompany(req.params.id, req.session.userId);
   if (!company) return res.status(404).json({ error: "Introuvable" });
   if (!company.cover_letter_text) {
@@ -89,34 +118,19 @@ companiesRouter.get("/:id/cover-letter.docx", async (req, res) => {
   }
   try {
     const profile = await getProfile(req.session.userId);
-    const filename = `Lettre de motivation - ${company.name}.docx`;
-
-    if (profile.cover_letter_docx && company.cover_letter_replacements) {
-      // Remplacement chirurgical dans le fichier .docx original : préserve
-      // à 100% la mise en page, la police et le style de la lettre de base.
-      const replacements = JSON.parse(company.cover_letter_replacements);
-      const buffer = await fillDocxTemplate(toBuffer(profile.cover_letter_docx), replacements);
-      res.setHeader(
-        "Content-Type",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-      );
-      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-      return res.send(buffer);
+    const buffer = await buildCoverLetterDocx(company, profile);
+    const filename = `Lettre de motivation - ${company.name}.${req.params.ext}`;
+    if (req.params.ext === "pdf") {
+      await sendPdf(res, buffer, filename);
+    } else {
+      sendDocx(res, buffer, filename);
     }
-
-    await sendGeneratedDocx(res, {
-      text: company.cover_letter_text,
-      title: `Lettre de motivation - ${company.name}`,
-      filename,
-      fontFamily: profile.cover_letter_font_family || profile.cv_font_family,
-      fontSize: profile.cover_letter_font_size || profile.cv_font_size,
-    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-companiesRouter.get("/:id/cv-modifie.docx", async (req, res) => {
+companiesRouter.get("/:id/cv-modifie.:ext(docx|pdf)", async (req, res) => {
   const company = await getCompany(req.params.id, req.session.userId);
   if (!company) return res.status(404).json({ error: "Introuvable" });
   if (!company.cv_modified_text) {
@@ -124,13 +138,13 @@ companiesRouter.get("/:id/cv-modifie.docx", async (req, res) => {
   }
   try {
     const profile = await getProfile(req.session.userId);
-    await sendGeneratedDocx(res, {
-      text: company.cv_modified_text,
-      title: `CV - ${company.name}`,
-      filename: `CV modifie - ${company.name}.docx`,
-      fontFamily: profile.cv_font_family,
-      fontSize: profile.cv_font_size,
-    });
+    const buffer = await buildCvModifieDocx(company, profile);
+    const filename = `CV modifie - ${company.name}.${req.params.ext}`;
+    if (req.params.ext === "pdf") {
+      await sendPdf(res, buffer, filename);
+    } else {
+      sendDocx(res, buffer, filename);
+    }
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

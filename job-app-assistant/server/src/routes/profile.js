@@ -2,6 +2,7 @@ import { Router } from "express";
 import multer from "multer";
 import { getProfile, updateProfile, toBuffer } from "../db.js";
 import { extractTextFromDocx, extractDocxStyle } from "../services/docx.js";
+import { docxBufferToPdf } from "../services/pdf.js";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
@@ -46,6 +47,20 @@ profileRouter.get("/cv", async (req, res) => {
   );
   res.setHeader("Content-Disposition", `attachment; filename="${p.cv_filename || "CV.docx"}"`);
   res.send(toBuffer(p.cv_docx));
+});
+
+profileRouter.get("/cv.pdf", async (req, res) => {
+  const p = await getProfile(req.session.userId);
+  if (!p.cv_docx) return res.status(404).json({ error: "Aucun CV importé" });
+  try {
+    const pdf = await docxBufferToPdf(toBuffer(p.cv_docx));
+    const filename = (p.cv_filename || "CV.docx").replace(/\.docx?$/i, "") + ".pdf";
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(pdf);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 profileRouter.post("/cv", upload.single("file"), async (req, res) => {
