@@ -294,6 +294,8 @@ Tâches :
    doit : mentionner que le candidat vient d'appeler, dire qu'il joint ci-dessous son CV, sa lettre de
    motivation, et ses bulletins scolaires des 3 dernières années, et rester simple et direct (ce n'est
    pas un email formel, juste un mot d'accompagnement). Signe avec le prénom du candidat si connu.
+   Rédige aussi, dans "sujet", un objet d'e-mail court et clair pour ce message (ex: "Candidature
+   spontanée - [poste] - [prénom nom]"), sans le mot "Sujet" ni les deux-points dedans.
 4. Cherche l'adresse postale complète de l'entreprise (rue, code postal, ville) dans le contenu
    récupéré depuis le lien fourni ci-dessus. Si tu la trouves clairement, renvoie-la dans
    "adresse_entreprise". Ne l'invente JAMAIS : si elle n'apparaît pas clairement dans le contenu
@@ -309,6 +311,7 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, au format exac
   }
   "cv_modifie": "texte complet du CV modifié, ou chaîne vide si aucun changement",
   "cv_changement_resume": "explication courte du changement, ou chaîne vide",
+  "sujet": "objet court de l'e-mail, sans le mot Sujet ni les deux-points",
   "message_text": "le petit message d'accompagnement (signé ${fullName || "(prénom du candidat)"})",
   "adresse_entreprise": "adresse postale trouvée, ou chaîne vide si introuvable"
 }
@@ -351,12 +354,15 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, au format exac
     coverLetterText = data.cover_letter || "";
   }
 
+  const subject = (data.sujet || `Candidature - ${companyName}`).trim();
+  const messageText = data.message_text ? `Sujet : ${subject}\n\n${data.message_text}` : "";
+
   return {
     coverLetter: coverLetterText,
     coverLetterReplacements,
     cvModifiedText: data.cv_modifie || "",
     cvChangeSummary: data.cv_changement_resume || "",
-    messageText: data.message_text || "",
+    messageText,
     foundAddress: data.adresse_entreprise || "",
   };
 }
