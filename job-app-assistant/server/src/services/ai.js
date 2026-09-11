@@ -44,10 +44,13 @@ export async function generateApplication({
   cvText,
   baseCoverLetter,
   companyName,
+  companyAddress,
   companyDescription,
   fetchedContext,
   source,
 }) {
+  const hasPlaceholders = /\[[^\]\n]{2,80}\]/.test(baseCoverLetter || "");
+
   const prompt = `
 Tu es un expert en recrutement francophone qui aide un candidat à personnaliser sa candidature.
 
@@ -56,13 +59,14 @@ Voici le CV du candidat (texte brut) :
 ${cvText || "(non fourni)"}
 """
 
-Voici la lettre de motivation "de base" du candidat, qui sert de style/référence :
+Voici la lettre de motivation "de base" du candidat, qui sert de référence :
 """
 ${baseCoverLetter || "(non fournie)"}
 """
 
 Voici les informations sur l'entreprise ciblée :
 - Nom : ${companyName}
+- Adresse : ${companyAddress || "(inconnue)"}
 - Description fournie par le candidat : ${companyDescription || "(aucune)"}
 - Où l'offre/l'entreprise a été trouvée : ${source || "(non précisé)"}
 - Contenu récupéré automatiquement depuis le lien fourni (peut être vide) :
@@ -71,11 +75,28 @@ ${fetchedContext ? fetchedContext.slice(0, 6000) : "(aucun)"}
 """
 
 Tâches :
-1. Réécris une LETTRE DE MOTIVATION complète, en français, qui correspond à 100% à cette entreprise
-   (mentionne des éléments précis de l'entreprise/offre quand c'est possible), donne envie de recruter
-   le candidat, et améliore la lettre de base si elle est faible (ton, structure, clarté, accroche,
-   conclusion). Garde le style et les informations personnelles réelles du candidat (ne pas inventer
-   de diplômes/expériences qui ne sont pas dans le CV ou la lettre de base). Longueur : 250 à 400 mots.
+1. Produis la LETTRE DE MOTIVATION complète, en français, pour cette entreprise. Règle la plus
+   importante : ${
+     hasPlaceholders
+       ? `la lettre de base contient des emplacements entre crochets, du type "[Nom de l'entreprise]"
+   ou "[secteur / domaine de l'entreprise]" — ce sont les SEULES parties que tu dois modifier.
+   Remplace CHAQUE emplacement entre crochets par du contenu réel, spécifique et pertinent pour
+   cette entreprise précise (nom, adresse si connue, secteur, raison de l'intérêt, technologies,
+   etc. — en t'appuyant sur la description et le contenu récupéré ci-dessus). Le résultat final ne
+   doit JAMAIS contenir de crochets "[" ou "]" : si une information est vraiment introuvable
+   (ex: adresse inconnue), retire la ligne ou la phrase concernée plutôt que de laisser un
+   emplacement vide ou un crochet. TOUT LE RESTE du texte (tout ce qui n'est pas entre crochets)
+   doit être recopié EXACTEMENT comme dans la lettre de base, mot pour mot, dans le même ordre :
+   ne reformule rien, ne raccourcis rien, ne réorganise rien qui n'est pas un emplacement à remplir.`
+       : `garde au maximum le texte, la structure et le style de la lettre de base (ne réécris pas ce
+   qui fonctionne déjà) et adapte seulement les passages qui font référence à une entreprise
+   précise (nom, secteur, raison de l'intérêt) pour qu'ils correspondent à 100% à cette entreprise.
+   Améliore uniquement les passages réellement faibles (ton, clarté, accroche, conclusion) — pas
+   besoin de tout récrire si la lettre de base est déjà bonne.`
+   }
+   Dans tous les cas : garde les informations personnelles réelles du candidat (ne jamais inventer
+   de diplôme, expérience ou compétence absente du CV ou de la lettre de base). Longueur finale :
+   250 à 400 mots.
 2. Décide si le CV a besoin d'être modifié pour ce poste précis. C'est RARE : ne le fais QUE si
    c'est vraiment utile (ex: réordonner 2 expériences, mettre en avant une compétence déjà
    présente dans le CV, reformuler un intitulé pour mieux correspondre à l'offre). Ne JAMAIS

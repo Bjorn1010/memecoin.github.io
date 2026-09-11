@@ -58,6 +58,7 @@ await db.executeMultiple(`
     user_id INTEGER NOT NULL DEFAULT 0,
     name TEXT NOT NULL,
     url TEXT DEFAULT '',
+    address TEXT DEFAULT '',
     description TEXT DEFAULT '',
     source TEXT DEFAULT '',
     status TEXT NOT NULL DEFAULT 'pending',
@@ -75,6 +76,11 @@ await db.executeMultiple(`
 // sans (installation antérieure à la version multi-comptes).
 try {
   await db.execute("ALTER TABLE companies ADD COLUMN user_id INTEGER NOT NULL DEFAULT 0");
+} catch {
+  // colonne déjà présente, rien à faire
+}
+try {
+  await db.execute("ALTER TABLE companies ADD COLUMN address TEXT DEFAULT ''");
 } catch {
   // colonne déjà présente, rien à faire
 }
