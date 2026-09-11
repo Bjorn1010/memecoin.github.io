@@ -56,8 +56,8 @@ async function askJson(prompt) {
 // Limites de longueur (en caractères) pour garantir que la lettre tienne sur une
 // seule page quoi que renvoie l'IA — filet de sécurité déterministe en plus des
 // consignes données dans le prompt.
-const INLINE_PLACEHOLDER_MAX = 45;
-const STANDALONE_PLACEHOLDER_MAX = 120;
+const INLINE_PLACEHOLDER_MAX = 30;
+const STANDALONE_PLACEHOLDER_MAX = 80;
 
 /** Coupe une valeur trop longue à la dernière limite de mot plutôt qu'en plein milieu. */
 function truncateAtWord(value, maxLen) {
@@ -160,11 +160,10 @@ Tâches :
      pas, donc chaque valeur a une limite STRICTE de longueur (ce qui dépasse sera de toute façon
      coupé automatiquement, donc reste dans la limite plutôt que de risquer une phrase tronquée) :
      - emplacement inséré au milieu d'une phrase (secteur, raison de l'intérêt, projet,
-       technologie...) : 45 caractères MAXIMUM, quelques mots seulement, jamais une phrase
-       complète ;
+       technologie...) : 30 caractères MAXIMUM (2 à 4 mots, pas plus) — jamais une phrase ;
      - emplacement qui forme à lui seul un paragraphe entier (ex: "[À adapter pour chaque
-       entreprise]", "[À adapter si nécessaire]") : 120 caractères MAXIMUM, une seule phrase
-       courte et concise.
+       entreprise]", "[À adapter si nécessaire]") : 80 caractères MAXIMUM — une seule phrase
+       très courte, style télégraphique si besoin, surtout pas une phrase développée.
    - Écris comme un vrai apprenti de 16-18 ans le ferait, avec ses mots à lui : simple, direct,
      naturel, un peu maladroit si besoin — surtout PAS un ton marketing/corporate ni des
      formulations qui sonnent "généré par une IA" (pas de tournures pompeuses, pas de mots
