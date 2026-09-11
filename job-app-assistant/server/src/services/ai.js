@@ -2,6 +2,11 @@ import { applyReplacements } from "./docx.js";
 
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
+// Le modèle génère parfois un JSON mal formé (coupé, guillemet mal échappé...) —
+// c'est un aléa connu des LLM, surtout avec un prompt long. On retente
+// automatiquement quelques fois avant de faire remonter une erreur à l'utilisateur.
+const MAX_AI_ATTEMPTS = 3;
+
 async function askJson(prompt) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
@@ -10,31 +15,42 @@ async function askJson(prompt) {
     );
   }
 
-  const res = await fetch(GROQ_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "openai/gpt-oss-120b",
-      messages: [{ role: "user", content: prompt }],
-      response_format: { type: "json_object" },
-      temperature: 0.7,
-    }),
-  });
+  let lastError;
+  for (let attempt = 1; attempt <= MAX_AI_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetch(GROQ_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "openai/gpt-oss-120b",
+          messages: [{ role: "user", content: prompt }],
+          response_format: { type: "json_object" },
+          temperature: 0.5,
+          max_tokens: 8192,
+        }),
+      });
 
-  if (!res.ok) {
-    const errText = await res.text().catch(() => "");
-    throw new Error(`Erreur API Groq (${res.status}) : ${errText.slice(0, 300)}`);
-  }
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        throw new Error(`Erreur API Groq (${res.status}) : ${errText.slice(0, 300)}`);
+      }
 
-  const data = await res.json();
-  const text = data.choices?.[0]?.message?.content;
-  if (!text) {
-    throw new Error("Réponse IA vide ou invalide.");
+      const data = await res.json();
+      const text = data.choices?.[0]?.message?.content;
+      if (!text) {
+        throw new Error("Réponse IA vide ou invalide.");
+      }
+      return JSON.parse(text);
+    } catch (err) {
+      lastError = err;
+    }
   }
-  return JSON.parse(text);
+  throw new Error(
+    `${lastError.message} (échec après ${MAX_AI_ATTEMPTS} tentatives — réessaie, c'est généralement temporaire)`
+  );
 }
 
 // Limites de longueur (en caractères) pour garantir que la lettre tienne sur une
