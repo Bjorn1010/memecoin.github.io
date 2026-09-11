@@ -99,11 +99,39 @@ export function applyReplacements(text, replacements) {
   return result;
 }
 
+// Couleur du texte normal de la lettre (voir word/styles.xml / runs non-accentués).
+const BASE_TEXT_COLOR = "2B2B2B";
+
+/**
+ * Les emplacements à remplir étaient stylés en doré ou en gris italique
+ * uniquement pour que l'auteur (et l'IA) les repère facilement dans le
+ * modèle — ce n'est pas un style voulu dans la lettre finale. Une fois le
+ * texte remplacé, on uniformise ces passages avec le reste du texte :
+ * couleur normale, sans italique.
+ */
+function normalizeAccentRuns(xml) {
+  return xml.replace(/<w:rPr>([\s\S]*?)<\/w:rPr>/g, (full, inner) => {
+    const colorMatch = inner.match(/<w:color w:val="([0-9A-Fa-f]{6})"\s*\/>/);
+    const color = colorMatch ? colorMatch[1].toUpperCase() : null;
+    const isItalic = /<w:i\/>|<w:i\s+w:val="[^"]*"\/>/.test(inner);
+    const isGold = color === "A08355";
+    const isGrayItalic = color === "8A8A8A" && isItalic;
+    if (!isGold && !isGrayItalic) return full;
+
+    const newInner = inner
+      .replace(/<w:i\/>/g, "")
+      .replace(/<w:iCs\/>/g, "")
+      .replace(/<w:color w:val="[0-9A-Fa-f]{6}"\s*\/>/, `<w:color w:val="${BASE_TEXT_COLOR}"/>`);
+    return `<w:rPr>${newInner}</w:rPr>`;
+  });
+}
+
 /**
  * Remplace chirurgicalement, directement dans le XML du .docx original, le
  * texte de chaque emplacement entre crochets par sa valeur — préserve à
  * 100% la mise en page, la police et le style du fichier d'origine puisque
- * rien d'autre n'est touché.
+ * rien d'autre n'est touché. Les passages dorés/gris-italique (repères
+ * visuels du modèle) sont ensuite uniformisés avec le reste du texte.
  */
 export async function fillDocxTemplate(buffer, replacements) {
   const zip = await JSZip.loadAsync(buffer);
@@ -125,6 +153,8 @@ export async function fillDocxTemplate(buffer, replacements) {
       }
     }
   }
+
+  xml = normalizeAccentRuns(xml);
 
   zip.file(docPath, xml);
   return zip.generateAsync({ type: "nodebuffer" });
