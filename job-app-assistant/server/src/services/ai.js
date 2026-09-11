@@ -95,7 +95,20 @@ Tâches :
    ponctuation, même grammaire). Si une information est vraiment introuvable pour un emplacement
    donné (ex: adresse inconnue), renvoie une chaîne vide pour cet emplacement plutôt que d'inventer.
    Ne produis PAS le texte complet de la lettre : uniquement le dictionnaire de remplacement
-   demandé dans "champs" ci-dessous.`
+   demandé dans "champs" ci-dessous.
+   Contraintes très importantes sur le CONTENU et le TON de chaque valeur :
+   - La lettre finale doit tenir sur UNE SEULE PAGE A4. La mise en page ne bouge pas, donc reste
+     COURT : les emplacements insérés dans une phrase (comme le secteur, la raison de l'intérêt,
+     un projet) = quelques mots seulement, jamais une phrase complète. Les emplacements qui
+     forment un paragraphe entier à eux seuls (ex: "[À adapter pour chaque entreprise]",
+     "[À adapter si nécessaire]") = 1 à 2 phrases courtes maximum, pas plus.
+   - Écris comme un vrai apprenti de 16-18 ans le ferait, avec ses mots à lui : simple, direct,
+     naturel, un peu maladroit si besoin — surtout PAS un ton marketing/corporate ni des
+     formulations qui sonnent "généré par une IA" (pas de tournures pompeuses, pas de mots
+     savants ou de jargon d'entreprise style "solutions innovantes", "environnement dynamique",
+     "gestion de la sauvegarde des données", etc.). Reste crédible et modeste : ne mentionne que
+     des compétences ou intérêts réalistes pour un apprenti débutant, cohérents avec le CV et le
+     reste de la lettre — n'invente pas de sujet technique avancé qui ne s'y trouve pas déjà.`
       : `Produis la LETTRE DE MOTIVATION complète, en français, pour cette entreprise, dans le champ
    "cover_letter". Garde au maximum le texte, la structure et le style de la lettre de base (ne
    réécris pas ce qui fonctionne déjà) et adapte seulement les passages qui font référence à une
@@ -148,6 +161,25 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, au format exac
     for (const p of placeholders) {
       coverLetterReplacements[p] = (data.champs && data.champs[p]) || "";
     }
+
+    // L'IA renvoie parfois l'adresse trouvée uniquement dans "adresse_entreprise" sans
+    // remplir l'emplacement correspondant dans "champs" : on complète nous-mêmes plutôt
+    // que de laisser un emplacement d'adresse vide dans la lettre.
+    const knownAddress = (companyAddress || data.adresse_entreprise || "").trim();
+    if (knownAddress) {
+      const streetKey = placeholders.find(
+        (p) => /adresse/i.test(p) && !/npa|ville/i.test(p)
+      );
+      const cityKey = placeholders.find((p) => /npa|ville|code postal/i.test(p));
+      const parts = knownAddress.split(",").map((s) => s.trim());
+      if (streetKey && !coverLetterReplacements[streetKey]) {
+        coverLetterReplacements[streetKey] = parts.length > 1 ? parts.slice(0, -1).join(", ") : knownAddress;
+      }
+      if (cityKey && !coverLetterReplacements[cityKey] && parts.length > 1) {
+        coverLetterReplacements[cityKey] = parts[parts.length - 1];
+      }
+    }
+
     coverLetterText = applyReplacements(baseCoverLetter, coverLetterReplacements);
   } else {
     coverLetterText = data.cover_letter || "";
