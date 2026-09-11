@@ -21,12 +21,9 @@ const statusClass = {
   done: "bg-emerald-500/15 text-emerald-400",
 };
 
-function DocCard({ href, title, subtitle, icon }) {
+function DocCard({ href, pdfHref, title, subtitle, icon }) {
   return (
-    <a
-      href={href}
-      className="flex items-center gap-3 rounded-xl border border-slate-800 p-3.5 hover:border-indigo-500/50 hover:bg-indigo-500/10 transition-colors group"
-    >
+    <div className="flex items-center gap-3 rounded-xl border border-slate-800 p-3.5 hover:border-indigo-500/50 hover:bg-indigo-500/10 transition-colors group">
       <span className="grid place-items-center w-10 h-10 shrink-0 rounded-lg bg-indigo-500/15 text-indigo-400 group-hover:bg-indigo-500/25">
         {icon}
       </span>
@@ -34,8 +31,25 @@ function DocCard({ href, title, subtitle, icon }) {
         <p className="font-medium text-white text-sm truncate">{title}</p>
         {subtitle && <p className="text-xs text-slate-400 truncate">{subtitle}</p>}
       </div>
-      <IconDownload className="w-4 h-4 text-slate-500 shrink-0 group-hover:text-indigo-400" />
-    </a>
+      <div className="flex items-center gap-1 shrink-0">
+        <a
+          href={href}
+          className="flex items-center gap-1 text-xs font-medium text-slate-400 hover:text-indigo-400 px-2 py-1.5 rounded-md hover:bg-indigo-500/10 transition-colors"
+        >
+          <IconDownload className="w-3.5 h-3.5" />
+          Word
+        </a>
+        {pdfHref && (
+          <a
+            href={pdfHref}
+            className="flex items-center gap-1 text-xs font-medium text-slate-400 hover:text-indigo-400 px-2 py-1.5 rounded-md hover:bg-indigo-500/10 transition-colors"
+          >
+            <IconDownload className="w-3.5 h-3.5" />
+            PDF
+          </a>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -206,6 +220,7 @@ export default function CompanyDetail() {
             <div className="grid sm:grid-cols-2 gap-2.5">
               <DocCard
                 href="/api/profile/cv"
+                pdfHref="/api/profile/cv.pdf"
                 title="CV"
                 subtitle={profile.cv_filename}
                 icon={<IconFileText className="w-5 h-5" />}
@@ -213,6 +228,7 @@ export default function CompanyDetail() {
               {company.cv_modified_text && (
                 <DocCard
                   href={`/api/companies/${company.id}/cv-modifie.docx`}
+                  pdfHref={`/api/companies/${company.id}/cv-modifie.pdf`}
                   title="CV modifié pour cette candidature"
                   subtitle={company.cv_change_summary}
                   icon={<IconFileText className="w-5 h-5" />}
@@ -220,6 +236,7 @@ export default function CompanyDetail() {
               )}
               <DocCard
                 href={`/api/companies/${company.id}/cover-letter.docx`}
+                pdfHref={`/api/companies/${company.id}/cover-letter.pdf`}
                 title="Lettre de motivation"
                 subtitle={company.name}
                 icon={<IconFileText className="w-5 h-5" />}
