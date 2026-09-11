@@ -130,14 +130,41 @@ function fixGrammar(placeholder, value) {
   return v;
 }
 
-/** Coupe une valeur trop longue à la dernière limite de mot plutôt qu'en plein milieu. */
+// Mots qui ne peuvent jamais terminer une phrase en français (prépositions,
+// déterminants, conjonctions...) : couper pile après l'un d'eux laisse une
+// phrase bancale du genre "...correspond à mes." ou "...dentaires à.".
+const DANGLING_END_WORDS = new Set([
+  "à", "de", "du", "des", "au", "aux", "en", "sur", "dans", "pour", "avec", "sans", "chez",
+  "par", "vers", "sous", "entre", "contre", "après", "avant", "depuis", "pendant", "selon",
+  "et", "ou", "mais", "donc", "car", "ni", "or", "que", "qui", "comme", "si", "parce",
+  "notamment", "le", "la", "les", "un", "une", "mon", "ma", "mes", "ton", "ta", "tes",
+  "son", "sa", "ses", "notre", "nos", "votre", "vos", "leur", "leurs", "ce", "cet", "cette", "ces",
+  "l'", "c'", "j'", "n'", "s'", "d'", "qu'",
+]);
+
+/** Retire les mots de fin qui ne peuvent grammaticalement pas conclure une phrase. */
+function trimDanglingWords(text) {
+  const words = text.trim().split(/\s+/);
+  while (words.length > 1) {
+    const last = words[words.length - 1].toLowerCase().replace(/[.,;:!?…]+$/, "");
+    if (DANGLING_END_WORDS.has(last)) {
+      words.pop();
+    } else {
+      break;
+    }
+  }
+  return words.join(" ");
+}
+
+/** Coupe une valeur trop longue à la dernière limite de mot plutôt qu'en plein milieu,
+ * puis retire tout mot de fin qui laisserait une phrase grammaticalement bancale. */
 function truncateAtWord(value, maxLen) {
   const text = (value || "").trim();
-  if (text.length <= maxLen) return text;
+  if (text.length <= maxLen) return trimDanglingWords(text);
   const cut = text.slice(0, maxLen);
   const lastSpace = cut.lastIndexOf(" ");
   const trimmed = lastSpace > maxLen * 0.5 ? cut.slice(0, lastSpace) : cut;
-  return trimmed.trim().replace(/[,;:\-–—]+$/, "");
+  return trimDanglingWords(trimmed.trim().replace(/[,;:\-–—]+$/, ""));
 }
 
 /**
