@@ -24,8 +24,15 @@ export const db = process.env.TURSO_DATABASE_URL
     });
 
 await db.executeMultiple(`
-  CREATE TABLE IF NOT EXISTS profile (
-    id INTEGER PRIMARY KEY CHECK (id = 1),
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS profiles (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id),
     full_name TEXT DEFAULT '',
     cv_text TEXT DEFAULT '',
     cv_docx BLOB,
@@ -48,6 +55,7 @@ await db.executeMultiple(`
 
   CREATE TABLE IF NOT EXISTS companies (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL DEFAULT 0,
     name TEXT NOT NULL,
     url TEXT DEFAULT '',
     description TEXT DEFAULT '',
@@ -63,9 +71,12 @@ await db.executeMultiple(`
   );
 `);
 
-const { rows: profileRows } = await db.execute("SELECT id FROM profile WHERE id = 1");
-if (profileRows.length === 0) {
-  await db.execute("INSERT INTO profile (id) VALUES (1)");
+// Migration best-effort : ajoute user_id si la table companies existait déjà
+// sans (installation antérieure à la version multi-comptes).
+try {
+  await db.execute("ALTER TABLE companies ADD COLUMN user_id INTEGER NOT NULL DEFAULT 0");
+} catch {
+  // colonne déjà présente, rien à faire
 }
 
 /** Convertit une colonne BLOB renvoyée par libsql (ArrayBuffer/Uint8Array) en Buffer Node. */
@@ -73,12 +84,41 @@ export function toBuffer(value) {
   return value == null ? null : Buffer.from(value);
 }
 
-export async function getProfile() {
-  const { rows } = await db.execute("SELECT * FROM profile WHERE id = 1");
+export async function createUser({ email, passwordHash, fullName }) {
+  const info = await db.execute({
+    sql: "INSERT INTO users (email, password_hash) VALUES (?, ?)",
+    args: [email, passwordHash],
+  });
+  const userId = Number(info.lastInsertRowid);
+  await db.execute({
+    sql: "INSERT INTO profiles (user_id, full_name) VALUES (?, ?)",
+    args: [userId, fullName || ""],
+  });
+  return getUserById(userId);
+}
+
+export async function getUserByEmail(email) {
+  const { rows } = await db.execute({
+    sql: "SELECT * FROM users WHERE email = ?",
+    args: [email],
+  });
   return rows[0];
 }
 
-export async function updateProfile(fields) {
+export async function getUserById(id) {
+  const { rows } = await db.execute({ sql: "SELECT * FROM users WHERE id = ?", args: [id] });
+  return rows[0];
+}
+
+export async function getProfile(userId) {
+  const { rows } = await db.execute({
+    sql: "SELECT * FROM profiles WHERE user_id = ?",
+    args: [userId],
+  });
+  return rows[0];
+}
+
+export async function updateProfile(userId, fields) {
   const allowed = [
     "full_name",
     "cv_text",
@@ -100,9 +140,9 @@ export async function updateProfile(fields) {
     "bulletin3_mimetype",
   ];
   const keys = Object.keys(fields).filter((k) => allowed.includes(k));
-  if (keys.length === 0) return getProfile();
+  if (keys.length === 0) return getProfile(userId);
   const setClause = keys.map((k) => `${k} = ?`).join(", ");
-  const args = keys.map((k) => fields[k]);
-  await db.execute({ sql: `UPDATE profile SET ${setClause} WHERE id = 1`, args });
-  return getProfile();
+  const args = [...keys.map((k) => fields[k]), userId];
+  await db.execute({ sql: `UPDATE profiles SET ${setClause} WHERE user_id = ?`, args });
+  return getProfile(userId);
 }

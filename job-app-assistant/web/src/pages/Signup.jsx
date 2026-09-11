@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import { api } from "../api.js";
 import { IconLoader } from "../components/Icons.jsx";
 
-export default function Login({ onSuccess }) {
+export default function Signup({ onSuccess }) {
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -14,7 +15,7 @@ export default function Login({ onSuccess }) {
     setError("");
     setLoading(true);
     try {
-      const user = await api.login(email, password);
+      const user = await api.signup(email, password, fullName);
       onSuccess(user);
     } catch (err) {
       setError(err.message);
@@ -38,9 +39,20 @@ export default function Login({ onSuccess }) {
             alt="CandidAI"
             className="w-14 h-14 rounded-2xl shadow-md shadow-indigo-950/50 mb-3"
           />
-          <h1 className="font-display text-xl font-bold text-white">CandidAI</h1>
-          <p className="text-sm text-slate-400 mt-1">Connecte-toi pour continuer</p>
+          <h1 className="font-display text-xl font-bold text-white">Créer un compte</h1>
+          <p className="text-sm text-slate-400 mt-1">Gratuit, prêt en 30 secondes</p>
         </Link>
+
+        <label className="label" htmlFor="full_name">
+          Prénom / nom
+        </label>
+        <input
+          id="full_name"
+          autoFocus
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+          className="input mb-4"
+        />
 
         <label className="label" htmlFor="email">
           Email
@@ -48,7 +60,6 @@ export default function Login({ onSuccess }) {
         <input
           id="email"
           type="email"
-          autoFocus
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -62,20 +73,23 @@ export default function Login({ onSuccess }) {
           id="password"
           type="password"
           required
+          minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="input mb-4"
+          className="input mb-1"
         />
+        <p className="text-xs text-slate-500 mb-4">Au moins 8 caractères.</p>
+
         {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
         <button type="submit" disabled={loading} className="btn-primary w-full">
           {loading && <IconLoader className="w-4 h-4 animate-spin-slow" />}
-          {loading ? "Connexion…" : "Se connecter"}
+          {loading ? "Création…" : "Créer mon compte"}
         </button>
 
         <p className="text-sm text-slate-400 text-center mt-5">
-          Pas encore de compte ?{" "}
-          <Link to="/inscription" className="text-indigo-400 hover:text-indigo-300 font-medium">
-            Créer un compte
+          Déjà un compte ?{" "}
+          <Link to="/connexion" className="text-indigo-400 hover:text-indigo-300 font-medium">
+            Se connecter
           </Link>
         </p>
       </form>
