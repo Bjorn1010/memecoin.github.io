@@ -19,7 +19,7 @@ app.use(
   cookieSession({
     name: "session",
     secret: process.env.SESSION_SECRET || "dev-secret-change-me",
-    maxAge: 30 * 24 * 60 * 60 * 1000,
+    maxAge: 90 * 24 * 60 * 60 * 1000,
     sameSite: "lax",
   })
 );

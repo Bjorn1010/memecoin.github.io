@@ -4,18 +4,24 @@ import { textToDocxBuffer } from "../services/docx.js";
 
 export const companiesRouter = Router();
 
-async function getCompany(id) {
-  const { rows } = await db.execute({ sql: "SELECT * FROM companies WHERE id = ?", args: [id] });
+async function getCompany(id, userId) {
+  const { rows } = await db.execute({
+    sql: "SELECT * FROM companies WHERE id = ? AND user_id = ?",
+    args: [id, userId],
+  });
   return rows[0];
 }
 
 companiesRouter.get("/", async (req, res) => {
-  const { rows } = await db.execute("SELECT * FROM companies ORDER BY created_at DESC");
+  const { rows } = await db.execute({
+    sql: "SELECT * FROM companies WHERE user_id = ? ORDER BY created_at DESC",
+    args: [req.session.userId],
+  });
   res.json(rows);
 });
 
 companiesRouter.get("/:id", async (req, res) => {
-  const row = await getCompany(req.params.id);
+  const row = await getCompany(req.params.id, req.session.userId);
   if (!row) return res.status(404).json({ error: "Introuvable" });
   res.json(row);
 });
@@ -26,15 +32,15 @@ companiesRouter.post("/", async (req, res) => {
     return res.status(400).json({ error: "Le nom de l'entreprise est requis" });
   }
   const info = await db.execute({
-    sql: `INSERT INTO companies (name, url, description, source) VALUES (?, ?, ?, ?)`,
-    args: [name.trim(), url || "", description || "", source || ""],
+    sql: `INSERT INTO companies (user_id, name, url, description, source) VALUES (?, ?, ?, ?, ?)`,
+    args: [req.session.userId, name.trim(), url || "", description || "", source || ""],
   });
-  const row = await getCompany(Number(info.lastInsertRowid));
+  const row = await getCompany(Number(info.lastInsertRowid), req.session.userId);
   res.status(201).json(row);
 });
 
 companiesRouter.put("/:id", async (req, res) => {
-  const existing = await getCompany(req.params.id);
+  const existing = await getCompany(req.params.id, req.session.userId);
   if (!existing) return res.status(404).json({ error: "Introuvable" });
 
   const allowed = [
@@ -54,13 +60,13 @@ companiesRouter.put("/:id", async (req, res) => {
     const setClause = Object.keys(fields)
       .map((k) => `${k} = ?`)
       .join(", ");
-    const args = [...Object.values(fields), req.params.id];
+    const args = [...Object.values(fields), req.params.id, req.session.userId];
     await db.execute({
-      sql: `UPDATE companies SET ${setClause}, updated_at = datetime('now') WHERE id = ?`,
+      sql: `UPDATE companies SET ${setClause}, updated_at = datetime('now') WHERE id = ? AND user_id = ?`,
       args,
     });
   }
-  const row = await getCompany(req.params.id);
+  const row = await getCompany(req.params.id, req.session.userId);
   res.json(row);
 });
 
@@ -75,13 +81,13 @@ async function sendGeneratedDocx(res, { text, title, filename, fontFamily, fontS
 }
 
 companiesRouter.get("/:id/cover-letter.docx", async (req, res) => {
-  const company = await getCompany(req.params.id);
+  const company = await getCompany(req.params.id, req.session.userId);
   if (!company) return res.status(404).json({ error: "Introuvable" });
   if (!company.cover_letter_text) {
     return res.status(400).json({ error: "Génère d'abord la lettre de motivation." });
   }
   try {
-    const profile = await getProfile();
+    const profile = await getProfile(req.session.userId);
     await sendGeneratedDocx(res, {
       text: company.cover_letter_text,
       title: `Lettre de motivation - ${company.name}`,
@@ -95,13 +101,13 @@ companiesRouter.get("/:id/cover-letter.docx", async (req, res) => {
 });
 
 companiesRouter.get("/:id/cv-modifie.docx", async (req, res) => {
-  const company = await getCompany(req.params.id);
+  const company = await getCompany(req.params.id, req.session.userId);
   if (!company) return res.status(404).json({ error: "Introuvable" });
   if (!company.cv_modified_text) {
     return res.status(404).json({ error: "Aucun CV modifié pour cette entreprise." });
   }
   try {
-    const profile = await getProfile();
+    const profile = await getProfile(req.session.userId);
     await sendGeneratedDocx(res, {
       text: company.cv_modified_text,
       title: `CV - ${company.name}`,
@@ -115,6 +121,9 @@ companiesRouter.get("/:id/cv-modifie.docx", async (req, res) => {
 });
 
 companiesRouter.delete("/:id", async (req, res) => {
-  await db.execute({ sql: "DELETE FROM companies WHERE id = ?", args: [req.params.id] });
+  await db.execute({
+    sql: "DELETE FROM companies WHERE id = ? AND user_id = ?",
+    args: [req.params.id, req.session.userId],
+  });
   res.json({ ok: true });
 });

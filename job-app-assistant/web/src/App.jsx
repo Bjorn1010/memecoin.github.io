@@ -4,7 +4,10 @@ import { api } from "./api.js";
 import { ToastProvider } from "./components/Toast.jsx";
 import Sidebar from "./components/Sidebar.jsx";
 import { IconMenu } from "./components/Icons.jsx";
+import Landing from "./pages/Landing.jsx";
+import Pricing from "./pages/Pricing.jsx";
 import Login from "./pages/Login.jsx";
+import Signup from "./pages/Signup.jsx";
 import Setup from "./pages/Setup.jsx";
 import Companies from "./pages/Companies.jsx";
 import CompanyDetail from "./pages/CompanyDetail.jsx";
@@ -37,10 +40,10 @@ function Shell({ onLogout }) {
 
         <main className="max-w-3xl mx-auto px-4 py-6 sm:py-10 animate-fade-in">
           <Routes>
-            <Route path="/" element={<Navigate to="/entreprises" replace />} />
             <Route path="/profil" element={<Setup />} />
             <Route path="/entreprises" element={<Companies />} />
             <Route path="/entreprises/:id" element={<CompanyDetail />} />
+            <Route path="*" element={<Navigate to="/entreprises" replace />} />
           </Routes>
         </main>
       </div>
@@ -54,18 +57,19 @@ export default function App() {
   useEffect(() => {
     api
       .me()
-      .then((r) => setAuthed(r.authed))
+      .then((r) => setAuthed(!!r.authed))
       .catch(() => setAuthed(false));
   }, []);
 
   if (authed === null) {
     return (
-      <div className="min-h-screen grid place-items-center text-slate-400 text-sm">
+      <div className="min-h-screen grid place-items-center bg-slate-950 text-slate-400 text-sm">
         Chargement…
       </div>
     );
   }
 
+  const handleAuthed = () => setAuthed(true);
   const handleLogout = async () => {
     await api.logout();
     setAuthed(false);
@@ -73,7 +77,22 @@ export default function App() {
 
   return (
     <ToastProvider>
-      {authed ? <Shell onLogout={handleLogout} /> : <Login onSuccess={() => setAuthed(true)} />}
+      <Routes>
+        <Route path="/" element={authed ? <Navigate to="/entreprises" replace /> : <Landing />} />
+        <Route path="/tarifs" element={<Pricing />} />
+        <Route
+          path="/connexion"
+          element={authed ? <Navigate to="/entreprises" replace /> : <Login onSuccess={handleAuthed} />}
+        />
+        <Route
+          path="/inscription"
+          element={authed ? <Navigate to="/entreprises" replace /> : <Signup onSuccess={handleAuthed} />}
+        />
+        <Route
+          path="/*"
+          element={authed ? <Shell onLogout={handleLogout} /> : <Navigate to="/connexion" replace />}
+        />
+      </Routes>
     </ToastProvider>
   );
 }
