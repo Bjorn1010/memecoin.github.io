@@ -126,12 +126,29 @@ function normalizeAccentRuns(xml) {
   });
 }
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Retire gras/italique/couleur d'un bloc <w:rPr> — utilisé sur les runs d'un
+ * emplacement rempli par l'IA, pour que le texte inséré ait l'air d'avoir
+ * toujours fait partie de la lettre plutôt que de ressortir en gras doré. */
+function stripRunEmphasis(rPrInner) {
+  return rPrInner
+    .replace(/<w:b\/>/g, "")
+    .replace(/<w:bCs\/>/g, "")
+    .replace(/<w:i\/>/g, "")
+    .replace(/<w:iCs\/>/g, "")
+    .replace(/<w:color w:val="[0-9A-Fa-f]{6}"\s*\/>/, `<w:color w:val="${BASE_TEXT_COLOR}"/>`);
+}
+
 /**
  * Remplace chirurgicalement, directement dans le XML du .docx original, le
  * texte de chaque emplacement entre crochets par sa valeur — préserve à
  * 100% la mise en page, la police et le style du fichier d'origine puisque
- * rien d'autre n'est touché. Les passages dorés/gris-italique (repères
- * visuels du modèle) sont ensuite uniformisés avec le reste du texte.
+ * rien d'autre n'est touché. Le run qui contenait l'emplacement perd son
+ * gras/italique/couleur d'accent (c'était un repère de modèle, pas un style
+ * voulu pour du texte final) pour se fondre naturellement dans la phrase.
  */
 export async function fillDocxTemplate(buffer, replacements) {
   const zip = await JSZip.loadAsync(buffer);
@@ -147,6 +164,22 @@ export async function fillDocxTemplate(buffer, replacements) {
       escapeXml(placeholder),
     ];
     for (const variant of variants) {
+      const runPattern = new RegExp(
+        `<w:r>((?:(?!<w:r>|</w:r>)[\\s\\S])*?)<w:t([^>]*)>${escapeRegExp(variant)}</w:t></w:r>`
+      );
+      const match = xml.match(runPattern);
+      if (match) {
+        const [fullMatch, rPrBlock, tAttrs] = match;
+        const newRPrBlock = rPrBlock.replace(
+          /<w:rPr>([\s\S]*?)<\/w:rPr>/,
+          (m, inner) => `<w:rPr>${stripRunEmphasis(inner)}</w:rPr>`
+        );
+        const newRun = `<w:r>${newRPrBlock}<w:t${tAttrs}>${escapedValue}</w:t></w:r>`;
+        xml = xml.replace(fullMatch, newRun);
+        break;
+      }
+      // Filet de sécurité si la structure du run ne correspond pas exactement
+      // au motif attendu : on remplace au moins le texte, sans toucher au style.
       if (xml.includes(variant)) {
         xml = xml.split(variant).join(escapedValue);
         break;
@@ -154,6 +187,9 @@ export async function fillDocxTemplate(buffer, replacements) {
     }
   }
 
+  // Passages dorés/gris-italique restants (ex: un titre statique qui n'était
+  // pas un emplacement à remplir) : on ne touche qu'à la couleur/l'italique,
+  // le gras éventuel (ex: un titre de section) reste inchangé.
   xml = normalizeAccentRuns(xml);
 
   zip.file(docPath, xml);
