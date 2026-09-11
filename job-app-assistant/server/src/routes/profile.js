@@ -73,6 +73,7 @@ profileRouter.post("/cover-letter", upload.single("file"), async (req, res) => {
     const style = await extractDocxStyle(req.file.buffer);
     await updateProfile(req.session.userId, {
       cover_letter_text: text,
+      cover_letter_docx: req.file.buffer,
       cover_letter_font_family: style.fontFamily || "",
       cover_letter_font_size: style.fontSize,
     });

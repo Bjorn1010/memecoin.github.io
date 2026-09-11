@@ -36,6 +36,7 @@ async function generateForCompany(company, profile) {
   await db.execute({
     sql: `UPDATE companies SET
        cover_letter_text = ?,
+       cover_letter_replacements = ?,
        cv_modified_text = ?,
        cv_change_summary = ?,
        message_text = ?,
@@ -46,6 +47,7 @@ async function generateForCompany(company, profile) {
      WHERE id = ?`,
     args: [
       result.coverLetter,
+      result.coverLetterReplacements ? JSON.stringify(result.coverLetterReplacements) : "",
       result.cvModifiedText,
       result.cvChangeSummary,
       result.messageText,

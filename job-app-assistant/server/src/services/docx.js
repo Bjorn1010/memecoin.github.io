@@ -77,3 +77,55 @@ export async function textToDocxBuffer(
 
   return Packer.toBuffer(doc);
 }
+
+function escapeXml(value) {
+  return (value || "")
+    .toString()
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+/**
+ * Remplace chaque emplacement entre crochets par sa valeur dans un texte brut
+ * (utilisé pour construire un aperçu texte à partir du dictionnaire renvoyé
+ * par l'IA, indépendamment de la génération du .docx).
+ */
+export function applyReplacements(text, replacements) {
+  let result = text || "";
+  for (const [placeholder, value] of Object.entries(replacements || {})) {
+    result = result.split(placeholder).join(value || "");
+  }
+  return result;
+}
+
+/**
+ * Remplace chirurgicalement, directement dans le XML du .docx original, le
+ * texte de chaque emplacement entre crochets par sa valeur — préserve à
+ * 100% la mise en page, la police et le style du fichier d'origine puisque
+ * rien d'autre n'est touché.
+ */
+export async function fillDocxTemplate(buffer, replacements) {
+  const zip = await JSZip.loadAsync(buffer);
+  const docPath = "word/document.xml";
+  const file = zip.file(docPath);
+  if (!file) throw new Error("Fichier .docx invalide (document.xml introuvable).");
+  let xml = await file.async("string");
+
+  for (const [placeholder, rawValue] of Object.entries(replacements || {})) {
+    const escapedValue = escapeXml(rawValue);
+    const variants = [
+      escapeXml(placeholder).replace(/'/g, "&apos;").replace(/"/g, "&quot;"),
+      escapeXml(placeholder),
+    ];
+    for (const variant of variants) {
+      if (xml.includes(variant)) {
+        xml = xml.split(variant).join(escapedValue);
+        break;
+      }
+    }
+  }
+
+  zip.file(docPath, xml);
+  return zip.generateAsync({ type: "nodebuffer" });
+}

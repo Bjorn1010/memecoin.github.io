@@ -40,6 +40,7 @@ await db.executeMultiple(`
     cv_font_family TEXT DEFAULT '',
     cv_font_size INTEGER,
     cover_letter_text TEXT DEFAULT '',
+    cover_letter_docx BLOB,
     cover_letter_font_family TEXT DEFAULT '',
     cover_letter_font_size INTEGER,
     bulletin1_file BLOB,
@@ -67,6 +68,7 @@ await db.executeMultiple(`
     cv_change_summary TEXT DEFAULT '',
     message_text TEXT DEFAULT '',
     fetched_context TEXT DEFAULT '',
+    cover_letter_replacements TEXT DEFAULT '',
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
   );
@@ -81,6 +83,16 @@ try {
 }
 try {
   await db.execute("ALTER TABLE companies ADD COLUMN address TEXT DEFAULT ''");
+} catch {
+  // colonne déjà présente, rien à faire
+}
+try {
+  await db.execute("ALTER TABLE companies ADD COLUMN cover_letter_replacements TEXT DEFAULT ''");
+} catch {
+  // colonne déjà présente, rien à faire
+}
+try {
+  await db.execute("ALTER TABLE profiles ADD COLUMN cover_letter_docx BLOB");
 } catch {
   // colonne déjà présente, rien à faire
 }
@@ -133,6 +145,7 @@ export async function updateProfile(userId, fields) {
     "cv_font_family",
     "cv_font_size",
     "cover_letter_text",
+    "cover_letter_docx",
     "cover_letter_font_family",
     "cover_letter_font_size",
     "bulletin1_file",

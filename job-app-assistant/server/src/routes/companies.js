@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, getProfile } from "../db.js";
-import { textToDocxBuffer } from "../services/docx.js";
+import { db, getProfile, toBuffer } from "../db.js";
+import { textToDocxBuffer, fillDocxTemplate } from "../services/docx.js";
 
 export const companiesRouter = Router();
 
@@ -89,10 +89,25 @@ companiesRouter.get("/:id/cover-letter.docx", async (req, res) => {
   }
   try {
     const profile = await getProfile(req.session.userId);
+    const filename = `Lettre de motivation - ${company.name}.docx`;
+
+    if (profile.cover_letter_docx && company.cover_letter_replacements) {
+      // Remplacement chirurgical dans le fichier .docx original : préserve
+      // à 100% la mise en page, la police et le style de la lettre de base.
+      const replacements = JSON.parse(company.cover_letter_replacements);
+      const buffer = await fillDocxTemplate(toBuffer(profile.cover_letter_docx), replacements);
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      );
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      return res.send(buffer);
+    }
+
     await sendGeneratedDocx(res, {
       text: company.cover_letter_text,
       title: `Lettre de motivation - ${company.name}`,
-      filename: `Lettre de motivation - ${company.name}.docx`,
+      filename,
       fontFamily: profile.cover_letter_font_family || profile.cv_font_family,
       fontSize: profile.cover_letter_font_size || profile.cv_font_size,
     });
