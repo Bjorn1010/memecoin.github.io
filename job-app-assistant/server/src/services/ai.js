@@ -56,8 +56,41 @@ async function askJson(prompt) {
 // Limites de longueur (en caractères) pour garantir que la lettre tienne sur une
 // seule page quoi que renvoie l'IA — filet de sécurité déterministe en plus des
 // consignes données dans le prompt.
-const INLINE_PLACEHOLDER_MAX = 30;
+const INLINE_PLACEHOLDER_MAX = 38;
 const STANDALONE_PLACEHOLDER_MAX = 80;
+
+// Indications précises par emplacement connu de la lettre de référence : le rôle
+// grammatical exact attendu (groupe nominal, phrase avec verbe conjugué, etc.) —
+// un simple "reste court" ne suffit pas, l'IA produisait des fragments faux
+// grammaticalement (ex: "parce que aider les cabinets dentaires" au lieu d'une
+// vraie proposition). Clé = texte exact du placeholder dans le fichier de
+// référence de l'utilisateur.
+const PLACEHOLDER_HINTS = {
+  "[Nom de l'entreprise]": "le nom exact de l'entreprise, rien d'autre.",
+  "[Adresse]": "la rue et le numéro du siège (ex: \"Rue du Lac 4\"), chaîne vide si inconnu.",
+  "[NPA, Ville]": "le code postal et la ville (ex: \"1400 Yverdon-les-Bains\"), chaîne vide si inconnu.",
+  "[À adapter pour chaque entreprise]":
+    "UNE PHRASE COMPLÈTE avec sujet et verbe conjugué (ex: \"J'ai vu votre offre et le poste correspond à ce que je cherche.\") — c'est un paragraphe entier à lui seul, elle doit se suffire.",
+  "[secteur / domaine de l'entreprise]":
+    "un GROUPE NOMINAL avec son article (ex: \"l'informatique dentaire\") — s'insère après \"au secteur de\", donc jamais une phrase, juste le groupe nominal complet.",
+  "[ce qui t'intéresse dans ce domaine]":
+    "UNE PROPOSITION AVEC SUJET + VERBE CONJUGUÉ (ex: \"j'aime comprendre comment les systèmes fonctionnent\") — s'insère après \"notamment parce que\", donc INTERDICTION d'un verbe à l'infinitif seul (\"parce que aider...\" est FAUX en français, il faut \"parce que ça aide...\" ou \"parce que j'aime aider...\").",
+  "[projet / activité / type de travail / technologies / raison personnelle]":
+    "un GROUPE NOMINAL ou un verbe à l'INFINITIF (ex: \"la maintenance des postes de travail\" ou \"installer et configurer du matériel\") — s'insère après \"pour\", jamais un verbe conjugué.",
+  "[À adapter si nécessaire]":
+    "UNE PHRASE COMPLÈTE avec sujet et verbe conjugué, courte, qui referme le paragraphe précédent.",
+  "[domaine / technologie / type d'infrastructure]":
+    "un GROUPE NOMINAL COMPLET AVEC SON ARTICLE (ex: \"l'infrastructure informatique dentaire\") — s'insère après \"lié à\", ne JAMAIS oublier l'article (\"lié à infrastructure\" est FAUX, il faut \"lié à l'infrastructure\").",
+  "[élément spécifique à l'entreprise]":
+    "un GROUPE NOMINAL complet avec son article (ex: \"votre système de facturation\") — s'insère après \"découvrir\".",
+};
+
+function placeholderHint(placeholder) {
+  return (
+    PLACEHOLDER_HINTS[placeholder] ||
+    "une valeur courte, grammaticalement correcte et complète dans le contexte de la phrase où elle s'insère (bon article, bon accord, bon mode verbal)."
+  );
+}
 
 /** Coupe une valeur trop longue à la dernière limite de mot plutôt qu'en plein milieu. */
 function truncateAtWord(value, maxLen) {
@@ -144,26 +177,28 @@ Tâches :
 1. ${
     hasPlaceholders
       ? `La lettre de base est un MODÈLE FIGÉ : elle ne doit JAMAIS être réécrite, reformulée ou
-   réorganisée. Elle contient exactement ces emplacements entre crochets à remplir :
-   ${placeholders.map((p) => `"${p}"`).join(", ")}
-   Pour CHAQUE emplacement listé ci-dessus, trouve une valeur de remplacement réelle, spécifique et
-   pertinente pour cette entreprise précise (nom, adresse si connue, secteur, raison de l'intérêt,
-   technologies, etc. — en t'appuyant sur la description et le contenu récupéré ci-dessus). La
-   valeur de remplacement ne doit contenir ni le crochet ouvrant "[" ni le crochet fermant "]", et
-   doit s'insérer naturellement dans la phrase existante à la place de l'emplacement (même
-   ponctuation, même grammaire). Si une information est vraiment introuvable pour un emplacement
-   donné (ex: adresse inconnue), renvoie une chaîne vide pour cet emplacement plutôt que d'inventer.
+   réorganisée. Voici exactement les emplacements entre crochets à remplir, chacun avec le rôle
+   GRAMMATICAL PRÉCIS qu'il doit jouer dans la phrase où il se trouve (c'est très important : un
+   emplacement inséré après "parce que" a besoin d'un sujet et d'un verbe conjugué, un emplacement
+   inséré après "au secteur de" ou "lié à" a besoin d'un groupe nominal complet AVEC SON ARTICLE,
+   etc. — ne mélange pas les rôles, sinon la phrase obtenue n'est plus du français correct) :
+   ${placeholders.map((p) => `   - ${p} : ${placeholderHint(p)}`).join("\n")}
+   Chaque valeur doit, une fois insérée à la place de son emplacement, former une phrase 100%
+   correcte et naturelle en français — relis mentalement la phrase entière avec ta valeur insérée
+   avant de répondre. La valeur ne doit contenir ni le crochet ouvrant "[" ni le crochet fermant
+   "]". Si une information est vraiment introuvable pour un emplacement donné (ex: adresse
+   inconnue), renvoie une chaîne vide pour cet emplacement plutôt que d'inventer.
    Ne produis PAS le texte complet de la lettre : uniquement le dictionnaire de remplacement
    demandé dans "champs" ci-dessous.
    Contraintes très importantes sur le CONTENU et le TON de chaque valeur :
    - La lettre finale doit tenir sur UNE SEULE PAGE A4, SANS EXCEPTION. La mise en page ne bouge
-     pas, donc chaque valeur a une limite STRICTE de longueur (ce qui dépasse sera de toute façon
-     coupé automatiquement, donc reste dans la limite plutôt que de risquer une phrase tronquée) :
-     - emplacement inséré au milieu d'une phrase (secteur, raison de l'intérêt, projet,
-       technologie...) : 30 caractères MAXIMUM (2 à 4 mots, pas plus) — jamais une phrase ;
-     - emplacement qui forme à lui seul un paragraphe entier (ex: "[À adapter pour chaque
-       entreprise]", "[À adapter si nécessaire]") : 80 caractères MAXIMUM — une seule phrase
-       très courte, style télégraphique si besoin, surtout pas une phrase développée.
+     pas, donc reste aussi concis que possible tout en restant grammaticalement correct et naturel
+     (ce qui dépasse une longueur raisonnable sera de toute façon coupé automatiquement, donc mieux
+     vaut une phrase courte et complète qu'une phrase longue qui sera tronquée en plein milieu) :
+     - emplacement inséré au milieu d'une phrase (groupe nominal ou infinitif) : vise environ
+       35 caractères, quelques mots, jamais plus d'une courte proposition ;
+     - emplacement qui forme à lui seul un paragraphe entier : vise environ 75 caractères, une
+       seule phrase courte mais grammaticalement complète.
    - Écris comme un vrai apprenti de 16-18 ans le ferait, avec ses mots à lui : simple, direct,
      naturel, un peu maladroit si besoin — surtout PAS un ton marketing/corporate ni des
      formulations qui sonnent "généré par une IA" (pas de tournures pompeuses, pas de mots
