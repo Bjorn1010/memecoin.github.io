@@ -156,10 +156,10 @@ export default function CompanyDetail() {
             <input className="input" value={company.url} onChange={set("url")} />
           </div>
           <div className="sm:col-span-2">
-            <label className="label">Adresse de l'entreprise (optionnel)</label>
+            <label className="label">Adresse de l'entreprise</label>
             <input
               className="input"
-              placeholder="Rue, code postal, ville"
+              placeholder="Remplie automatiquement depuis le lien lors de la génération"
               value={company.address || ""}
               onChange={set("address")}
             />

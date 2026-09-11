@@ -29,6 +29,10 @@ async function generateForCompany(company, profile) {
     source: company.source,
   });
 
+  // Ne remplace l'adresse que si elle n'a pas déjà été renseignée (on ne veut
+  // jamais écraser une correction manuelle avec une extraction automatique).
+  const address = company.address || result.foundAddress || "";
+
   await db.execute({
     sql: `UPDATE companies SET
        cover_letter_text = ?,
@@ -36,6 +40,7 @@ async function generateForCompany(company, profile) {
        cv_change_summary = ?,
        message_text = ?,
        fetched_context = ?,
+       address = ?,
        status = 'generated',
        updated_at = datetime('now')
      WHERE id = ?`,
@@ -45,6 +50,7 @@ async function generateForCompany(company, profile) {
       result.cvChangeSummary,
       result.messageText,
       fetchedContext,
+      address,
       company.id,
     ],
   });
