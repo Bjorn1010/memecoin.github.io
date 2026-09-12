@@ -110,20 +110,39 @@ const DETERMINER_OR_PRONOUN_RE =
 const VOWEL_SOUND_RE = /^[aeiouhâàéèêëîïôöûü]/i;
 const BARE_INFINITIVE_RE = /^[a-zàâäéèêëîïôöùûü]+(er|ir|re)$/i;
 
+// Mot qui précède directement chaque emplacement "groupe nominal" dans la
+// lettre de référence — nécessaire pour contracter correctement l'article :
+// "de" + "les" -> "des" (jamais "de les"), "à" + "le" -> "au" (jamais "à le").
+const PLACEHOLDER_ANCHOR = {
+  "[secteur / domaine de l'entreprise]": "de",
+  "[domaine / technologie / type d'infrastructure]": "à",
+};
+
+/** Corrige "de le"/"de les" en "du"/"des" et "à le"/"à les" en "au"/"aux". */
+function contractArticle(anchor, value) {
+  const m = value.match(/^(le|les)\s+(.+)$/i);
+  if (!m) return value;
+  const isLes = m[1].toLowerCase() === "les";
+  if (anchor === "de") return `${isLes ? "des" : "du"} ${m[2]}`;
+  if (anchor === "à") return `${isLes ? "aux" : "au"} ${m[2]}`;
+  return value;
+}
+
 function fixGrammar(placeholder, value) {
   const v = (value || "").trim();
   if (!v) return v;
 
   // Groupe nominal attendu avec son article (ex: après "au secteur de", "lié à") :
+  // contracte "de le/les" -> "du/des" et "à le/les" -> "au/aux" si besoin, sinon
   // ajoute l'article élidé "l'" si la valeur commence par une voyelle et n'a pas
   // déjà de déterminant (pas de règle fiable pour choisir "le"/"la" sans dico).
-  if (
-    (placeholder === "[secteur / domaine de l'entreprise]" ||
-      placeholder === "[domaine / technologie / type d'infrastructure]") &&
-    !DETERMINER_OR_PRONOUN_RE.test(v) &&
-    VOWEL_SOUND_RE.test(v)
-  ) {
-    return `l'${v}`;
+  const anchor = PLACEHOLDER_ANCHOR[placeholder];
+  if (anchor) {
+    const contracted = contractArticle(anchor, v);
+    if (contracted !== v) return contracted;
+    if (!DETERMINER_OR_PRONOUN_RE.test(v) && VOWEL_SOUND_RE.test(v)) {
+      return `l'${v}`;
+    }
   }
 
   // Proposition attendue avec sujet + verbe conjugué (après "parce que") : si
