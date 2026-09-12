@@ -337,6 +337,11 @@ Tâches :
    doit : mentionner que le candidat vient d'appeler, dire qu'il joint ci-dessous son CV, sa lettre de
    motivation, et ses bulletins scolaires des 3 dernières années, et rester simple et direct (ce n'est
    pas un email formel, juste un mot d'accompagnement). Signe avec le prénom du candidat si connu.
+   MISE EN FORME OBLIGATOIRE dans "message_text" : comme un vrai e-mail, avec un saut de ligne vide
+   (deux caractères "\\n\\n" dans la chaîne JSON) entre chaque bloc — jamais un paragraphe unique.
+   Structure exacte à respecter : "Bonjour [Madame/Monsieur + nom si connu, sinon Madame, Monsieur],
+   \\n\\n[corps du message]\\n\\nJe reste à votre disposition pour tout complément d'information.
+   \\n\\nCordialement,\\n\\n[prénom nom]"
    Rédige aussi, dans "sujet", un objet d'e-mail court et clair pour ce message (ex: "Candidature
    spontanée - [poste] - [prénom nom]"), sans le mot "Sujet" ni les deux-points dedans.
 4. Cherche l'adresse postale complète de l'entreprise (rue, code postal, ville) dans le contenu
@@ -355,7 +360,7 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, au format exac
   "cv_modifie": "texte complet du CV modifié, ou chaîne vide si aucun changement",
   "cv_changement_resume": "explication courte du changement, ou chaîne vide",
   "sujet": "objet court de l'e-mail, sans le mot Sujet ni les deux-points",
-  "message_text": "le petit message d'accompagnement (signé ${fullName || "(prénom du candidat)"})",
+  "message_text": "Bonjour Madame, Monsieur,\\n\\n[corps du message]\\n\\nJe reste à votre disposition pour tout complément d'information.\\n\\nCordialement,\\n\\n${fullName || "(prénom nom du candidat)"}",
   "adresse_entreprise": "adresse postale trouvée, ou chaîne vide si introuvable"
 }
 `.trim();
