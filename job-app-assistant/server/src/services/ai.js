@@ -202,6 +202,12 @@ function ensureSentenceEnd(value) {
   return /[.!?…]$/.test(value) ? value : `${value}.`;
 }
 
+// Emplacements qui contiennent une VALEUR BRUTE (nom, adresse, ville) et non
+// une phrase : ils n'ont pas à finir par un point, et ne doivent surtout pas
+// passer par trimDanglingWords (qui traiterait par erreur "SA" comme le
+// déterminant possessif "sa" et l'effacerait de "Edificom SA").
+const RAW_VALUE_PLACEHOLDERS = new Set(["[Nom de l'entreprise]", "[Adresse]", "[NPA, Ville]"]);
+
 /**
  * Applique une limite stricte de longueur à chaque valeur de remplacement selon
  * qu'elle s'insère au milieu d'une phrase existante ou qu'elle forme, seule, un
@@ -214,6 +220,10 @@ function capReplacementLengths(replacements, baseCoverLetter) {
   for (const [placeholder, value] of Object.entries(replacements)) {
     if (placeholder in FIXED_REPLACEMENTS) {
       capped[placeholder] = value;
+      continue;
+    }
+    if (RAW_VALUE_PLACEHOLDERS.has(placeholder)) {
+      capped[placeholder] = (value || "").trim().slice(0, 100);
       continue;
     }
     const isStandalone = lines.has(placeholder);
