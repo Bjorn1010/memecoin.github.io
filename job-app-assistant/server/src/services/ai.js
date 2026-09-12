@@ -92,6 +92,15 @@ function placeholderHint(placeholder) {
   );
 }
 
+// Emplacements dont le contenu doit rester identique dans toutes les lettres,
+// quelle que soit l'entreprise — l'utilisateur préfère une phrase fixe plutôt
+// qu'une accroche réinventée par l'IA à chaque génération. On ne les envoie
+// même pas à l'IA : ils sont toujours remplacés par ce texte.
+const FIXED_REPLACEMENTS = {
+  "[À adapter pour chaque entreprise]":
+    "J'ai découvert votre entreprise il y a peu et elle m'intéresse énormément.",
+};
+
 // L'IA ignore parfois les consignes de grammaire (ex: répond par un infinitif
 // seul après "parce que", ou omet l'article après "lié à"). Plutôt que de
 // compter uniquement sur le prompt, on corrige ces erreurs connues au niveau
@@ -186,6 +195,10 @@ function capReplacementLengths(replacements, baseCoverLetter) {
   const lines = new Set((baseCoverLetter || "").split("\n").map((l) => l.trim()));
   const capped = {};
   for (const [placeholder, value] of Object.entries(replacements)) {
+    if (placeholder in FIXED_REPLACEMENTS) {
+      capped[placeholder] = value;
+      continue;
+    }
     const isStandalone = lines.has(placeholder);
     const maxLen = isStandalone ? STANDALONE_PLACEHOLDER_MAX : INLINE_PLACEHOLDER_MAX;
     const truncated = truncateAtWord(value, maxLen);
@@ -214,6 +227,9 @@ export async function generateApplication({
     ),
   ];
   const hasPlaceholders = placeholders.length > 0;
+  // Les emplacements à contenu fixe (voir FIXED_REPLACEMENTS) ne sont même pas
+  // proposés à l'IA : elle ne peut donc pas les faire varier d'une lettre à l'autre.
+  const aiPlaceholders = placeholders.filter((p) => !(p in FIXED_REPLACEMENTS));
 
   const prompt = `
 Tu es un expert en recrutement francophone qui aide un candidat à personnaliser sa candidature.
@@ -247,7 +263,7 @@ Tâches :
    emplacement inséré après "parce que" a besoin d'un sujet et d'un verbe conjugué, un emplacement
    inséré après "au secteur de" ou "lié à" a besoin d'un groupe nominal complet AVEC SON ARTICLE,
    etc. — ne mélange pas les rôles, sinon la phrase obtenue n'est plus du français correct) :
-   ${placeholders.map((p) => `   - ${p} : ${placeholderHint(p)}`).join("\n")}
+   ${aiPlaceholders.map((p) => `   - ${p} : ${placeholderHint(p)}`).join("\n")}
    Chaque valeur doit, une fois insérée à la place de son emplacement, former une phrase 100%
    correcte et naturelle en français — relis mentalement la phrase entière avec ta valeur insérée
    avant de répondre. La valeur ne doit contenir ni le crochet ouvrant "[" ni le crochet fermant
@@ -305,7 +321,7 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, au format exac
 {${
     hasPlaceholders
       ? `
-  "champs": { ${placeholders.map((p) => `"${p}": "valeur de remplacement"`).join(", ")} },`
+  "champs": { ${aiPlaceholders.map((p) => `"${p}": "valeur de remplacement"`).join(", ")} },`
       : `
   "cover_letter": "texte complet de la lettre",`
   }
@@ -324,7 +340,9 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, au format exac
   if (hasPlaceholders) {
     coverLetterReplacements = {};
     for (const p of placeholders) {
-      coverLetterReplacements[p] = fixGrammar(p, (data.champs && data.champs[p]) || "");
+      coverLetterReplacements[p] = FIXED_REPLACEMENTS[p]
+        ? FIXED_REPLACEMENTS[p]
+        : fixGrammar(p, (data.champs && data.champs[p]) || "");
     }
 
     // L'IA renvoie parfois l'adresse trouvée uniquement dans "adresse_entreprise" sans
