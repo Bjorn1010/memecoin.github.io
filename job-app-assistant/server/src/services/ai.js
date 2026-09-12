@@ -76,7 +76,7 @@ const PLACEHOLDER_HINTS = {
   "[ce qui t'intéresse dans ce domaine]":
     "UNE PROPOSITION AVEC SUJET + VERBE CONJUGUÉ (ex: \"j'aime comprendre comment les systèmes fonctionnent\") — s'insère après \"notamment parce que\", donc INTERDICTION d'un verbe à l'infinitif seul (\"parce que aider...\" est FAUX en français, il faut \"parce que ça aide...\" ou \"parce que j'aime aider...\").",
   "[projet / activité / type de travail / technologies / raison personnelle]":
-    "un GROUPE NOMINAL ou un verbe à l'INFINITIF (ex: \"la maintenance des postes de travail\" ou \"installer et configurer du matériel\") — s'insère après \"pour\", jamais un verbe conjugué.",
+    "un GROUPE NOMINAL ou un verbe à l'INFINITIF, en lien DIRECT avec le poste précis mentionné dans le titre de la lettre (\"informaticien exploitation et infrastructure\" — pas une activité informatique générique) : ex: \"la gestion du parc informatique et des serveurs\" ou \"maintenir l'infrastructure réseau de l'entreprise\". S'insère après \"pour\", jamais un verbe conjugué.",
   "[À adapter si nécessaire]":
     "UNE PHRASE COMPLÈTE avec sujet et verbe conjugué, courte, qui referme le paragraphe précédent.",
   "[domaine / technologie / type d'infrastructure]":
@@ -165,15 +165,32 @@ function trimDanglingWords(text) {
   return words.join(" ");
 }
 
-/** Coupe une valeur trop longue à la dernière limite de mot plutôt qu'en plein milieu,
- * puis retire tout mot de fin qui laisserait une phrase grammaticalement bancale. */
+/**
+ * Rapproche une valeur trop longue de la limite de caractères SANS jamais la
+ * couper en plein milieu d'une proposition — une phrase un peu plus longue
+ * que la cible est toujours préférable à une phrase incomplète qui ne veut
+ * rien dire (ex: "j'aime découvrir comment les produits."). On cherche donc,
+ * dans cet ordre : une fin de phrase (. ! ?) proche de la limite, sinon une
+ * virgule proche de la limite (fin de sous-proposition), sinon on renvoie la
+ * valeur complète telle quelle plutôt que de risquer un fragment bancal.
+ */
 function truncateAtWord(value, maxLen) {
   const text = (value || "").trim();
   if (text.length <= maxLen) return trimDanglingWords(text);
+
+  const window = text.slice(0, maxLen + 40);
+  const sentenceMatch = window.match(/^.*?[.!?]/);
+  if (sentenceMatch) return sentenceMatch[0].trim();
+
   const cut = text.slice(0, maxLen);
-  const lastSpace = cut.lastIndexOf(" ");
-  const trimmed = lastSpace > maxLen * 0.5 ? cut.slice(0, lastSpace) : cut;
-  return trimDanglingWords(trimmed.trim().replace(/[,;:\-–—]+$/, ""));
+  const lastComma = cut.lastIndexOf(",");
+  if (lastComma > maxLen * 0.4) {
+    return trimDanglingWords(cut.slice(0, lastComma).trim());
+  }
+
+  // Ni ponctuation de fin ni virgule à proximité : mieux vaut garder la
+  // phrase complète (un peu plus longue) qu'un fragment incompréhensible.
+  return trimDanglingWords(text);
 }
 
 /**
