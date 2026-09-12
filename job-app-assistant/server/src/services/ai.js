@@ -118,31 +118,54 @@ const PLACEHOLDER_ANCHOR = {
   "[domaine / technologie / type d'infrastructure]": "à",
 };
 
-/** Corrige "de le"/"de les" en "du"/"des" et "à le"/"à les" en "au"/"aux". */
-function contractArticle(anchor, value) {
-  const m = value.match(/^(le|les)\s+(.+)$/i);
-  if (!m) return value;
-  const isLes = m[1].toLowerCase() === "les";
-  if (anchor === "de") return `${isLes ? "des" : "du"} ${m[2]}`;
-  if (anchor === "à") return `${isLes ? "aux" : "au"} ${m[2]}`;
-  return value;
+// L'IA répète parfois le mot déjà présent juste avant l'emplacement dans la
+// lettre ("secteur", "domaine"...), avec son propre article en plus — ce qui
+// donne des doublons du genre "au secteur de du secteur du logiciel...". On
+// retire ce préambule redondant avant de traiter l'article.
+const REDUNDANT_LEADIN = {
+  "[secteur / domaine de l'entreprise]":
+    /^(?:(?:le|la|les|l['’]|du|des|un|une)\s*)?(?:secteur|domaine|activit[ée])\s*(?:de\s+|du\s+|des\s+|d['’])?/i,
+  "[domaine / technologie / type d'infrastructure]":
+    /^(?:(?:le|la|les|l['’]|du|des|un|une)\s*)?(?:infrastructure|domaine|technologie|type)\s*(?:de\s+|du\s+|des\s+|d['’])?/i,
+};
+
+/**
+ * Prépare un groupe nominal pour s'insérer après "de"/"à" sans jamais produire
+ * de tournure fausse. "le X"/"les X" se contractent sans ambiguïté ("de"+"le"
+ * ="du", "à"+"les"="aux"). Toute autre forme d'article déjà présente (du/des/
+ * de la/de l'/un/une — souvent une redite de l'IA) est retirée : impossible de
+ * deviner le bon article sans dictionnaire des genres, donc on repart d'un
+ * groupe nominal nu (toujours correct après "de"/"à", juste un peu moins
+ * naturel que l'article exact) plutôt que de risquer "de du"/"à le".
+ */
+function normalizeNominalGroup(anchor, placeholder, value) {
+  let v = value;
+
+  const leadin = REDUNDANT_LEADIN[placeholder];
+  if (leadin) {
+    const stripped = v.replace(leadin, "").trim();
+    if (stripped) v = stripped;
+  }
+
+  const leLesMatch = v.match(/^(le|les)\s+(.+)$/i);
+  if (leLesMatch) {
+    const isLes = leLesMatch[1].toLowerCase() === "les";
+    if (anchor === "de") return `${isLes ? "des" : "du"} ${leLesMatch[2]}`;
+    if (anchor === "à") return `${isLes ? "aux" : "au"} ${leLesMatch[2]}`;
+  }
+
+  const bare = v.replace(/^(?:du|des|de\s+la|de\s+l['’]|un|une|l['’])\s*/i, "").trim() || v;
+  return VOWEL_SOUND_RE.test(bare) ? `l'${bare}` : bare;
 }
 
 function fixGrammar(placeholder, value) {
   const v = (value || "").trim();
   if (!v) return v;
 
-  // Groupe nominal attendu avec son article (ex: après "au secteur de", "lié à") :
-  // contracte "de le/les" -> "du/des" et "à le/les" -> "au/aux" si besoin, sinon
-  // ajoute l'article élidé "l'" si la valeur commence par une voyelle et n'a pas
-  // déjà de déterminant (pas de règle fiable pour choisir "le"/"la" sans dico).
+  // Groupe nominal attendu avec son article (ex: après "au secteur de", "lié à").
   const anchor = PLACEHOLDER_ANCHOR[placeholder];
   if (anchor) {
-    const contracted = contractArticle(anchor, v);
-    if (contracted !== v) return contracted;
-    if (!DETERMINER_OR_PRONOUN_RE.test(v) && VOWEL_SOUND_RE.test(v)) {
-      return `l'${v}`;
-    }
+    return normalizeNominalGroup(anchor, placeholder, v);
   }
 
   // Proposition attendue avec sujet + verbe conjugué (après "parce que") : si
