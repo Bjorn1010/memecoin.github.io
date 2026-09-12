@@ -384,8 +384,6 @@ Tâches :
    Structure exacte à respecter : "Bonjour [Madame/Monsieur + nom si connu, sinon Madame, Monsieur],
    \\n\\n[corps du message]\\n\\nJe reste à votre disposition pour tout complément d'information.
    \\n\\nCordialement,\\n\\n[prénom nom]"
-   Rédige aussi, dans "sujet", un objet d'e-mail court et clair pour ce message (ex: "Candidature
-   spontanée - [poste] - [prénom nom]"), sans le mot "Sujet" ni les deux-points dedans.
 4. Cherche l'adresse postale complète de l'entreprise (rue, code postal, ville) dans le contenu
    récupéré depuis le lien fourni ci-dessus. Si tu la trouves clairement, renvoie-la dans
    "adresse_entreprise". Ne l'invente JAMAIS : si elle n'apparaît pas clairement dans le contenu
@@ -401,7 +399,6 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, au format exac
   }
   "cv_modifie": "texte complet du CV modifié, ou chaîne vide si aucun changement",
   "cv_changement_resume": "explication courte du changement, ou chaîne vide",
-  "sujet": "objet court de l'e-mail, sans le mot Sujet ni les deux-points",
   "message_text": "Bonjour Madame, Monsieur,\\n\\n[corps du message]\\n\\nJe reste à votre disposition pour tout complément d'information.\\n\\nCordialement,\\n\\n${fullName || "(prénom nom du candidat)"}",
   "adresse_entreprise": "adresse postale trouvée, ou chaîne vide si introuvable"
 }
@@ -446,8 +443,10 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, au format exac
     coverLetterText = data.cover_letter || "";
   }
 
-  const subject = (data.sujet || `Candidature - ${companyName}`).trim();
-  const messageText = data.message_text ? `Sujet : ${subject}\n\n${data.message_text}` : "";
+  // Sujet fixe demandé par l'utilisateur, plutôt que de laisser l'IA en
+  // proposer un différent selon l'entreprise ou le poste.
+  const FIXED_SUBJECT = "Candidature - CFC informaticien exploitation et infrastructure";
+  const messageText = data.message_text ? `Sujet : ${FIXED_SUBJECT}\n\n${data.message_text}` : "";
 
   return {
     coverLetter: coverLetterText,
