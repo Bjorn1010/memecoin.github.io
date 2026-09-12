@@ -130,6 +130,34 @@ function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+const FRENCH_MONTHS = [
+  "janvier", "février", "mars", "avril", "mai", "juin",
+  "juillet", "août", "septembre", "octobre", "novembre", "décembre",
+];
+
+function formatFrenchDateToday() {
+  const now = new Date();
+  return `${now.getDate()} ${FRENCH_MONTHS[now.getMonth()]} ${now.getFullYear()}`;
+}
+
+/**
+ * La lettre de référence contient une date fixe ("10 septembre 2026") écrite
+ * à la main par le candidat — elle doit refléter le jour où le document est
+ * généré, pas rester figée à la date du fichier original. On repère le texte
+ * au format "JJ mois AAAA" dans le document et on le remplace par la date du
+ * jour, sans toucher au style du run (ce n'est pas un repère de modèle).
+ */
+function refreshDateInXml(xml) {
+  const monthsPattern = FRENCH_MONTHS.join("|");
+  const dateRegex = new RegExp(
+    `(<w:t[^>]*>)(\\s*\\d{1,2}\\s+(?:${monthsPattern})\\s+\\d{4}\\s*)(</w:t>)`,
+    "i"
+  );
+  const match = xml.match(dateRegex);
+  if (!match) return xml;
+  return xml.replace(dateRegex, `$1${formatFrenchDateToday()}$3`);
+}
+
 /** Retire gras/italique/couleur d'un bloc <w:rPr> — utilisé sur les runs d'un
  * emplacement rempli par l'IA, pour que le texte inséré ait l'air d'avoir
  * toujours fait partie de la lettre plutôt que de ressortir en gras doré. */
@@ -186,6 +214,10 @@ export async function fillDocxTemplate(buffer, replacements) {
       }
     }
   }
+
+  // La date écrite en haut de la lettre doit toujours refléter le jour de
+  // génération du document, pas rester figée à la date du fichier original.
+  xml = refreshDateInXml(xml);
 
   // Passages dorés/gris-italique restants (ex: un titre statique qui n'était
   // pas un emplacement à remplir) : on ne touche qu'à la couleur/l'italique,
