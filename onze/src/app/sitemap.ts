@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { products } from "@/lib/data/products";
 import { collections } from "@/lib/data/collections";
-import { allTeams } from "@/lib/data/teams";
+import { clubs, countries } from "@/lib/data/teams";
 
 /* Static export needs this declared explicitly: the route has no dynamic
    inputs, but Next will not assume that. */
@@ -12,7 +12,14 @@ const BASE = "https://bjorn1010.github.io/onze";
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
 
-  const staticRoutes = ["", "/maillots", "/collections"].map((path) => ({
+  const staticRoutes = [
+    "",
+    "/maillots",
+    "/collections",
+    "/clubs",
+    "/selections",
+    "/promotions",
+  ].map((path) => ({
     url: `${BASE}${path}`,
     lastModified: now,
     changeFrequency: "daily" as const,
@@ -33,11 +40,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }));
 
-  /* Faceted club and country landing pages. These are the queries people
-     actually search ("maillot arsenal"), so they get real sitemap entries
-     rather than being left as filter state. */
-  const teamRoutes = allTeams.map((t) => ({
-    url: `${BASE}/maillots?${t.league === "Sélections" ? "pays" : "club"}=${t.slug}`,
+  /* Club and country landing pages. These are the queries people actually
+     search ("maillot arsenal"), and they are now real prerendered routes with
+     their own <h1> and metadata — so the sitemap points at those rather than
+     at a filtered /maillots?club= URL, which is a worse thing to index and
+     competes with the page that should rank. */
+  const teamRoutes = [
+    ...clubs.map((t) => `${BASE}/clubs/${t.slug}`),
+    ...countries.map((t) => `${BASE}/selections/${t.slug}`),
+  ].map((url) => ({
+    url,
     lastModified: now,
     changeFrequency: "weekly" as const,
     priority: 0.6,

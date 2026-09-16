@@ -64,7 +64,7 @@ export function TeamCard({
           </div>
           <ArrowUpRight
             size={18}
-            className="shrink-0 text-steel-500 transition-all duration-[--duration-standard] group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-pitch"
+            className="shrink-0 text-steel-500 transition-all duration-[--duration-standard] group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-volt"
           />
         </div>
 

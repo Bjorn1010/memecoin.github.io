@@ -13,15 +13,18 @@ import { transition, spring } from "@/lib/motion";
 
 type Panel = { title: string; items: { label: string; href: string }[] } | null;
 
+/* Mirrors the desktop navigation exactly. A phone menu that offers a
+   different set of destinations than the header is the fastest way to make a
+   site feel like two sites bolted together. */
 const ROOT = [
-  { label: "Nouveautés", href: "/collections/nouveautes" },
-  { label: "Maillots", panel: "clubs" },
+  { label: "Maillots", href: "/maillots" },
+  { label: "Clubs", panel: "clubs" },
   { label: "Sélections", panel: "pays" },
+  { label: "Vintage", href: "/collections/retros" },
+  { label: "Nouveautés", href: "/collections/nouveautes" },
+  { label: "Promos", href: "/promotions" },
   { label: "Collections", panel: "collections" },
   { label: "Kits enfants", href: "/collections/kits-enfants" },
-  { label: "Rétros", href: "/collections/retros" },
-  { label: "Survêtements", href: "/collections/survetements" },
-  { label: "Vestes & pulls", href: "/collections/vestes" },
 ] as const;
 
 export function MobileNav({ onClose }: { onClose: () => void }) {
@@ -43,12 +46,12 @@ export function MobileNav({ onClose }: { onClose: () => void }) {
     if (key === "clubs")
       setPanel({
         title: "Clubs",
-        items: clubs.map((c) => ({ label: c.name, href: `/maillots?club=${c.slug}` })),
+        items: clubs.map((c) => ({ label: c.name, href: `/clubs/${c.slug}` })),
       });
     if (key === "pays")
       setPanel({
         title: "Sélections",
-        items: countries.map((c) => ({ label: c.name, href: `/maillots?pays=${c.slug}` })),
+        items: countries.map((c) => ({ label: c.name, href: `/selections/${c.slug}` })),
       });
     if (key === "collections")
       setPanel({
@@ -70,7 +73,7 @@ export function MobileNav({ onClose }: { onClose: () => void }) {
     >
       <div className="flex h-16 items-center justify-between px-5">
         <span className="font-display text-xl text-ink">
-          ONZE<span className="text-pitch">.</span>
+          ONZE<span className="text-volt">.</span>
         </span>
         <button
           type="button"

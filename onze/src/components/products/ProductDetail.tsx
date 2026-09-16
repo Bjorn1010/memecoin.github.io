@@ -73,7 +73,7 @@ export function ProductDetail({ product }: { product: Product }) {
     <>
       <div className="mx-auto max-w-[1600px] px-5 pt-28 lg:px-10">
         {/* Breadcrumb */}
-        <nav aria-label="Fil d'Ariane" className="label-mono mb-6 flex flex-wrap gap-2 text-steel-600">
+        <nav aria-label="Fil d'Ariane" className="label-mono mb-6 flex flex-wrap gap-2 text-steel-500">
           <Link href="/" className="hover:text-ink">Accueil</Link>
           <span aria-hidden>/</span>
           <Link href="/maillots" className="hover:text-ink">Maillots</Link>
@@ -88,8 +88,8 @@ export function ProductDetail({ product }: { product: Product }) {
           <div className="lg:sticky lg:top-28 lg:self-start">
             <div
               className={cn(
-                "grain relative aspect-square overflow-hidden rounded-xl border border-ink/8",
-                "bg-gradient-to-b from-white to-pitch-tint",
+                "grain relative aspect-square overflow-hidden border border-line",
+                "bg-gradient-to-b from-surface to-base",
               )}
             >
               <div
@@ -135,7 +135,7 @@ export function ProductDetail({ product }: { product: Product }) {
               )}
 
               {/* View controls */}
-              <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border border-ink/12 bg-ink/60 p-1 backdrop-blur-md">
+              <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border border-line bg-void/70 p-1 backdrop-blur-md">
                 {(["front", "back"] as const).map((v) => (
                   <button
                     key={v}
@@ -147,7 +147,7 @@ export function ProductDetail({ product }: { product: Product }) {
                     aria-pressed={!use3D && view === v}
                     className={cn(
                       "label-mono rounded-full px-4 py-2 transition-colors",
-                      !use3D && view === v ? "bg-white text-paper" : "text-steel-300 hover:text-ink",
+                      !use3D && view === v ? "bg-ink text-void" : "text-steel-300 hover:text-ink",
                     )}
                   >
                     {v === "front" ? "Face" : "Dos"}
@@ -159,7 +159,7 @@ export function ProductDetail({ product }: { product: Product }) {
                   aria-pressed={use3D}
                   className={cn(
                     "label-mono flex items-center gap-1.5 rounded-full px-4 py-2 transition-colors",
-                    use3D ? "bg-pitch text-paper" : "text-steel-300 hover:text-ink",
+                    use3D ? "bg-volt text-on-volt" : "text-steel-300 hover:text-ink",
                   )}
                 >
                   <Box size={13} />
@@ -168,7 +168,7 @@ export function ProductDetail({ product }: { product: Product }) {
               </div>
 
               {use3D && (
-                <p className="label-mono absolute left-1/2 top-4 -translate-x-1/2 rounded-full bg-ink/60 px-3 py-1.5 text-steel-400 backdrop-blur-md">
+                <p className="label-mono absolute left-1/2 top-4 -translate-x-1/2 rounded-full border border-line bg-void/70 px-3 py-1.5 text-steel-300 backdrop-blur-md">
                   Glissez pour tourner · molette pour zoomer
                 </p>
               )}
@@ -189,13 +189,12 @@ export function ProductDetail({ product }: { product: Product }) {
             </p>
             <h1 className="mt-3 font-display text-title text-ink">{product.name}</h1>
 
+            {/* No star rating here on purpose. `rating` and `reviews` are
+                generated values used to order the catalogue; printing them as
+                "4.1 (153 avis)" would present invented numbers as other
+                customers' opinions. The rating returns with a review source. */}
             <div className="mt-5 flex flex-wrap items-center gap-4">
               <Price price={product.price} compareAt={product.compareAt} size="lg" />
-              <span className="flex items-center gap-1.5 text-xs text-steel-400">
-                <span aria-hidden className="text-pitch">★</span>
-                <span className="tabular">{product.rating.toFixed(1)}</span>
-                <span className="text-steel-600">({product.reviews} avis)</span>
-              </span>
             </div>
 
             {/* ---------------------------------------- SIZE */}
@@ -229,7 +228,7 @@ export function ProductDetail({ product }: { product: Product }) {
                     className={cn(
                       "number-plate h-14 min-w-14 rounded-md border px-4 text-lg transition-all",
                       size === s
-                        ? "border-pitch bg-pitch text-paper"
+                        ? "border-volt bg-volt text-on-volt"
                         : "border-ink/15 text-steel-200 hover:border-ink/45 hover:bg-ink/5",
                       sizeError && !size && "border-sale/60",
                       soldOut && "cursor-not-allowed opacity-40",
@@ -255,7 +254,7 @@ export function ProductDetail({ product }: { product: Product }) {
                     onChange={(e) => setPlayerName(e.target.value.replace(/[^a-zA-ZÀ-ÿ .-]/g, ""))}
                     maxLength={12}
                     placeholder="VOTRE NOM"
-                    className="number-plate h-12 w-full rounded-sm border border-ink/12 bg-base px-3 uppercase tracking-wide text-ink outline-none transition-colors placeholder:text-steel-700 focus:border-pitch"
+                    className="number-plate h-12 w-full rounded-sm border border-ink/12 bg-base px-3 uppercase tracking-wide text-ink outline-none transition-colors placeholder:text-steel-700 focus:border-volt"
                   />
                 </label>
                 <label className="block">
@@ -265,7 +264,7 @@ export function ProductDetail({ product }: { product: Product }) {
                     onChange={(e) => setPlayerNumber(e.target.value.replace(/\D/g, "").slice(0, 2))}
                     inputMode="numeric"
                     placeholder="10"
-                    className="number-plate h-12 w-full rounded-sm border border-ink/12 bg-base px-3 text-center text-lg text-ink outline-none transition-colors placeholder:text-steel-700 focus:border-pitch"
+                    className="number-plate h-12 w-full rounded-sm border border-ink/12 bg-base px-3 text-center text-lg text-ink outline-none transition-colors placeholder:text-steel-700 focus:border-volt"
                   />
                 </label>
               </div>
@@ -359,7 +358,7 @@ export function ProductDetail({ product }: { product: Product }) {
                 { icon: RotateCcw, t: "Retours 30 jours", d: "Article non porté" },
               ].map((s) => (
                 <div key={s.t} className="flex items-start gap-3 bg-base p-4">
-                  <s.icon size={17} className="mt-0.5 shrink-0 text-pitch" strokeWidth={1.75} />
+                  <s.icon size={17} className="mt-0.5 shrink-0 text-volt" strokeWidth={1.75} />
                   <div>
                     <p className="text-sm text-ink">{s.t}</p>
                     <p className="mt-0.5 text-xs text-steel-500">{s.d}</p>

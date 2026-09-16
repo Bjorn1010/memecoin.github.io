@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, Inter } from "next/font/google";
+import { Anton, Inter } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/navigation/Header";
 import { Footer } from "@/components/navigation/Footer";
@@ -7,10 +7,12 @@ import { CartProvider } from "@/components/cart/CartProvider";
 
 /* Self-hosted by next/font — no render-blocking request to Google, and no
  * layout shift because the metrics are known at build time. */
-const archivo = Archivo({
+/* Anton is the identity: one heavy condensed weight, built for headlines that
+ * take up half the screen. It is display-only — never set a paragraph in it. */
+const anton = Anton({
   subsets: ["latin"],
-  weight: ["600", "700", "800", "900"],
-  variable: "--font-archivo",
+  weight: "400",
+  variable: "--font-anton",
   display: "swap",
 });
 
@@ -70,7 +72,7 @@ export default function RootLayout({
   return (
     /* `data-scroll-behavior="smooth"` is required in Next 16 for the router to
        honour the CSS smooth scroll on navigation. */
-    <html lang="fr" data-scroll-behavior="smooth" className={`${archivo.variable} ${inter.variable}`}>
+    <html lang="fr" data-scroll-behavior="smooth" className={`${anton.variable} ${inter.variable}`}>
       <body>
         <a
           href="#contenu"

@@ -24,7 +24,7 @@ export default function ComptePage() {
             type="email"
             autoComplete="email"
             placeholder="vous@exemple.ch"
-            className="h-12 w-full rounded-sm border border-ink/12 bg-surface px-3 text-sm text-ink outline-none transition-colors placeholder:text-steel-700 focus:border-pitch"
+            className="h-12 w-full rounded-sm border border-ink/12 bg-surface px-3 text-sm text-ink outline-none transition-colors placeholder:text-steel-700 focus:border-volt"
           />
         </label>
         <label className="block">
@@ -32,7 +32,7 @@ export default function ComptePage() {
           <input
             type="password"
             autoComplete="current-password"
-            className="h-12 w-full rounded-sm border border-ink/12 bg-surface px-3 text-sm text-ink outline-none transition-colors focus:border-pitch"
+            className="h-12 w-full rounded-sm border border-ink/12 bg-surface px-3 text-sm text-ink outline-none transition-colors focus:border-volt"
           />
         </label>
         <Button size="lg" className="w-full" type="submit">
@@ -40,7 +40,7 @@ export default function ComptePage() {
         </Button>
       </form>
 
-      <p className="mt-6 text-center text-xs text-steel-600">
+      <p className="mt-6 text-center text-xs text-steel-500">
         Pas encore de compte ?{" "}
         <Link href="/compte" className="underline hover:text-steel-300">
           Créer un compte

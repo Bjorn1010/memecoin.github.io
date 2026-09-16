@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default function WishlistPage() {
   return (
     <div className="mx-auto flex min-h-[70svh] max-w-lg flex-col items-center justify-center px-5 text-center">
-      <Heart size={40} strokeWidth={1.25} className="text-steel-600" />
+      <Heart size={40} strokeWidth={1.25} className="text-steel-500" />
       <h1 className="mt-6 font-display text-title text-ink">Wishlist vide</h1>
       <p className="mt-3 text-sm leading-relaxed text-steel-400">
         Touchez le cœur sur un maillot pour le retrouver ici.

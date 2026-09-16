@@ -1,188 +1,246 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
-import { motion, useMotionTemplate, useMotionValue, useSpring, useReducedMotion } from "motion/react";
-import { Eye, Heart } from "lucide-react";
+import { useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { Check, Heart, Plus } from "lucide-react";
 import type { Product } from "@/lib/types";
 import { KitVisual } from "@/components/ui/KitVisual";
-import { Badge } from "@/components/ui/Badge";
 import { Price } from "@/components/ui/Price";
-import { spring, transition } from "@/lib/motion";
-import { cn } from "@/lib/utils";
+import { useCart } from "@/components/cart/CartProvider";
+import { transition } from "@/lib/motion";
+import { cn, discountPercent } from "@/lib/utils";
 
-/* The card carries most of the site's personality, so the hover is built from
- * four cheap effects layered rather than one big one:
- *   1. the kit tilts toward the pointer (transform only — no layout)
- *   2. a specular highlight tracks the pointer across the surface
- *   3. the kit lifts and scales very slightly
- *   4. metadata and the quick-view CTA fade up
- * All of it collapses to nothing under prefers-reduced-motion.
+/* The product card.
+ *
+ * Two things carry it. First, a real second view: hovering cross-fades the
+ * front of the shirt to its back, which is the view with the number on it —
+ * the thing a shirt buyer actually wants to see, and a better use of the
+ * interaction than a zoom.
+ *
+ * Second, quick add. The old card added a sizeless product straight to the
+ * cart, which is not an order anyone can fulfil. Now the button reveals the
+ * sizes in place, and only a chosen size adds the line. Everything here is
+ * reachable by tap: nothing is hover-only.
  */
 
 export function ProductCard({
   product,
   index = 0,
-  onQuickView,
+  priority = false,
 }: {
   product: Product;
   index?: number;
-  onQuickView?: (p: Product) => void;
+  priority?: boolean;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
+  const { add, open } = useCart();
+  const [hovered, setHovered] = useState(false);
+  const [picking, setPicking] = useState(false);
+  const [added, setAdded] = useState(false);
   const [wishlisted, setWishlisted] = useState(false);
 
-  /* Pointer position as a percentage of the card, driving the specular sweep. */
-  const px = useMotionValue(50);
-  const py = useMotionValue(50);
-  /* Springs, or the tilt chases the cursor with visible lag. */
-  const rx = useSpring(0, spring.pointer);
-  const ry = useSpring(0, spring.pointer);
-  const glare = useMotionTemplate`radial-gradient(circle at ${px}% ${py}%, rgba(255,255,255,0.14), transparent 55%)`;
-
-  function handleMove(e: React.PointerEvent<HTMLDivElement>) {
-    if (reduced || !ref.current) return;
-    const r = ref.current.getBoundingClientRect();
-    const nx = (e.clientX - r.left) / r.width;
-    const ny = (e.clientY - r.top) / r.height;
-    px.set(nx * 100);
-    py.set(ny * 100);
-    /* Deliberately shallow: past ~8° a product card starts to look like a toy. */
-    ry.set((nx - 0.5) * 12);
-    rx.set(-(ny - 0.5) * 8);
-  }
-
-  function handleLeave() {
-    px.set(50);
-    py.set(50);
-    rx.set(0);
-    ry.set(0);
-  }
-
   const soldOut = product.stock === 0;
+  const off = discountPercent(product.price, product.compareAt);
+  /* One badge, in order of what a shopper most needs to know. Stacking four
+     labels on a photo is how a premium card turns into a discount sticker. */
+  const badge = soldOut
+    ? { text: "Épuisé", tone: "muted" as const }
+    : off
+      ? { text: `−${off}%`, tone: "sale" as const }
+      : product.isNew
+        ? { text: "Nouveau", tone: "volt" as const }
+        : product.category === "editions-speciales"
+          ? { text: "Limitée", tone: "cup" as const }
+          : null;
+
+  function choose(size: string) {
+    add(product, size, 1);
+    setPicking(false);
+    setAdded(true);
+    open();
+    window.setTimeout(() => setAdded(false), 1600);
+  }
 
   return (
     <motion.article
-      initial={{ opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
+      initial={reduced ? undefined : { opacity: 0, y: 24 }}
+      whileInView={reduced ? undefined : { opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.15 }}
-      transition={{ ...transition.premium, delay: Math.min(index, 7) * 0.05 }}
-      className="group relative"
+      transition={{ ...transition.premium, delay: Math.min(index, 7) * 0.04 }}
+      className="group relative flex flex-col"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => {
+        setHovered(false);
+        setPicking(false);
+      }}
     >
-      <div
-        ref={ref}
-        onPointerMove={handleMove}
-        onPointerLeave={handleLeave}
-        className="relative"
-        style={{ perspective: 1000 }}
-      >
+      <div className="relative aspect-4/5 overflow-hidden border border-line bg-base transition-colors duration-[--duration-standard] group-hover:border-steel-600">
         <Link
           href={`/produit/${product.slug}`}
-          className="block focus-visible:outline-offset-4"
-          aria-label={`${product.name}, ${product.stock === 0 ? "épuisé" : "voir le produit"}`}
+          className="absolute inset-0 z-10"
+          aria-label={`${product.name}, ${soldOut ? "épuisé" : "voir le produit"}`}
+        />
+
+        {/* Club colour wash, lifted on hover — the card's only ambient colour. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-30 transition-opacity duration-[--duration-slow] group-hover:opacity-60"
+          style={{
+            background: `radial-gradient(70% 60% at 50% 108%, ${product.colorway.primary}66, transparent 72%)`,
+          }}
+        />
+
+        {/* Front and back stacked; hover cross-fades between them. */}
+        <div
+          className={cn(
+            "absolute inset-0 p-7 transition-transform duration-[--duration-premium] ease-[--ease-out-expo]",
+            !reduced && "group-hover:scale-[1.04]",
+            soldOut && "opacity-40 saturate-0",
+          )}
         >
-          <motion.div
-            style={reduced ? undefined : { rotateX: rx, rotateY: ry, transformStyle: "preserve-3d" }}
+          <div
             className={cn(
-              "edge-lit relative aspect-4/5 overflow-hidden rounded-lg border border-ink/8",
-              "bg-gradient-to-b from-white to-pitch-tint transition-colors duration-[--duration-standard]",
-              "group-hover:border-ink/16",
+              "h-full transition-opacity duration-[--duration-slow]",
+              hovered && !reduced ? "opacity-0" : "opacity-100",
             )}
           >
-            {/* Club-tinted wash, revealed on hover. */}
-            <div
-              aria-hidden
-              className="absolute inset-0 opacity-0 transition-opacity duration-[--duration-slow] group-hover:opacity-100"
-              style={{
-                background: `radial-gradient(65% 55% at 50% 105%, ${product.colorway.primary}44, transparent 70%)`,
-              }}
+            <KitVisual
+              colorway={product.colorway}
+              photo={product.photo}
+              alt={product.name}
+              monogram={product.teamSlug.slice(0, 3).toUpperCase()}
+              number="10"
+              priority={priority}
             />
-
-            {/* Pointer-tracked specular sweep. */}
-            {!reduced && (
-              <motion.div
-                aria-hidden
-                style={{ backgroundImage: glare }}
-                className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-[--duration-standard] group-hover:opacity-100"
-              />
+          </div>
+          <div
+            aria-hidden
+            className={cn(
+              "absolute inset-0 p-7 transition-opacity duration-[--duration-slow]",
+              hovered && !reduced ? "opacity-100" : "opacity-0",
             )}
+          >
+            <KitVisual
+              colorway={product.colorway}
+              photo={product.photo}
+              alt=""
+              view="back"
+              number="10"
+              playerName={product.team.toUpperCase()}
+            />
+          </div>
+        </div>
 
-            <div
-              className={cn(
-                "absolute inset-0 p-6 transition-transform duration-[--duration-premium] ease-[--ease-out-expo]",
-                "group-hover:scale-[1.06]",
-                soldOut && "opacity-45 saturate-0",
-              )}
-              style={{ transform: reduced ? undefined : "translateZ(40px)" }}
-            >
-              <KitVisual
-                colorway={product.colorway}
-                photo={product.photo}
-                alt={product.name}
-                monogram={product.teamSlug.slice(0, 3).toUpperCase()}
-                number="10"
-              />
-            </div>
-
-            {/* Badges */}
-            <div className="absolute left-3 top-3 flex flex-col items-start gap-1.5">
-              {product.compareAt && <Badge tone="sale">Promo</Badge>}
-              {product.isNew && !product.compareAt && <Badge tone="new">Nouveau</Badge>}
-              {product.category === "editions-speciales" && <Badge tone="limited">Limitée</Badge>}
-              {soldOut && <Badge tone="soldout">Épuisé</Badge>}
-            </div>
-
-            {/* Quick view — appears on hover, and is always reachable by keyboard
-                from the card link that follows it. */}
-            {onQuickView && !soldOut && (
-              <div className="absolute inset-x-3 bottom-3 translate-y-2 opacity-0 transition-all duration-[--duration-standard] ease-[--ease-out-expo] group-hover:translate-y-0 group-hover:opacity-100">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    onQuickView(product);
-                  }}
-                  className="label-mono flex w-full items-center justify-center gap-2 rounded-sm bg-ink/10 py-3 text-ink backdrop-blur-md transition-colors hover:bg-pitch hover:text-paper"
-                >
-                  <Eye size={14} />
-                  Aperçu rapide
-                </button>
-              </div>
+        {badge && (
+          <span
+            className={cn(
+              "label-mono absolute left-3 top-3 z-20 px-2 py-1",
+              badge.tone === "sale" && "bg-sale text-void",
+              badge.tone === "volt" && "bg-volt text-on-volt",
+              badge.tone === "cup" && "bg-cup text-void",
+              badge.tone === "muted" && "bg-steel-700 text-steel-200",
             )}
-          </motion.div>
-        </Link>
+          >
+            {badge.text}
+          </span>
+        )}
 
-        {/* Wishlist sits outside the link so it never triggers navigation. */}
         <button
           type="button"
           onClick={() => setWishlisted((w) => !w)}
           aria-pressed={wishlisted}
-          aria-label={
-            wishlisted ? `Retirer ${product.name} de la wishlist` : `Ajouter ${product.name} à la wishlist`
-          }
+          aria-label={wishlisted ? `Retirer ${product.name} de la wishlist` : `Ajouter ${product.name} à la wishlist`}
           className={cn(
-            "absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full border backdrop-blur-md transition-colors",
+            "absolute right-3 top-3 z-20 grid h-9 w-9 place-items-center border transition-colors",
             wishlisted
-              ? "border-sale/40 bg-sale/20 text-sale"
-              : "border-ink/12 bg-paper/85 text-steel-400 hover:text-ink",
+              ? "border-sale/50 bg-sale/15 text-sale"
+              : "border-line bg-void/70 text-steel-300 backdrop-blur-sm hover:text-ink",
           )}
         >
-          <Heart size={15} fill={wishlisted ? "currentColor" : "none"} />
+          <Heart size={15} fill={wishlisted ? "currentColor" : "none"} strokeWidth={1.75} />
         </button>
+
+        {/* Quick add. Always present on touch, revealed on hover on a pointer
+            device — never the only route to the product, which is the link. */}
+        {!soldOut && (
+          <div className="absolute inset-x-3 bottom-3 z-20">
+            <AnimatePresence mode="wait" initial={false}>
+              {added ? (
+                <motion.p
+                  key="added"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="flex items-center justify-center gap-2 bg-volt py-3 font-display text-xs uppercase tracking-wide text-on-volt"
+                >
+                  <Check size={14} strokeWidth={3} /> Ajouté
+                </motion.p>
+              ) : picking ? (
+                <motion.div
+                  key="sizes"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="flex flex-wrap gap-1 bg-void/90 p-1.5 backdrop-blur-md"
+                >
+                  {product.sizes.map((size) => (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => choose(size)}
+                      className="number-plate min-w-9 flex-1 bg-surface py-2 text-xs text-ink transition-colors hover:bg-volt hover:text-on-volt"
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </motion.div>
+              ) : (
+                /* Deliberately not a motion component. Motion writes the
+                   animated opacity to the inline style, which outranks the
+                   `lg:opacity-0` class and left this button permanently
+                   visible on desktop instead of revealing on hover. CSS owns
+                   the reveal; on touch there is no hover, so it is always on. */
+                <button
+                  key="cta"
+                  type="button"
+                  onClick={() => setPicking(true)}
+                  className={cn(
+                    "flex w-full items-center justify-center gap-2 bg-ink py-3 font-display text-xs uppercase tracking-wide text-void transition-colors hover:bg-volt hover:text-on-volt",
+                    "lg:translate-y-1.5 lg:opacity-0 lg:transition-all lg:duration-[--duration-standard] lg:group-hover:translate-y-0 lg:group-hover:opacity-100 lg:focus-visible:translate-y-0 lg:focus-visible:opacity-100",
+                  )}
+                >
+                  <Plus size={14} strokeWidth={3} /> Choisir la taille
+                </button>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
       </div>
 
-      {/* Metadata */}
       <div className="mt-4 space-y-1.5">
         <p className="label-mono text-steel-500">
           {product.team} · {product.season}
         </p>
         <h3 className="text-sm leading-snug text-ink">
-          <Link href={`/produit/${product.slug}`} className="hover:text-pitch">
+          <Link href={`/produit/${product.slug}`} className="transition-colors hover:text-volt">
             {product.name}
           </Link>
         </h3>
-        <Price price={product.price} compareAt={product.compareAt} size="sm" />
+        {/* Wraps rather than overlapping: on a two-column phone grid the card
+            is ~170px wide, and a discounted price plus a stock label do not
+            fit on one line. */}
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+          <Price price={product.price} compareAt={product.compareAt} size="sm" />
+          <p
+            className={cn(
+              "label-mono",
+              soldOut ? "text-steel-500" : product.stock <= 3 ? "text-sale" : "text-steel-500",
+            )}
+          >
+            {soldOut ? "Épuisé" : product.stock <= 3 ? `Plus que ${product.stock}` : "En stock"}
+          </p>
+        </div>
       </div>
     </motion.article>
   );

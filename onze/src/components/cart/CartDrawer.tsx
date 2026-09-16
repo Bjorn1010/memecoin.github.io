@@ -40,7 +40,7 @@ export function CartDrawer() {
             animate="visible"
             exit="exit"
             onClick={close}
-            className="fixed inset-0 z-[85] bg-ink/70 backdrop-blur-sm"
+            className="fixed inset-0 z-[85] bg-void/80 backdrop-blur-sm"
           />
           <motion.aside
             variants={slideInRight}
@@ -67,7 +67,7 @@ export function CartDrawer() {
             {lines.length === 0 ? (
               /* Empty state: never a bare "your cart is empty" — always a way out. */
               <div className="flex flex-1 flex-col items-center justify-center gap-5 px-8 text-center">
-                <ShoppingBag size={40} strokeWidth={1.25} className="text-steel-600" />
+                <ShoppingBag size={40} strokeWidth={1.25} className="text-steel-500" />
                 <div>
                   <p className="font-display text-lg uppercase text-ink">Panier vide</p>
                   <p className="mt-2 text-sm text-steel-400">
@@ -85,11 +85,11 @@ export function CartDrawer() {
                   <p className="mb-2 text-xs text-steel-400">
                     {remaining > 0 ? (
                       <>
-                        Plus que <span className="tabular text-pitch">{formatPrice(remaining)}</span>{" "}
+                        Plus que <span className="tabular text-volt">{formatPrice(remaining)}</span>{" "}
                         pour la livraison offerte
                       </>
                     ) : (
-                      <span className="text-pitch">Livraison offerte débloquée</span>
+                      <span className="text-volt">Livraison offerte débloquée</span>
                     )}
                   </p>
                   <div className="h-1 overflow-hidden rounded-full bg-steel-800">
@@ -162,7 +162,7 @@ export function CartDrawer() {
                             type="button"
                             onClick={() => remove(line.productId, line.size)}
                             aria-label={`Retirer ${line.name} du panier`}
-                            className="self-start text-steel-600 hover:text-sale"
+                            className="self-start text-steel-500 hover:text-sale"
                           >
                             <X size={16} />
                           </button>
@@ -191,7 +191,7 @@ export function CartDrawer() {
                   <Link
                     href="/panier"
                     onClick={close}
-                    className="label-mono mt-3 block text-center text-steel-500 transition-colors hover:text-pitch"
+                    className="label-mono mt-3 block text-center text-steel-500 transition-colors hover:text-volt"
                   >
                     Voir le panier
                   </Link>

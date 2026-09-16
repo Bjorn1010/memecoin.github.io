@@ -64,7 +64,7 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Club, sélection, saison…"
             aria-label="Rechercher un produit"
-            className="w-full bg-transparent font-display text-2xl uppercase tracking-tight text-ink outline-none placeholder:text-steel-600 md:text-4xl"
+            className="w-full bg-transparent font-display text-2xl uppercase tracking-tight text-ink outline-none placeholder:text-steel-500 md:text-4xl"
           />
           <button
             type="button"
@@ -91,7 +91,7 @@ export function SearchOverlay({ onClose }: { onClose: () => void }) {
                   key={s}
                   type="button"
                   onClick={() => setQuery(s)}
-                  className="rounded-full border border-ink/12 px-4 py-2 text-sm text-steel-300 transition-colors hover:border-pitch/50 hover:text-pitch"
+                  className="rounded-full border border-ink/12 px-4 py-2 text-sm text-steel-300 transition-colors hover:border-volt/50 hover:text-volt"
                 >
                   {s}
                 </button>

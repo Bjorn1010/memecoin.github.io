@@ -22,7 +22,7 @@ export function PanierView() {
     return (
       <div className="mx-auto flex min-h-[70svh] max-w-lg flex-col items-center justify-center px-5 text-center">
         <div className="grid h-20 w-20 place-items-center rounded-full bg-pitch-tint">
-          <ShoppingBag size={32} strokeWidth={1.5} className="text-pitch" />
+          <ShoppingBag size={32} strokeWidth={1.5} className="text-volt" />
         </div>
         <h1 className="mt-7 font-display text-title text-ink">Panier vide</h1>
         <p className="mt-3 text-sm leading-relaxed text-steel-400">
@@ -43,7 +43,7 @@ export function PanierView() {
     <div className="mx-auto max-w-[1200px] px-5 pt-32 pb-24 lg:px-10">
       <header className="mb-10 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="label-mono mb-3 flex items-center gap-3 text-pitch">
+          <p className="label-mono mb-3 flex items-center gap-3 text-volt">
             <span className="inline-block h-px w-8 bg-pitch" />
             Votre sélection
           </p>
@@ -84,7 +84,7 @@ export function PanierView() {
                       <div className="min-w-0">
                         <p className="label-mono text-steel-500">{line.team}</p>
                         <h2 className="mt-1 truncate text-sm font-medium text-ink">
-                          <Link href={`/produit/${line.slug}`} className="hover:text-pitch">
+                          <Link href={`/produit/${line.slug}`} className="hover:text-volt">
                             {line.name}
                           </Link>
                         </h2>
@@ -145,7 +145,7 @@ export function PanierView() {
           <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
             <Link
               href="/maillots"
-              className="label-mono text-steel-500 transition-colors hover:text-pitch"
+              className="label-mono text-steel-500 transition-colors hover:text-volt"
             >
               ← Continuer mes achats
             </Link>
@@ -169,13 +169,13 @@ export function PanierView() {
                 {remaining > 0 ? (
                   <>
                     Plus que{" "}
-                    <span className="tabular font-semibold text-pitch">
+                    <span className="tabular font-semibold text-volt">
                       {formatPrice(remaining)}
                     </span>{" "}
                     pour la livraison offerte
                   </>
                 ) : (
-                  <span className="font-semibold text-pitch">Livraison offerte débloquée</span>
+                  <span className="font-semibold text-volt">Livraison offerte débloquée</span>
                 )}
               </p>
               <div className="h-1.5 overflow-hidden rounded-full bg-steel-800">
@@ -201,7 +201,7 @@ export function PanierView() {
               </div>
               <div className="flex justify-between">
                 <dt className="text-steel-400">Flocage</dt>
-                <dd className="font-semibold text-pitch">Inclus</dd>
+                <dd className="font-semibold text-volt">Inclus</dd>
               </div>
             </dl>
 
@@ -223,7 +223,7 @@ export function PanierView() {
             </Button>
 
             <p className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-steel-500">
-              <Truck size={14} className="mt-0.5 shrink-0 text-pitch" />
+              <Truck size={14} className="mt-0.5 shrink-0 text-volt" />
               Expédition sous 48 h ouvrables depuis la Suisse, suivi inclus.
             </p>
           </div>

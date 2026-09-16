@@ -45,12 +45,16 @@ export function CatalogueView({
   products,
   title,
   eyebrow,
+  description,
   initialFilters,
   lockedFacets = [],
 }: {
   products: Product[];
   title: string;
   eyebrow: string;
+  /** One line under the heading. A collection that cannot say what it is
+      does not deserve its own page. */
+  description?: string;
   initialFilters?: Partial<Filters>;
   /** Facets the page fixes itself (a collection page locks its category). */
   lockedFacets?: (keyof Filters)[];
@@ -64,11 +68,17 @@ export function CatalogueView({
     const pays = one("pays");
     const taille = one("taille");
     const saison = one("saison");
+    const kit = one("kit");
+    const league = one("league");
     return {
       ...(club ? { club: [club] } : {}),
       ...(pays ? { pays: [pays] } : {}),
       ...(taille ? { taille: [taille] } : {}),
       ...(saison ? { saison: [saison] } : {}),
+      ...(kit ? { kit: [kit] } : {}),
+      ...(league ? { league: [league] } : {}),
+      ...(one("enStock") ? { enStock: true } : {}),
+      ...(one("promo") ? { promo: true } : {}),
       ...initialFilters,
     };
   }, [params, initialFilters]);
@@ -80,7 +90,10 @@ export function CatalogueView({
   useEffect(() => {
     setFilters({ ...emptyFilters, ...seeded });
   }, [seeded]);
-  const [sort, setSort] = useState<SortKey>("pertinence");
+  const [sort, setSort] = useState<SortKey>(() => {
+    const q = params.get("sort");
+    return q && q in SORT_LABELS ? (q as SortKey) : "pertinence";
+  });
   const [sheetOpen, setSheetOpen] = useState(false);
   const [visible, setVisible] = useState(PAGE);
   const [pending, setPending] = useState(false);
@@ -185,16 +198,21 @@ export function CatalogueView({
 
   return (
     <div className="mx-auto max-w-[1600px] px-5 pt-32 lg:px-10">
-      <header className="mb-10">
-        <p className="label-mono mb-4 flex items-center gap-3 text-pitch">
-          <span className="inline-block h-px w-8 bg-pitch" />
-          {kicker}
-        </p>
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <h1 className="font-display text-display text-ink">{heading}</h1>
-          <p className="scoreboard text-2xl text-steel-400">
+      {/* Collection header. The title is deliberately oversized: on a catalogue
+          the heading is the only thing standing between a grid of product
+          photos and the reader knowing where they are. */}
+      <header className="mb-10 border-b border-line pb-8">
+        <p className="eyebrow label-mono mb-5">{kicker}</p>
+        <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+          <div className="min-w-0">
+            <h1 className="font-display text-display text-ink">{heading}</h1>
+            {description && (
+              <p className="mt-4 max-w-xl text-sm leading-relaxed text-steel-300">{description}</p>
+            )}
+          </div>
+          <p className="scoreboard shrink-0 text-3xl text-ink">
             {results.length}
-            <span className="ml-2 font-sans text-xs font-normal uppercase tracking-[0.16em] text-steel-600">
+            <span className="ml-2 font-sans text-xs font-normal uppercase tracking-[0.16em] text-steel-500">
               {results.length > 1 ? "références" : "référence"}
             </span>
           </p>
@@ -249,7 +267,7 @@ export function CatalogueView({
               <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value as SortKey)}
-                className="label-mono cursor-pointer rounded-sm border border-ink/15 bg-surface px-3 py-2.5 text-steel-200 outline-none transition-colors hover:border-ink/35 focus:border-pitch"
+                className="label-mono cursor-pointer rounded-sm border border-ink/15 bg-surface px-3 py-2.5 text-steel-200 outline-none transition-colors hover:border-ink/35 focus:border-volt"
               >
                 {Object.entries(SORT_LABELS).map(([k, v]) => (
                   <option key={k} value={k} className="bg-surface">
@@ -311,7 +329,7 @@ export function CatalogueView({
               animate="visible"
               exit="exit"
               onClick={() => setSheetOpen(false)}
-              className="fixed inset-0 z-[88] bg-ink/70 backdrop-blur-sm lg:hidden"
+              className="fixed inset-0 z-[88] bg-void/80 backdrop-blur-sm lg:hidden"
             />
             <motion.div
               variants={slideUpSheet}

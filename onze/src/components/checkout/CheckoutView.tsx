@@ -46,7 +46,7 @@ function Field({
         autoComplete={autoComplete}
         required={required}
         placeholder={placeholder}
-        className="h-12 w-full rounded-sm border border-ink/12 bg-surface px-3 text-sm text-ink outline-none transition-colors placeholder:text-steel-700 focus:border-pitch"
+        className="h-12 w-full rounded-sm border border-ink/12 bg-surface px-3 text-sm text-ink outline-none transition-colors placeholder:text-steel-700 focus:border-volt"
       />
     </label>
   );
@@ -78,7 +78,7 @@ export function CheckoutView() {
     <div className="mx-auto max-w-[1200px] px-5 pt-28 lg:px-10">
       <header className="mb-10">
         <Link href="/" className="font-display text-2xl text-ink">
-          ONZE<span className="text-pitch">.</span>
+          ONZE<span className="text-volt">.</span>
         </Link>
         <h1 className="mt-6 font-display text-title text-ink">Paiement</h1>
         <p className="label-mono mt-3 flex items-center gap-2 text-steel-500">
@@ -129,7 +129,7 @@ export function CheckoutView() {
                     className={cn(
                       "flex cursor-pointer items-center gap-4 rounded-md border p-4 transition-colors",
                       shipping === s.id
-                        ? "border-pitch bg-pitch/5"
+                        ? "border-volt bg-volt/5"
                         : "border-ink/12 hover:border-ink/30",
                     )}
                   >
@@ -145,7 +145,7 @@ export function CheckoutView() {
                       aria-hidden
                       className={cn(
                         "grid h-4 w-4 shrink-0 place-items-center rounded-full border",
-                        shipping === s.id ? "border-pitch" : "border-ink/30",
+                        shipping === s.id ? "border-volt" : "border-ink/30",
                       )}
                     >
                       {shipping === s.id && <span className="h-2 w-2 rounded-full bg-pitch" />}
@@ -178,7 +178,7 @@ export function CheckoutView() {
               <Field label="Expiration" id="exp" autoComplete="cc-exp" placeholder="MM/AA" />
               <Field label="CVC" id="cvc" autoComplete="cc-csc" placeholder="123" />
             </div>
-            <p className="label-mono mt-4 flex items-center gap-2 text-steel-600">
+            <p className="label-mono mt-4 flex items-center gap-2 text-steel-500">
               <ShieldCheck size={14} />
               Vos données de carte ne transitent pas par nos serveurs
             </p>
@@ -188,7 +188,7 @@ export function CheckoutView() {
             Payer {formatPrice(total)}
           </Button>
 
-          <p className="text-center text-xs leading-relaxed text-steel-600">
+          <p className="text-center text-xs leading-relaxed text-steel-500">
             En validant, vous acceptez nos{" "}
             <Link href="/legal/cgv" className="underline hover:text-steel-300">
               conditions générales
@@ -215,7 +215,7 @@ export function CheckoutView() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm text-ink">{line.name}</p>
-                    <p className="label-mono mt-0.5 text-steel-600">Taille {line.size}</p>
+                    <p className="label-mono mt-0.5 text-steel-500">Taille {line.size}</p>
                   </div>
                   <span className="tabular shrink-0 text-sm text-steel-200">
                     {formatPrice(line.price * line.quantity)}
@@ -247,7 +247,7 @@ export function CheckoutView() {
             </div>
 
             <p className="mt-5 flex items-start gap-2 text-xs leading-relaxed text-steel-500">
-              <Truck size={14} className="mt-0.5 shrink-0 text-pitch" />
+              <Truck size={14} className="mt-0.5 shrink-0 text-volt" />
               Flocage nom et numéro inclus. Expédition sous 48 h ouvrables depuis la Suisse.
             </p>
           </div>

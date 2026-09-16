@@ -15,7 +15,7 @@ export default function CollectionsPage() {
   return (
     <div className="mx-auto max-w-[1600px] px-5 pt-32 lg:px-10">
       <header className="mb-14">
-        <p className="label-mono mb-4 flex items-center gap-3 text-pitch">
+        <p className="label-mono mb-4 flex items-center gap-3 text-volt">
           <span className="inline-block h-px w-8 bg-pitch" />
           Le vestiaire
         </p>
@@ -43,12 +43,12 @@ export default function CollectionsPage() {
                 <h2 className="font-display text-2xl uppercase text-ink">{c.title}</h2>
                 <ArrowUpRight
                   size={18}
-                  className="mt-1 shrink-0 text-steel-500 transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-pitch"
+                  className="mt-1 shrink-0 text-steel-500 transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-volt"
                 />
               </div>
               <div className="relative">
                 <p className="max-w-xs text-sm leading-relaxed text-steel-400">{c.tagline}</p>
-                <p className="scoreboard mt-4 text-2xl text-steel-600">{c.count}</p>
+                <p className="scoreboard mt-4 text-2xl text-steel-500">{c.count}</p>
               </div>
             </Link>
           </Reveal>

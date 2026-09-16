@@ -14,20 +14,22 @@ type Size = "sm" | "md" | "lg";
 
 const base =
   "relative inline-flex items-center justify-center gap-2 font-display uppercase " +
-  "tracking-[0.08em] whitespace-nowrap select-none rounded-md " +
+  "tracking-[0.08em] whitespace-nowrap select-none rounded-xs " +
   "transition-colors duration-[--duration-fast] " +
   "disabled:pointer-events-none disabled:opacity-40";
 
 const variants: Record<Variant, string> = {
-  /* The primary action. Pitch green on white is the shop's loudest element,
-     which is exactly why only one of these appears per view. */
-  pitch: "bg-pitch text-paper hover:bg-pitch-dark shadow-[0_6px_20px_rgb(10_156_74_/_0.32)]",
-  solid: "bg-ink text-paper hover:bg-pitch-deep",
-  ghost: "text-steel-300 hover:text-ink hover:bg-ink/5",
-  outline: "border-2 border-ink/15 text-steel-200 hover:border-pitch hover:text-pitch",
-  /* For the turf sections, where the page background is green and an outline
-     in ink would disappear. */
-  onDark: "border-2 border-paper/45 text-paper hover:border-paper hover:bg-paper/10",
+  /* The primary action. Volt is the only element on the page allowed to be
+     this loud, which is why exactly one of these appears per view. It carries
+     its own dark foreground — white on volt fails contrast. */
+  pitch: "bg-volt text-on-volt hover:bg-ink",
+  /* The quieter commit: bone on near-black, inverted on hover. */
+  solid: "bg-ink text-void hover:bg-volt hover:text-on-volt",
+  ghost: "text-steel-300 hover:text-ink hover:bg-ink/10",
+  outline: "border border-ink/25 text-ink hover:border-ink hover:bg-ink hover:text-void",
+  /* For the deep-green sections, where an ink outline sits too close to the
+     background to read. */
+  onDark: "border border-paper/45 text-paper hover:border-paper hover:bg-paper hover:text-pitch-deep",
 };
 
 const sizes: Record<Size, string> = {

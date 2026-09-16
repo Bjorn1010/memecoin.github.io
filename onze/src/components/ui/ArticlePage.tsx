@@ -15,7 +15,7 @@ export function ArticlePage({
 }) {
   return (
     <article className="mx-auto max-w-2xl px-5 pt-32 pb-24">
-      <nav aria-label="Fil d'Ariane" className="label-mono mb-8 flex gap-2 text-steel-600">
+      <nav aria-label="Fil d'Ariane" className="label-mono mb-8 flex gap-2 text-steel-500">
         <Link href="/" className="hover:text-ink">
           Accueil
         </Link>
@@ -31,7 +31,7 @@ export function ArticlePage({
       <div className="mt-14 space-y-12">
         {page.sections.map((section, i) => (
           <Reveal key={section.heading} index={i} as="section">
-            <h2 className="label-mono mb-4 text-pitch">{section.heading}</h2>
+            <h2 className="label-mono mb-4 text-volt">{section.heading}</h2>
             <div className="space-y-4">
               {section.body.map((paragraph) => (
                 <p key={paragraph.slice(0, 24)} className="text-sm leading-[1.75] text-steel-300">

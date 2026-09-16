@@ -30,7 +30,7 @@ function Row({
     <label
       className={cn(
         "flex cursor-pointer items-center gap-3 py-2 text-sm transition-colors",
-        disabled ? "cursor-not-allowed text-steel-600" : "text-steel-300 hover:text-ink",
+        disabled ? "cursor-not-allowed text-steel-500" : "text-steel-300 hover:text-ink",
       )}
     >
       <input
@@ -44,13 +44,13 @@ function Row({
         aria-hidden
         className={cn(
           "grid h-4 w-4 shrink-0 place-items-center rounded-xs border transition-colors",
-          checked ? "border-pitch bg-pitch text-paper" : "border-ink/20",
+          checked ? "border-volt bg-volt text-on-volt" : "border-ink/25",
         )}
       >
         {checked && <Check size={11} strokeWidth={3} />}
       </span>
       <span className="flex-1 truncate">{label}</span>
-      <span className="tabular text-xs text-steel-600">{count}</span>
+      <span className="tabular text-xs text-steel-500">{count}</span>
     </label>
   );
 }
@@ -93,7 +93,7 @@ export function FilterPanel({
           className={cn(
             "label-mono rounded-full border px-4 py-2 transition-colors",
             filters.enStock
-              ? "border-pitch bg-pitch/15 text-pitch"
+              ? "border-volt bg-volt/15 text-volt"
               : "border-ink/15 text-steel-300 hover:border-ink/35",
           )}
         >

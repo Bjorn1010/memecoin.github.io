@@ -1,166 +1,265 @@
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
-import { Hero } from "@/components/sections/Hero";
-import { FlocageTeaser } from "@/components/sections/FlocageTeaser";
-import { SectionHeader } from "@/components/sections/SectionHeader";
+import { ArrowRight } from "lucide-react";
+import { HeroEditorial } from "@/components/sections/HeroEditorial";
+import { CategoryGrid } from "@/components/sections/CategoryGrid";
+import { EditorialBand } from "@/components/sections/EditorialBand";
+import { JustDropped } from "@/components/sections/JustDropped";
+import { TrustRow } from "@/components/sections/TrustRow";
+import { Community } from "@/components/sections/Community";
+import { Newsletter } from "@/components/sections/Newsletter";
 import { TeamCard } from "@/components/sections/TeamRail";
 import { ProductGrid } from "@/components/products/ProductGrid";
-import { Reveal } from "@/components/motion/Reveal";
-import { clubs, countries } from "@/lib/data/teams";
-import { collections } from "@/lib/data/collections";
-import { countForTeam, newArrivals, onSale } from "@/lib/data/products";
+import { allTeams, clubs, countries } from "@/lib/data/teams";
+import {
+  bestSellers,
+  countForCategory,
+  countForTeam,
+  newArrivals,
+  products,
+} from "@/lib/data/products";
 
-/* Section rhythm is deliberate: hero → product → browse → product → browse.
- * Alternating "buy something" with "find your team" keeps the page from
- * becoming one long grid, and gives the eye somewhere to rest. */
+/* A section wrapper, so the vertical rhythm is declared once instead of being
+   re-guessed on every band. */
+function Section({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={`mx-auto max-w-[1600px] px-5 py-20 lg:px-10 lg:py-28 ${className}`}>
+      {children}
+    </section>
+  );
+}
 
-const shell = "mx-auto max-w-[1600px] px-5 lg:px-10";
+function Head({
+  eyebrow,
+  title,
+  href,
+  cta,
+}: {
+  eyebrow: string;
+  title: string;
+  href?: string;
+  cta?: string;
+}) {
+  return (
+    <div className="mb-10 flex flex-wrap items-end justify-between gap-4 border-b border-line pb-6">
+      <div>
+        <p className="eyebrow label-mono mb-4">{eyebrow}</p>
+        <h2 className="font-display text-display text-ink">{title}</h2>
+      </div>
+      {href && cta && (
+        <Link
+          href={href}
+          className="group inline-flex items-center gap-2 font-display text-sm uppercase tracking-wide text-steel-200 transition-colors hover:text-volt"
+        >
+          {cta}
+          <ArrowRight size={15} strokeWidth={2.5} className="transition-transform group-hover:translate-x-1" />
+        </Link>
+      )}
+    </div>
+  );
+}
 
 export default function HomePage() {
-  const fresh = newArrivals(8);
-  const deals = onSale(4);
-  const featuredClubs = clubs.slice(0, 6);
-  const featuredCountries = countries.slice(0, 5);
+  const fresh = newArrivals(5);
+  const popular = bestSellers(8);
+  const onSaleCount = products.filter((p) => p.compareAt).length;
+
+  const categories = [
+    {
+      href: "/clubs",
+      title: "Clubs",
+      blurb: "Les grandes écuries européennes, championnat par championnat.",
+      image: "cat-clubs",
+      count: clubs.length,
+      wide: true,
+    },
+    {
+      href: "/selections",
+      title: "Sélections",
+      blurb: "Le maillot qu'on ne porte qu'un été sur deux.",
+      image: "cat-selections",
+      count: countries.length,
+    },
+    {
+      href: "/collections/retros",
+      title: "Vintage",
+      blurb: "Les saisons qu'on rejoue encore de mémoire.",
+      image: "cat-vintage",
+      count: countForCategory("retros"),
+    },
+    {
+      href: "/collections/nouveautes",
+      title: "Nouveautés",
+      blurb: "Ce qui vient d'arriver, avant tout le monde.",
+      image: "cat-new",
+      count: products.filter((p) => p.isNew).length,
+    },
+    {
+      href: "/collections/kits-enfants",
+      title: "Kids",
+      blurb: "Les mêmes maillots, taillés du 4 au 14 ans.",
+      image: "cat-kids",
+      count: countForCategory("kits-enfants"),
+    },
+    {
+      href: "/promotions",
+      title: "Promotions",
+      blurb: "Fins de séries et dernières tailles.",
+      image: "cat-sale",
+      count: onSaleCount,
+      /* Wide, so the second row resolves to four columns like the first
+         instead of leaving a hole where a fourth card would be. */
+      wide: true,
+    },
+  ];
 
   return (
     <>
-      <Hero />
+      <HeroEditorial references={products.length} clubCount={allTeams.length} />
 
-      {/* NOUVEAUTÉS */}
-      <section className={`${shell} py-24 lg:py-32`} aria-labelledby="nouveautes">
-        <SectionHeader
-          eyebrow="Saison 26/27"
-          title={<span id="nouveautes">Nouveautés</span>}
-          description="Les dernières sorties, ajoutées au fur et à mesure des lancements officiels."
+      <Section>
+        <Head eyebrow="Shop by category" title="Par où vous entrez" />
+        <CategoryGrid categories={categories} />
+      </Section>
+
+      <Section className="!pt-0">
+        <Head
+          eyebrow="Just dropped"
+          title="Le dernier arrivage"
           href="/collections/nouveautes"
+          cta="Tout voir"
         />
-        <ProductGrid products={fresh} />
-      </section>
+        <JustDropped products={fresh} />
+      </Section>
 
-      {/* SHOP BY CLUB */}
-      <section className={`${shell} py-24 lg:py-32`} aria-labelledby="clubs">
-        <SectionHeader
-          eyebrow="Par club"
-          title={<span id="clubs">Trouvez vos couleurs</span>}
-          description="Premier League, Liga, Serie A, Bundesliga, Ligue 1 et les grandes écuries européennes."
-          href="/maillots"
-          linkLabel="Tous les clubs"
-        />
-        {/* First card spans two columns — an intentional break in the grid so
-            the section has a focal point instead of six equal tiles. */}
+      {/* The editorial heart of the page: why a shirt is worth caring about,
+          told over the one photograph where the name and number are the
+          subject rather than the product. */}
+      <EditorialBand
+        image="shirt-back"
+        eyebrow="The shirt"
+        title={
+          <>
+            Un maillot n&apos;est
+            <br />
+            jamais <span className="text-volt">qu&apos;un maillot</span>.
+          </>
+        }
+        body="C'est une date, une ville, un soir de semaine sous les projecteurs. C'est le nom qu'on a choisi de porter dans le dos. Nous vendons des maillots ; ce que vous achetez est un souvenir qui n'a pas encore eu lieu."
+        cta="Personnaliser le vôtre"
+        href="/maillots"
+        align="left"
+        tall
+      />
+
+      <Section>
+        <Head eyebrow="Best sellers" title="Les plus portés" href="/maillots" cta="Tout le catalogue" />
+        <ProductGrid products={popular} priorityCount={4} />
+      </Section>
+
+      <Section className="!pt-0">
+        <Head eyebrow="Explore clubs" title="Vos couleurs" href="/clubs" cta="Tous les clubs" />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="sm:col-span-2 lg:row-span-2">
+          {clubs.slice(0, 4).map((team, i) => (
             <TeamCard
-              team={featuredClubs[0]}
-              count={countForTeam(featuredClubs[0].slug)}
-              href={`/maillots?club=${featuredClubs[0].slug}`}
-              size="lg"
-            />
-          </div>
-          {featuredClubs.slice(1).map((club, i) => (
-            <TeamCard
-              key={club.slug}
-              team={club}
-              count={countForTeam(club.slug)}
-              href={`/maillots?club=${club.slug}`}
-              index={i + 1}
-            />
-          ))}
-        </div>
-      </section>
-
-      <FlocageTeaser />
-
-      {/* PROMOTIONS */}
-      <section className="relative overflow-hidden border-y border-ink/8 bg-base py-24 lg:py-32">
-        <div aria-hidden className="mesh-pitch pointer-events-none absolute inset-0 opacity-60" />
-        <div className={`${shell} relative`}>
-          <SectionHeader
-            eyebrow="Offre en cours"
-            title="Le troisième maillot à −60 %"
-            description="Deux maillots achetés, le troisième à moins 60 %. Automatiquement appliqué au panier."
-            href="/collections/nouveautes"
-            linkLabel="En profiter"
-          />
-          <ProductGrid products={deals} />
-        </div>
-      </section>
-
-      {/* SHOP BY COUNTRY */}
-      <section className={`${shell} py-24 lg:py-32`} aria-labelledby="pays">
-        <SectionHeader
-          eyebrow="Par sélection"
-          title={<span id="pays">Les nations</span>}
-          description="Les maillots des sélections nationales, à l'approche de la Coupe du monde 2026."
-          href="/maillots"
-          linkLabel="Toutes les sélections"
-        />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {featuredCountries.map((country, i) => (
-            <TeamCard
-              key={country.slug}
-              team={country}
-              count={countForTeam(country.slug)}
-              href={`/maillots?pays=${country.slug}`}
+              key={team.slug}
+              team={team}
               index={i}
+              count={countForTeam(team.slug)}
+              href={`/clubs/${team.slug}`}
             />
           ))}
         </div>
-      </section>
+      </Section>
 
-      {/* COLLECTIONS */}
-      <section className={`${shell} py-24 lg:py-32`} aria-labelledby="collections">
-        <SectionHeader
-          eyebrow="Le vestiaire"
-          title={<span id="collections">Collections</span>}
-          description="Sept territoires, chacun avec sa propre identité."
+      <Section className="!pt-0">
+        <Head
+          eyebrow="National teams"
+          title="Les sélections"
+          href="/selections"
+          cta="Toutes les sélections"
         />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {collections.map((c, i) => (
-            <Reveal key={c.slug} index={i} as="div">
-              <Link
-                href={`/collections/${c.slug}`}
-                className="group relative flex min-h-[220px] flex-col justify-between overflow-hidden rounded-xl border border-ink/8 bg-surface p-7 transition-colors hover:border-ink/20"
-              >
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute inset-0 opacity-30 transition-all duration-[--duration-premium] ease-[--ease-out-expo] group-hover:scale-110 group-hover:opacity-60"
-                  style={{
-                    background: `radial-gradient(70% 60% at 20% 100%, ${c.accent}66, transparent 70%)`,
-                  }}
-                />
-                <div className="relative flex items-start justify-between gap-4">
-                  <h3 className="font-display text-2xl uppercase text-ink">{c.title}</h3>
-                  <ArrowUpRight
-                    size={18}
-                    className="mt-1 shrink-0 text-steel-500 transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-pitch"
-                  />
-                </div>
-                <div className="relative">
-                  <p className="max-w-xs text-sm leading-relaxed text-steel-400">{c.tagline}</p>
-                  <p className="label-mono mt-4 text-steel-600">{c.count} pièces</p>
-                </div>
-              </Link>
-            </Reveal>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {countries.slice(0, 4).map((team, i) => (
+            <TeamCard
+              key={team.slug}
+              team={team}
+              index={i}
+              count={countForTeam(team.slug)}
+              href={`/selections/${team.slug}`}
+            />
           ))}
         </div>
-      </section>
+      </Section>
 
-      {/* SERVICE */}
-      <section className={`${shell} pb-8`}>
-        <div className="grid gap-px overflow-hidden rounded-xl border border-ink/8 bg-ink/8 sm:grid-cols-3">
-          {[
-            { t: "Flocage inclus", d: "Nom, numéro et écusson appliqués avant expédition." },
-            { t: "Expédition 48 h", d: "Départ de Suisse, suivi fourni sur chaque commande." },
-            { t: "Retours 30 jours", d: "Article non porté, étiquette d'origine attachée." },
-          ].map((item, i) => (
-            <Reveal key={item.t} index={i} as="div" className="bg-base p-7">
-              <p className="font-display text-lg uppercase text-ink">{item.t}</p>
-              <p className="mt-2 text-sm leading-relaxed text-steel-400">{item.d}</p>
-            </Reveal>
-          ))}
+      <EditorialBand
+        image="archives"
+        eyebrow="Football archives"
+        title={
+          <>
+            Les saisons
+            <br />
+            qu&apos;on rejoue
+            <br />
+            de mémoire.
+          </>
+        }
+        body="Rétros, rééditions et tirages courts. Les maillots des nuits européennes qu'on raconte encore, remis en circulation."
+        cta="Entrer dans l'archive"
+        href="/collections/retros"
+        align="right"
+      />
+
+      <EditorialBand
+        image="campaign-action"
+        eyebrow="Saison 26/27"
+        title={
+          <>
+            La nouvelle saison
+            <br />
+            est arrivée.
+          </>
+        }
+        cta="Voir la collection"
+        href="/collections/nouveautes"
+        align="center"
+      />
+
+      <Section>
+        <div className="mb-10 flex flex-wrap items-end justify-between gap-4 border-b border-line pb-6">
+          <div>
+            <p className="eyebrow label-mono mb-4">Last chance</p>
+            <h2 className="font-display text-display text-ink">Dernières tailles</h2>
+            <p className="mt-4 max-w-md text-sm leading-relaxed text-steel-300">
+              {onSaleCount} références à prix réduit. Les prix barrés sont ceux pratiqués avant
+              réduction.
+            </p>
+          </div>
+          <Link
+            href="/promotions"
+            className="group inline-flex items-center gap-2 border border-ink/25 px-6 py-3.5 font-display text-sm uppercase tracking-wide text-ink transition-colors hover:border-ink hover:bg-ink hover:text-void"
+          >
+            Voir les promos
+            <ArrowRight size={15} strokeWidth={2.5} className="transition-transform group-hover:translate-x-1" />
+          </Link>
         </div>
-      </section>
+        <ProductGrid products={products.filter((p) => p.compareAt).slice(0, 4)} />
+      </Section>
+
+      <Section className="!pt-0">
+        <TrustRow />
+      </Section>
+
+      <Section className="!pt-0">
+        <Community />
+      </Section>
+
+      <Newsletter />
     </>
   );
 }

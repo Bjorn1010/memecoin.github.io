@@ -1,15 +1,33 @@
 import Link from "next/link";
 import { collections } from "@/lib/data/collections";
-import { clubs } from "@/lib/data/teams";
+import { clubs, countries } from "@/lib/data/teams";
+
+/* The newsletter lives in its own section directly above the footer, so there
+ * is deliberately no second capture form down here — two email fields stacked
+ * on top of each other is the fastest way to make a site feel like a template. */
 
 const GROUPS = [
   {
     title: "Boutique",
-    links: collections.map((c) => ({ label: c.title, href: `/collections/${c.slug}` })),
+    links: [
+      { label: "Tous les maillots", href: "/maillots" },
+      ...collections.slice(0, 5).map((c) => ({ label: c.title, href: `/collections/${c.slug}` })),
+      { label: "Promotions", href: "/promotions" },
+    ],
   },
   {
     title: "Clubs",
-    links: clubs.slice(0, 7).map((c) => ({ label: c.name, href: `/maillots?club=${c.slug}` })),
+    links: [
+      ...clubs.slice(0, 6).map((c) => ({ label: c.name, href: `/clubs/${c.slug}` })),
+      { label: "Tous les clubs", href: "/clubs" },
+    ],
+  },
+  {
+    title: "Sélections",
+    links: [
+      ...countries.slice(0, 6).map((c) => ({ label: c.name, href: `/selections/${c.slug}` })),
+      { label: "Toutes les sélections", href: "/selections" },
+    ],
   },
   {
     title: "Aide",
@@ -33,39 +51,30 @@ const GROUPS = [
 
 export function Footer() {
   return (
-    <footer className="relative mt-32 border-t border-ink/8 bg-base">
+    <footer className="relative border-t border-line bg-base">
       <div className="mx-auto max-w-[1600px] px-5 py-16 lg:px-10">
-        <div className="grid gap-12 lg:grid-cols-[1.4fr_repeat(4,1fr)]">
-          <div className="max-w-sm">
+        <div className="grid gap-12 lg:grid-cols-[1.2fr_repeat(5,1fr)]">
+          <div className="max-w-xs">
             <p className="font-display text-3xl text-ink">
-              ONZE<span className="text-pitch">.</span>
+              ONZE<span className="text-volt">.</span>
             </p>
             <p className="mt-4 text-sm leading-relaxed text-steel-400">
               Maillots de football sélectionnés, floqués et expédiés depuis la Suisse.
-              Nouveautés chaque semaine.
             </p>
-
-            <form className="mt-8">
-              <label htmlFor="newsletter" className="label-mono text-steel-500">
-                Nouveautés en avant-première
-              </label>
-              <div className="mt-3 flex gap-2">
-                <input
-                  id="newsletter"
-                  name="email"
-                  type="email"
-                  required
-                  placeholder="vous@exemple.ch"
-                  className="h-11 min-w-0 flex-1 rounded-sm border border-ink/12 bg-surface px-3 text-sm text-ink outline-none transition-colors placeholder:text-steel-600 focus:border-pitch/60"
-                />
-                <button
-                  type="submit"
-                  className="label-mono h-11 shrink-0 rounded-sm bg-steel-100 px-5 text-paper transition-colors hover:bg-white"
-                >
-                  OK
-                </button>
-              </div>
-            </form>
+            <ul className="mt-8 flex gap-4">
+              {["Instagram", "TikTok", "X"].map((network) => (
+                <li key={network}>
+                  {/* No account exists yet, so these are marked as such rather
+                      than pointed at a profile that would 404. */}
+                  <span
+                    className="label-mono cursor-default text-steel-500"
+                    title="Compte à créer"
+                  >
+                    {network}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </div>
 
           {GROUPS.map((group) => (
@@ -76,7 +85,7 @@ export function Footer() {
                   <li key={l.href + l.label}>
                     <Link
                       href={l.href}
-                      className="text-sm text-steel-300 transition-colors hover:text-ink"
+                      className="text-sm text-steel-300 transition-colors hover:text-volt"
                     >
                       {l.label}
                     </Link>
@@ -87,11 +96,12 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="mt-16 flex flex-col gap-4 border-t border-ink/8 pt-8 text-xs text-steel-500 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-16 flex flex-col gap-4 border-t border-line pt-8 text-xs text-steel-500 sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} ONZE. Tous droits réservés.</p>
           <p className="max-w-xl">
             Répliques non officielles. ONZE n&apos;est affilié à aucun club, fédération ou
-            équipementier. Les noms d&apos;équipes sont cités à titre descriptif.
+            équipementier. Les noms d&apos;équipes sont cités à titre descriptif ; aucun écusson,
+            logo ou marque n&apos;est reproduit.
           </p>
         </div>
       </div>

@@ -2,9 +2,10 @@
 
 /* =========================================================================
    ONZE — DESIGN SYSTEM
-   Direction: a football shop first. Pitch green, white, and the energy of a
-   matchday programme — clean and modern, but you know what it sells in the
-   first half second.
+   Direction: football, shot at night. Near-black ground, bone-white type,
+   deep pitch green, and one electric green that only ever marks the thing
+   you can act on. The register is editorial — a football magazine that
+   happens to sell the shirt — rather than a catalogue with a banner on top.
 
    The palette is token-driven end to end: components never name a raw colour,
    so the whole site re-skins from this block.
@@ -12,74 +13,94 @@
 
 @theme {
   /* ---------- Surfaces -------------------------------------------------
-     A light stack. The page carries a faint turf tint so white cards lift
-     off it without needing heavy shadows. */
-  --color-void: #f1f7f2;
-  --color-base: #ffffff;
-  --color-surface: #ffffff;
-  --color-raised: #e9f2ec;
-  --color-overlay: #ffffff;
+     A dark stack. The shop is lit like a night match: the page is the
+     shadow, the product is the thing under the floodlight. Every surface
+     step is small — big jumps read as separate boxes, and this identity
+     wants one continuous black with objects floating in it. */
+  --color-void: #08080a;
+  --color-base: #0e0e11;
+  --color-surface: #131317;
+  --color-raised: #1a1a20;
+  --color-overlay: #0b0b0e;
+  --color-line: #25252e;
 
   /* ---------- The football colours -------------------------------------
-     Pitch green is the primary and the CTA. Green on white is the single
-     most legible "this is football" signal there is. */
-  --color-pitch: #0a9c4a;
-  --color-pitch-dark: #06773a;
-  --color-pitch-deep: #05341c;
-  --color-pitch-tint: #e3f5e9;
-  --color-pitch-glow: #0a9c4a1f;
+     Deep green is the brand's ground — the colour of a pitch at night, not
+     of a hi-vis bib. Volt is the accent and does one job: it marks the
+     thing you can act on. Used anywhere else it stops meaning anything. */
+  --color-pitch: #0d5236;
+  --color-pitch-dark: #093a26;
+  --color-pitch-deep: #04200f;
+  --color-pitch-tint: #0c2a1c;
+  --color-pitch-glow: #00e87a1f;
 
-  /* Matchday yellow. Used sparingly — badges, live states, highlights.
-     Never for body copy: it fails contrast on white. */
-  --color-cup: #ffc400;
+  --color-volt: #00e87a;
+  --color-volt-dim: #00b862;
+  /* Text that sits on top of volt. Volt is bright enough that white fails
+     on it, so the accent carries its own foreground. */
+  --color-on-volt: #04180d;
 
-  /* ---------- Ink & lines ---------------------------------------------- */
-  --color-ink: #0c1a11;
-  --color-paper: #ffffff;
+  /* Terrace yellow, kept pale on purpose — a highlight, never a second
+     accent competing with volt. */
+  --color-cup: #f0e3a8;
 
-  /* Greys are green-shifted so they sit in the same family as the pitch
-     rather than reading as cold corporate grey. */
-  --color-steel-100: #0c1a11;
-  --color-steel-200: #223227;
-  --color-steel-300: #3d5145;
-  --color-steel-400: #5c7266;
-  --color-steel-500: #7d9187;
-  --color-steel-600: #a2b3aa;
-  --color-steel-700: #c8d5cd;
-  --color-steel-800: #e4ece7;
+  /* ---------- Ink & paper ----------------------------------------------
+     `ink` is the reading colour, and on this stack that means bone white.
+     `paper` is the constant light tone for text sitting on a filled
+     surface, so it does not flip with the theme. */
+  --color-ink: #f3f2ed;
+  --color-paper: #faf9f6;
+
+  /* Greys run light → dark, so steel-400/500 stay "muted copy" and
+     steel-700/800 stay "a hairline or a quiet fill", exactly as they did
+     on the light stack. Slightly green-shifted to stay in the family. */
+  --color-steel-100: #f3f2ed;
+  --color-steel-200: #d6d6cf;
+  --color-steel-300: #aeaea6;
+  --color-steel-400: #8b8b83;
+  /* Lifted from #6e6e67: it carries small label text, and the old value
+     was 3.9:1 on the page ground — under AA for anything below 18px. */
+  --color-steel-500: #7e7e76;
+  --color-steel-600: #4a4a52;
+  --color-steel-700: #2e2e37;
+  --color-steel-800: #1d1d24;
 
   /* ---------- Semantic -------------------------------------------------- */
-  --color-sale: #e01b30;
-  --color-success: #0a9c4a;
-  --color-warning: #e07800;
+  --color-sale: #ff3b52;
+  --color-success: #00e87a;
+  --color-warning: #f0a028;
 
   /* ---------- Typography ------------------------------------------------
-     Archivo carries the sporting voice at heavy weights and tight tracking.
-     Inter does every job where legibility beats personality. */
-  --font-display: var(--font-archivo), "Arial Narrow", system-ui, sans-serif;
+     Anton does the shouting: condensed, single weight, built for headlines
+     that take up half a screen. Inter does everything a person reads at
+     length. Two families, no overlap in role. */
+  --font-display: var(--font-anton), "Arial Narrow", system-ui, sans-serif;
   --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
 
-  --text-hero: clamp(2.5rem, 5.5vw, 5.5rem);
-  --text-display: clamp(2rem, 4.2vw, 3.75rem);
-  --text-title: clamp(1.5rem, 2.6vw, 2.25rem);
-  --text-heading: clamp(1.15rem, 1.6vw, 1.5rem);
+  /* A wider spread than the old scale: editorial layouts need a headline
+     that can genuinely dominate, not one a size larger than the h2. */
+  --text-mega: clamp(3.25rem, 13vw, 13rem);
+  --text-hero: clamp(2.75rem, 8.5vw, 8rem);
+  --text-display: clamp(2.125rem, 5.2vw, 4.5rem);
+  --text-title: clamp(1.5rem, 2.8vw, 2.5rem);
+  --text-heading: clamp(1.125rem, 1.6vw, 1.5rem);
 
   /* ---------- Radius ----------------------------------------------------
-     Softer than the previous pass. Sharp corners read as technical; a shop
-     that sells kit to fans should feel approachable. */
-  --radius-xs: 3px;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+     Near-square. Sport and editorial both live on hard edges; the softness
+     in this design comes from the photography, not from rounded corners. */
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 5px;
+  --radius-lg: 8px;
+  --radius-xl: 14px;
 
   /* ---------- Elevation --------------------------------------------------
-     Two layers: a tight contact shadow plus a wide ambient one, both tinted
-     green so shadows belong to the palette instead of muddying it. */
-  --shadow-sm: 0 1px 2px rgb(5 52 28 / 0.06), 0 2px 8px rgb(5 52 28 / 0.05);
-  --shadow-md: 0 2px 4px rgb(5 52 28 / 0.07), 0 10px 28px rgb(5 52 28 / 0.09);
-  --shadow-lg: 0 4px 10px rgb(5 52 28 / 0.09), 0 24px 60px rgb(5 52 28 / 0.13);
-  --shadow-pitch: 0 6px 20px rgb(10 156 74 / 0.32);
+     On black, a shadow is nearly invisible — depth comes from a lit edge
+     instead. These stay for the few places that float over photography. */
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.5);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 0.55);
+  --shadow-lg: 0 18px 50px rgb(0 0 0 / 0.65);
+  --shadow-pitch: 0 8px 30px rgb(0 232 122 / 0.25);
 
   /* ---------- Motion tokens ---------------------------------------------
      Three tiers. Anything outside these is a mistake. */
@@ -100,77 +121,97 @@
    BASE
    ========================================================================= */
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  min-width: 0;
-}
+/* These belong in @layer base, and the layer is load-bearing rather than
+   tidiness. Unlayered CSS outranks everything inside @layer, so an unlayered
+   `button { color: inherit }` beats every text-* utility Tailwind generates —
+   which silently turned every coloured button on the site into inherited
+   bone-on-bone. Same trap for `font: inherit` versus the text-size utilities. */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    min-width: 0;
+  }
 
-html {
-  -webkit-text-size-adjust: 100%;
-  scroll-behavior: smooth;
-}
-
-body {
-  margin: 0;
-  background: var(--color-void);
-  color: var(--color-ink);
-  font-family: var(--font-sans);
-  font-synthesis-weight: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  overflow-x: clip;
-}
-
-@media (min-width: 768px) {
   html {
-    scrollbar-gutter: stable;
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+    /* The stack is dark by design, not by preference — tell the UA so form
+       controls, scrollbars and autofill render to match. */
+    color-scheme: dark;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-void);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-synthesis-weight: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: clip;
+  }
+
+  @media (min-width: 768px) {
+    html {
+      scrollbar-gutter: stable;
+    }
+  }
+
+  img,
+  svg,
+  video,
+  canvas {
+    display: block;
+    max-width: 100%;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a[href],
+  label[for],
+  summary {
+    cursor: pointer;
   }
 }
 
-img,
-svg,
-video,
-canvas {
-  display: block;
-  max-width: 100%;
-}
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
-  color: inherit;
-}
-
-button:not(:disabled),
-[role="button"]:not([aria-disabled="true"]),
-a[href],
-label[for],
-summary {
-  cursor: pointer;
+/* Deliberately unlayered and !important: an element the application has hidden
+   must stay hidden whatever a class says about display. */
+[hidden] {
+  display: none !important;
 }
 
 /* =========================================================================
    FOCUS
+   Volt on near-black is the highest-contrast pair in the palette, which is
+   exactly what a focus ring is for.
    ========================================================================= */
 
-:focus-visible {
-  outline: 3px solid var(--color-pitch);
-  outline-offset: 2px;
-  border-radius: var(--radius-xs);
-}
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-volt);
+    outline-offset: 3px;
+    border-radius: var(--radius-xs);
+  }
 
-:focus:not(:focus-visible) {
-  outline: none;
-}
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
 
-::selection {
-  background: var(--color-pitch);
-  color: var(--color-paper);
+  ::selection {
+    background: var(--color-volt);
+    color: var(--color-on-volt);
+  }
 }
 
 /* =========================================================================
@@ -179,27 +220,34 @@ summary {
 
 .font-display {
   font-family: var(--font-display);
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 0.94;
+  font-weight: 400; /* Anton ships one weight and it is already heavy. */
+  letter-spacing: -0.015em;
+  line-height: 0.86;
   text-transform: uppercase;
+}
+
+.text-mega {
+  font-size: var(--text-mega);
+  letter-spacing: -0.03em;
+  line-height: 0.82;
 }
 
 .text-hero {
   font-size: var(--text-hero);
-  letter-spacing: -0.04em;
+  letter-spacing: -0.022em;
 }
 
 .text-display {
   font-size: var(--text-display);
-  letter-spacing: -0.032em;
+  letter-spacing: -0.018em;
 }
 
+/* Small caps-ish label. The workhorse for eyebrows, badges and metadata. */
 .label-mono {
   font-family: var(--font-sans);
   font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
+  font-weight: 600;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   font-variant-numeric: tabular-nums;
 }
@@ -208,18 +256,35 @@ summary {
   font-variant-numeric: tabular-nums;
 }
 
+/* A rule with a label on it — the editorial section marker used site-wide. */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--color-volt);
+}
+
+.eyebrow::before {
+  content: "";
+  width: 1.75rem;
+  height: 1px;
+  background: currentColor;
+  flex: none;
+}
+
 /* =========================================================================
    FOOTBALL MOTIFS
    The furniture that makes this read as a football shop rather than as a
    generic store. All CSS — no images, no extra requests.
    ========================================================================= */
 
-/* Mown turf. Alternating bands, the way a groundsman cuts a pitch. */
+/* Mown turf, at night. Bands are barely there: on a dark stack the stripes
+   should be felt rather than counted. */
 .turf {
-  background-color: var(--color-pitch);
+  background-color: var(--color-pitch-deep);
   background-image: repeating-linear-gradient(
     90deg,
-    rgb(255 255 255 / 0.045) 0 72px,
+    rgb(255 255 255 / 0.025) 0 72px,
     transparent 72px 144px
   );
 }
@@ -228,7 +293,7 @@ summary {
   background-color: var(--color-pitch-tint);
   background-image: repeating-linear-gradient(
     90deg,
-    rgb(10 156 74 / 0.035) 0 64px,
+    rgb(0 232 122 / 0.03) 0 64px,
     transparent 64px 128px
   );
 }
@@ -246,7 +311,7 @@ summary {
   width: min(560px, 64%);
   height: 200px;
   translate: -50% 0;
-  border: 2px solid rgb(255 255 255 / 0.28);
+  border: 1px solid rgb(255 255 255 / 0.16);
   border-top: 0;
   pointer-events: none;
 }
@@ -259,58 +324,87 @@ summary {
   width: 160px;
   height: 160px;
   translate: -50% -50%;
-  border: 2px solid rgb(255 255 255 / 0.28);
+  border: 1px solid rgb(255 255 255 / 0.16);
   border-radius: 50%;
   clip-path: inset(50% 0 0 0);
   pointer-events: none;
 }
 
-/* Same markings, for light sections where white lines would vanish. */
 .pitch-lines-dark::before,
 .pitch-lines-dark::after {
-  border-color: rgb(10 156 74 / 0.22);
+  border-color: rgb(0 232 122 / 0.18);
 }
 
 /* Stadium floodlight, for the green sections. */
 .floodlight {
   background:
-    radial-gradient(60% 46% at 50% -6%, rgb(255 255 255 / 0.22), transparent 70%),
-    radial-gradient(40% 32% at 12% 0%, rgb(255 255 255 / 0.1), transparent 72%),
-    radial-gradient(40% 32% at 88% 0%, rgb(255 196 0 / 0.12), transparent 72%);
+    radial-gradient(60% 46% at 50% -6%, rgb(255 255 255 / 0.12), transparent 70%),
+    radial-gradient(40% 32% at 12% 0%, rgb(0 232 122 / 0.08), transparent 72%),
+    radial-gradient(40% 32% at 88% 0%, rgb(240 227 168 / 0.07), transparent 72%);
 }
 
 /* Scoreboard readout — stadium display, not body copy. */
 .scoreboard {
   font-family: var(--font-display);
   font-variant-numeric: tabular-nums;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-weight: 400;
+  letter-spacing: -0.01em;
 }
 
 /* Squad-number plate, used for size pickers. */
 .number-plate {
   font-family: var(--font-display);
   font-variant-numeric: tabular-nums;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-weight: 400;
+  letter-spacing: 0;
 }
 
-/* Diagonal pitch-green wash for promo strips. */
 .mesh-pitch {
   background:
     radial-gradient(58% 50% at 50% 0%, var(--color-pitch-glow), transparent 72%),
-    radial-gradient(38% 38% at 88% 18%, rgb(255 196 0 / 0.1), transparent 72%);
+    radial-gradient(38% 38% at 88% 18%, rgb(240 227 168 / 0.06), transparent 72%);
 }
 
-/* Fine grain, so large flat fills read as a material rather than an empty div. */
+/* Fine grain. On a dark stack this has to lighten, not darken, or it just
+   muddies the black into grey. */
 .grain::after {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
-  opacity: 0.05;
-  mix-blend-mode: multiply;
+  opacity: 0.045;
+  mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* A veil for text sitting on photography. Weighted to the bottom, where the
+   copy usually is, so the top of the image stays readable as an image. */
+.veil-b::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgb(8 8 10 / 0.05) 12%,
+    rgb(8 8 10 / 0.5) 52%,
+    rgb(8 8 10 / 0.88) 82%,
+    rgb(8 8 10 / 0.96) 100%
+  );
+}
+
+.veil-l::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    95deg,
+    rgb(8 8 10 / 0.94) 0%,
+    rgb(8 8 10 / 0.78) 34%,
+    rgb(8 8 10 / 0.42) 68%,
+    rgb(8 8 10 / 0.24) 100%
+  );
 }
 
 /* =========================================================================
@@ -318,14 +412,24 @@ summary {
    ========================================================================= */
 
 .glass {
-  background: color-mix(in oklab, var(--color-paper) 82%, transparent);
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
-  border: 1px solid color-mix(in oklab, var(--color-ink) 8%, transparent);
+  background: color-mix(in oklab, var(--color-void) 72%, transparent);
+  backdrop-filter: blur(20px) saturate(1.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  border: 1px solid color-mix(in oklab, var(--color-ink) 10%, transparent);
 }
 
+/* On black, depth is a lit top edge rather than a shadow underneath. */
 .edge-lit {
   position: relative;
+}
+
+.edge-lit::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-top: 1px solid rgb(255 255 255 / 0.07);
+  border-radius: inherit;
 }
 
 /* =========================================================================
@@ -341,11 +445,19 @@ summary {
   display: none;
 }
 
+/* Clamp a line of copy without a plugin. */
+.clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .skeleton {
   background: linear-gradient(
     90deg,
     var(--color-steel-800) 25%,
-    var(--color-raised) 37%,
+    var(--color-steel-700) 37%,
     var(--color-steel-800) 63%
   );
   background-size: 400% 100%;
@@ -359,6 +471,23 @@ summary {
   to {
     background-position: 0 50%;
   }
+}
+
+/* Marquee for the ticker strip. Duplicated content in the markup, so the
+   loop is seamless at -50%. */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 38s linear infinite;
 }
 
 /* =========================================================================
@@ -378,6 +507,10 @@ summary {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  .marquee-track {
+    animation: none;
   }
 
   .skeleton {
