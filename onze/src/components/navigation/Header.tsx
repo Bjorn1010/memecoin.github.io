@@ -12,6 +12,7 @@ import { MegaMenu, type MenuKey } from "@/components/navigation/MegaMenu";
 import { MobileNav } from "@/components/navigation/MobileNav";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { SearchOverlay } from "@/components/navigation/SearchOverlay";
+import { ScrollProgress } from "@/components/motion/ScrollProgress";
 
 /* Six destinations, in the order a supporter thinks: the shirt, then whose
  * shirt, then the two things that are their own reason to visit (the archive
@@ -197,6 +198,8 @@ export function Header() {
               </button>
             </div>
           </div>
+
+          <ScrollProgress />
 
           <AnimatePresence>
             {openMenu && <MegaMenu menu={openMenu} onClose={() => setOpenMenu(null)} />}

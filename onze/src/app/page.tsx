@@ -8,6 +8,9 @@ import { TrustRow } from "@/components/sections/TrustRow";
 import { Community } from "@/components/sections/Community";
 import { Newsletter } from "@/components/sections/Newsletter";
 import { TeamCard } from "@/components/sections/TeamRail";
+import { PinnedStory } from "@/components/sections/PinnedStory";
+import { ClubRail } from "@/components/sections/ClubRail";
+import { WordReveal } from "@/components/motion/WordReveal";
 import { ProductGrid } from "@/components/products/ProductGrid";
 import { allTeams, clubs, countries } from "@/lib/data/teams";
 import {
@@ -49,7 +52,7 @@ function Head({
     <div className="mb-10 flex flex-wrap items-end justify-between gap-4 border-b border-line pb-6">
       <div>
         <p className="eyebrow label-mono mb-4">{eyebrow}</p>
-        <h2 className="font-display text-display text-ink">{title}</h2>
+        <WordReveal text={title} className="font-display text-display text-ink" />
       </div>
       {href && cta && (
         <Link
@@ -68,6 +71,9 @@ export default function HomePage() {
   const fresh = newArrivals(5);
   const popular = bestSellers(8);
   const onSaleCount = products.filter((p) => p.compareAt).length;
+  /* Resolved here rather than per-card: countForTeam scans the catalogue, and
+     the rail renders every club. */
+  const clubCounts = Object.fromEntries(clubs.map((c) => [c.slug, countForTeam(c.slug)]));
 
   const categories = [
     {
@@ -137,6 +143,10 @@ export default function HomePage() {
         <JustDropped products={fresh} />
       </Section>
 
+      {/* The chapter that sells the differentiator — the name in the back —
+          as a scroll-driven sequence rather than another band. */}
+      <PinnedStory team={clubs[0]} />
+
       {/* The editorial heart of the page: why a shirt is worth caring about,
           told over the one photograph where the name and number are the
           subject rather than the product. */}
@@ -164,18 +174,11 @@ export default function HomePage() {
 
       <Section className="!pt-0">
         <Head eyebrow="Explore clubs" title="Vos couleurs" href="/clubs" cta="Tous les clubs" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {clubs.slice(0, 4).map((team, i) => (
-            <TeamCard
-              key={team.slug}
-              team={team}
-              index={i}
-              count={countForTeam(team.slug)}
-              href={`/clubs/${team.slug}`}
-            />
-          ))}
-        </div>
       </Section>
+      {/* Full-bleed: the rail is meant to run past both edges of the page. */}
+      <div className="-mt-6 pb-20 lg:pb-28">
+        <ClubRail teams={clubs} counts={clubCounts} />
+      </div>
 
       <Section className="!pt-0">
         <Head

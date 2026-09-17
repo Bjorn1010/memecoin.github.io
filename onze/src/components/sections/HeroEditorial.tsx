@@ -5,6 +5,8 @@ import { motion, useReducedMotion, useScroll, useTransform } from "motion/react"
 import { useRef } from "react";
 import { ArrowRight } from "lucide-react";
 import { Img } from "@/components/ui/Img";
+import { Counter } from "@/components/motion/Counter";
+import { Magnetic } from "@/components/motion/Magnetic";
 
 /* The hero.
  *
@@ -104,17 +106,19 @@ export function HeroEditorial({ references, clubCount }: { references: number; c
           </p>
 
           <div className="flex flex-wrap items-center gap-3">
-            <Link
-              href="/maillots"
-              className="group inline-flex items-center gap-2 bg-volt px-7 py-4 font-display text-sm uppercase tracking-wide text-on-volt transition-colors hover:bg-ink"
-            >
-              Voir les maillots
-              <ArrowRight
-                size={16}
-                className="transition-transform group-hover:translate-x-1"
-                strokeWidth={2.5}
-              />
-            </Link>
+            <Magnetic className="inline-block">
+              <Link
+                href="/maillots"
+                className="group inline-flex items-center gap-2 bg-volt px-7 py-4 font-display text-sm uppercase tracking-wide text-on-volt transition-colors hover:bg-ink"
+              >
+                Voir les maillots
+                <ArrowRight
+                  size={16}
+                  className="transition-transform group-hover:translate-x-1"
+                  strokeWidth={2.5}
+                />
+              </Link>
+            </Magnetic>
             <Link
               href="/collections/nouveautes"
               className="inline-flex items-center gap-2 border border-ink/25 px-7 py-4 font-display text-sm uppercase tracking-wide text-ink transition-colors hover:border-ink hover:bg-ink hover:text-void"
@@ -134,11 +138,15 @@ export function HeroEditorial({ references, clubCount }: { references: number; c
         >
           <div>
             <dt className="label-mono text-steel-400">Références</dt>
-            <dd className="scoreboard mt-1 text-2xl text-ink">{references}</dd>
+            <dd className="scoreboard mt-1 text-2xl text-ink">
+              <Counter value={references} />
+            </dd>
           </div>
           <div>
             <dt className="label-mono text-steel-400">Clubs &amp; sélections</dt>
-            <dd className="scoreboard mt-1 text-2xl text-ink">{clubCount}</dd>
+            <dd className="scoreboard mt-1 text-2xl text-ink">
+              <Counter value={clubCount} />
+            </dd>
           </div>
           <div>
             <dt className="label-mono text-steel-400">Expédition</dt>

@@ -4,6 +4,7 @@ import "./globals.css";
 import { Header } from "@/components/navigation/Header";
 import { Footer } from "@/components/navigation/Footer";
 import { CartProvider } from "@/components/cart/CartProvider";
+import { CursorLabel } from "@/components/motion/CursorLabel";
 
 /* Self-hosted by next/font — no render-blocking request to Google, and no
  * layout shift because the metrics are known at build time. */
@@ -73,10 +74,19 @@ export default function RootLayout({
     /* `data-scroll-behavior="smooth"` is required in Next 16 for the router to
        honour the CSS smooth scroll on navigation. */
     <html lang="fr" data-scroll-behavior="smooth" className={`${anton.variable} ${inter.variable}`}>
+      <head>
+        {/* Scroll reveals set their start state inline, which means a visitor
+            without JavaScript — and any crawler that does not run it — would
+            get a page of invisible headings. This makes the final state the
+            no-JS state. */}
+        <noscript>
+          <style>{`[style*="opacity:0"],[style*="opacity: 0"]{opacity:1!important;transform:none!important}`}</style>
+        </noscript>
+      </head>
       <body>
         <a
           href="#contenu"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-sm focus:bg-pitch focus:px-4 focus:py-2 focus:font-display focus:text-sm focus:uppercase focus:text-paper"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-sm focus:bg-volt focus:px-4 focus:py-2 focus:font-display focus:text-sm focus:uppercase focus:text-on-volt"
         >
           Aller au contenu
         </a>
@@ -84,6 +94,7 @@ export default function RootLayout({
           <Header />
           <main id="contenu">{children}</main>
           <Footer />
+          <CursorLabel />
         </CartProvider>
       </body>
     </html>

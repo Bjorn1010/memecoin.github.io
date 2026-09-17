@@ -39,6 +39,7 @@ export function CategoryGrid({ categories }: { categories: Category[] }) {
         >
           <Link
             href={cat.href}
+            data-cursor="Explorer"
             /* `isolate` is load-bearing: the photograph below is -z-10, and
                without a stacking context here it paints behind this element's
                own bg-base and the card renders as a black box. */

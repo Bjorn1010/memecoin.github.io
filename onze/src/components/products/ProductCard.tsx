@@ -78,6 +78,7 @@ export function ProductCard({
       <div className="relative aspect-4/5 overflow-hidden border border-line bg-base transition-colors duration-[--duration-standard] group-hover:border-steel-600">
         <Link
           href={`/produit/${product.slug}`}
+          data-cursor="Voir"
           className="absolute inset-0 z-10"
           aria-label={`${product.name}, ${soldOut ? "épuisé" : "voir le produit"}`}
         />
