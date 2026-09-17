@@ -1,9 +1,19 @@
 import type { NextConfig } from "next";
 
-/* Served from https://bjorn1010.github.io/onze/ — a subdirectory of the Pages
- * site, so the repo root stays free for another project. Override with
- * NEXT_PUBLIC_BASE_PATH="" to build for a domain root instead. */
-const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "/onze";
+/* Served from https://bjorn1010.github.io/memecoin.github.io/onze/.
+ *
+ * GitHub Pages only serves a repo at the bare domain root when the repo is
+ * named exactly "<owner>.github.io". This repo is "memecoin.github.io" under
+ * owner "Bjorn1010" — the names don't match, so it is a normal project repo
+ * and Pages publishes it under its own repo name. The basePath has to include
+ * that segment, or the built HTML links to /onze/... while the site actually
+ * lives at /memecoin.github.io/onze/..., and every asset 404s.
+ *
+ * If the repo is ever renamed to "bjorn1010.github.io", switch this back to
+ * "/onze" (and update the SITE/BASE constants in layout.tsx, sitemap.ts and
+ * robots.ts to match) — that repo name makes GitHub treat it as the account's
+ * root site instead. */
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "/memecoin.github.io/onze";
 
 /* Static export. Every route is prerendered to flat HTML so the shop can be
  * served by any static host — GitHub Pages included — with no Node runtime.

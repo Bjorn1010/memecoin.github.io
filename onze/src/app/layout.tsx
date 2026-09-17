@@ -23,7 +23,9 @@ const inter = Inter({
   display: "swap",
 });
 
-const SITE = "https://bjorn1010.github.io/onze";
+/* Kept in sync with next.config.ts's basePath — see the comment there for why
+   the path includes the repo name. */
+const SITE = "https://bjorn1010.github.io/memecoin.github.io/onze";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),

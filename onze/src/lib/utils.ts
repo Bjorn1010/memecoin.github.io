@@ -28,11 +28,11 @@ export function slugify(input: string) {
     .replace(/(^-|-$)/g, "");
 }
 
-/* The site is served from a subdirectory (/onze) on GitHub Pages. next/link and
+/* The site is served from a subdirectory on GitHub Pages. next/link and
  * next/image prefix that themselves; a plain <img src> does not, so anything
  * pointing at /public has to go through here or it 404s in production while
- * working perfectly in dev. */
-const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "/onze";
+ * working perfectly in dev. Kept in sync with next.config.ts's basePath. */
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "/memecoin.github.io/onze";
 
 export function asset(path: string) {
   return `${BASE_PATH}${path}`;

@@ -13,6 +13,8 @@ export default function robots(): MetadataRoute.Robots {
          crawl budget away from product pages. */
       disallow: ["/checkout", "/panier", "/compte", "/wishlist"],
     },
-    sitemap: "https://bjorn1010.github.io/onze/sitemap.xml",
+    /* Kept in sync with next.config.ts's basePath — see the comment there for
+       why the path includes the repo name. */
+    sitemap: "https://bjorn1010.github.io/memecoin.github.io/onze/sitemap.xml",
   };
 }

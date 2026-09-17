@@ -7,7 +7,9 @@ import { clubs, countries } from "@/lib/data/teams";
    inputs, but Next will not assume that. */
 export const dynamic = "force-static";
 
-const BASE = "https://bjorn1010.github.io/onze";
+/* Kept in sync with next.config.ts's basePath — see the comment there for why
+   the path includes the repo name. */
+const BASE = "https://bjorn1010.github.io/memecoin.github.io/onze";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
