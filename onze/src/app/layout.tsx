@@ -1,25 +1,27 @@
 import type { Metadata, Viewport } from "next";
-import { Anton, Inter } from "next/font/google";
+import { Oswald, Geist } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/navigation/Header";
 import { Footer } from "@/components/navigation/Footer";
 import { CartProvider } from "@/components/cart/CartProvider";
 import { CursorLabel } from "@/components/motion/CursorLabel";
+import { Boot } from "@/components/motion/Boot";
+import { SmoothScroll } from "@/components/motion/SmoothScroll";
 
 /* Self-hosted by next/font — no render-blocking request to Google, and no
  * layout shift because the metrics are known at build time. */
-/* Anton is the identity: one heavy condensed weight, built for headlines that
- * take up half the screen. It is display-only — never set a paragraph in it. */
-const anton = Anton({
+/* Oswald is the identity: a condensed grotesque set at a restrained medium
+ * weight, always uppercase in use. Display-only — never set a paragraph in it. */
+const oswald = Oswald({
   subsets: ["latin"],
-  weight: "400",
-  variable: "--font-anton",
+  weight: ["500", "600", "700"],
+  variable: "--font-oswald",
   display: "swap",
 });
 
-const inter = Inter({
+const geist = Geist({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-geist",
   display: "swap",
 });
 
@@ -75,7 +77,7 @@ export default function RootLayout({
   return (
     /* `data-scroll-behavior="smooth"` is required in Next 16 for the router to
        honour the CSS smooth scroll on navigation. */
-    <html lang="fr" data-scroll-behavior="smooth" className={`${anton.variable} ${inter.variable}`}>
+    <html lang="fr" data-scroll-behavior="smooth" className={`${oswald.variable} ${geist.variable}`}>
       <head>
         {/* Scroll reveals set their start state inline, which means a visitor
             without JavaScript — and any crawler that does not run it — would
@@ -88,16 +90,19 @@ export default function RootLayout({
       <body>
         <a
           href="#contenu"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-sm focus:bg-volt focus:px-4 focus:py-2 focus:font-display focus:text-sm focus:uppercase focus:text-on-volt"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-ink focus:px-4 focus:py-2 focus:font-display focus:text-sm focus:uppercase focus:text-void"
         >
           Aller au contenu
         </a>
-        <CartProvider>
-          <Header />
-          <main id="contenu">{children}</main>
-          <Footer />
-          <CursorLabel />
-        </CartProvider>
+        <Boot />
+        <SmoothScroll>
+          <CartProvider>
+            <Header />
+            <main id="contenu">{children}</main>
+            <Footer />
+            <CursorLabel />
+          </CartProvider>
+        </SmoothScroll>
       </body>
     </html>
   );

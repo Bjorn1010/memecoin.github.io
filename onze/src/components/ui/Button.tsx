@@ -19,11 +19,10 @@ const base =
   "disabled:pointer-events-none disabled:opacity-40";
 
 const variants: Record<Variant, string> = {
-  /* The primary action. Volt is the only element on the page allowed to be
-     this loud, which is why exactly one of these appears per view. It carries
-     its own dark foreground — white on volt fails contrast. */
-  pitch: "bg-volt text-on-volt hover:bg-ink",
-  /* The quieter commit: bone on near-black, inverted on hover. */
+  /* The primary action: solid white on black, the loudest contrast the
+     palette has. Hover flashes to the one accent the system keeps in
+     reserve — a single moment of colour on an otherwise monochrome page. */
+  pitch: "bg-ink text-void hover:bg-volt hover:text-on-volt",
   solid: "bg-ink text-void hover:bg-volt hover:text-on-volt",
   ghost: "text-steel-300 hover:text-ink hover:bg-ink/10",
   outline: "border border-ink/25 text-ink hover:border-ink hover:bg-ink hover:text-void",

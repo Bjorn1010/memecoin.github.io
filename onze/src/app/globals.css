@@ -2,10 +2,11 @@
 
 /* =========================================================================
    ONZE — DESIGN SYSTEM
-   Direction: football, shot at night. Near-black ground, bone-white type,
-   deep pitch green, and one electric green that only ever marks the thing
-   you can act on. The register is editorial — a football magazine that
-   happens to sell the shirt — rather than a catalogue with a banner on top.
+   Direction: monochrome and sharp. Pure black ground, pure white type,
+   square corners, a single condensed grotesque doing every headline. Colour
+   is reserved for the handful of things that must not be missed — a sale
+   price, a stock warning — everything else is black, white, and the grey
+   steps between them. The register is a product film, not a catalogue.
 
    The palette is token-driven end to end: components never name a raw colour,
    so the whole site re-skins from this block.
@@ -13,21 +14,23 @@
 
 @theme {
   /* ---------- Surfaces -------------------------------------------------
-     A dark stack. The shop is lit like a night match: the page is the
-     shadow, the product is the thing under the floodlight. Every surface
-     step is small — big jumps read as separate boxes, and this identity
-     wants one continuous black with objects floating in it. */
-  --color-void: #08080a;
-  --color-base: #0e0e11;
-  --color-surface: #131317;
-  --color-raised: #1a1a20;
-  --color-overlay: #0b0b0e;
-  --color-line: #25252e;
+     True black, not a near-black. Surface/raised exist only so a card can
+     separate itself from the page without a border doing all the work —
+     each step is small on purpose, because on true black even a subtle lift
+     reads clearly. */
+  --color-void: #000000;
+  --color-base: #0a0a0a;
+  --color-surface: #121212;
+  --color-raised: #1a1a1a;
+  --color-overlay: #000000;
+  --color-line: rgb(255 255 255 / 0.12);
 
-  /* ---------- The football colours -------------------------------------
-     Deep green is the brand's ground — the colour of a pitch at night, not
-     of a hi-vis bib. Volt is the accent and does one job: it marks the
-     thing you can act on. Used anywhere else it stops meaning anything. */
+  /* ---------- Accent ------------------------------------------------------
+     The brand keeps one colour in reserve, used at the same low frequency a
+     monochrome system can tolerate: a stock warning, a focus ring, a single
+     highlighted word in a headline. It is pitch green, not because the page
+     is green — it almost never is — but because when it does appear, it has
+     to still say "football". */
   --color-pitch: #0d5236;
   --color-pitch-dark: #093a26;
   --color-pitch-deep: #04200f;
@@ -36,34 +39,28 @@
 
   --color-volt: #00e87a;
   --color-volt-dim: #00b862;
-  /* Text that sits on top of volt. Volt is bright enough that white fails
-     on it, so the accent carries its own foreground. */
   --color-on-volt: #04180d;
 
-  /* Terrace yellow, kept pale on purpose — a highlight, never a second
-     accent competing with volt. */
   --color-cup: #f0e3a8;
 
   /* ---------- Ink & paper ----------------------------------------------
-     `ink` is the reading colour, and on this stack that means bone white.
-     `paper` is the constant light tone for text sitting on a filled
-     surface, so it does not flip with the theme. */
-  --color-ink: #f3f2ed;
-  --color-paper: #faf9f6;
+     Pure white and an almost-white — `ink` is what reads as "the page's own
+     white", `paper` is the constant light tone for text sitting on a filled
+     surface elsewhere, so it never flips when the surrounding theme does. */
+  --color-ink: #ffffff;
+  --color-paper: #fafafa;
 
-  /* Greys run light → dark, so steel-400/500 stay "muted copy" and
-     steel-700/800 stay "a hairline or a quiet fill", exactly as they did
-     on the light stack. Slightly green-shifted to stay in the family. */
-  --color-steel-100: #f3f2ed;
-  --color-steel-200: #d6d6cf;
-  --color-steel-300: #aeaea6;
-  --color-steel-400: #8b8b83;
-  /* Lifted from #6e6e67: it carries small label text, and the old value
-     was 3.9:1 on the page ground — under AA for anything below 18px. */
-  --color-steel-500: #7e7e76;
-  --color-steel-600: #4a4a52;
-  --color-steel-700: #2e2e37;
-  --color-steel-800: #1d1d24;
+  /* A flat, neutral grey ramp — no colour cast in either direction, so it
+     sits correctly against a page that is otherwise pure black and white. */
+  --color-steel-100: #ffffff;
+  --color-steel-200: #d9d9d9;
+  --color-steel-300: #b0b0b0;
+  --color-steel-400: #8a8a8a;
+  /* 4.9:1 on --color-void — the floor for small text at this weight. */
+  --color-steel-500: #808080;
+  --color-steel-600: #4d4d4d;
+  --color-steel-700: #2e2e2e;
+  --color-steel-800: #1a1a1a;
 
   /* ---------- Semantic -------------------------------------------------- */
   --color-sale: #ff3b52;
@@ -71,14 +68,12 @@
   --color-warning: #f0a028;
 
   /* ---------- Typography ------------------------------------------------
-     Anton does the shouting: condensed, single weight, built for headlines
-     that take up half a screen. Inter does everything a person reads at
-     length. Two families, no overlap in role. */
-  --font-display: var(--font-anton), "Arial Narrow", system-ui, sans-serif;
-  --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
+     Oswald: a condensed grotesque at a restrained medium weight, set in caps
+     — the whole identity's voice. Geist carries everything meant to be read
+     rather than declared: body copy, labels, form fields. */
+  --font-display: var(--font-oswald), "Arial Narrow", system-ui, sans-serif;
+  --font-sans: var(--font-geist), system-ui, -apple-system, sans-serif;
 
-  /* A wider spread than the old scale: editorial layouts need a headline
-     that can genuinely dominate, not one a size larger than the h2. */
   --text-mega: clamp(3.25rem, 13vw, 13rem);
   --text-hero: clamp(2.75rem, 8.5vw, 8rem);
   --text-display: clamp(2.125rem, 5.2vw, 4.5rem);
@@ -86,13 +81,14 @@
   --text-heading: clamp(1.125rem, 1.6vw, 1.5rem);
 
   /* ---------- Radius ----------------------------------------------------
-     Near-square. Sport and editorial both live on hard edges; the softness
-     in this design comes from the photography, not from rounded corners. */
-  --radius-xs: 2px;
-  --radius-sm: 3px;
-  --radius-md: 5px;
-  --radius-lg: 8px;
-  --radius-xl: 14px;
+     Zero, everywhere a token is used. A square corner is the single most
+     legible signal of this identity — softening it anywhere undercuts the
+     whole system, so there is deliberately no "small radius" escape hatch. */
+  --radius-xs: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
 
   /* ---------- Elevation --------------------------------------------------
      On black, a shadow is nearly invisible — depth comes from a lit edge

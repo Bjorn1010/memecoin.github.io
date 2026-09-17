@@ -109,7 +109,7 @@ export function HeroEditorial({ references, clubCount }: { references: number; c
             <Magnetic className="inline-block">
               <Link
                 href="/maillots"
-                className="group inline-flex items-center gap-2 bg-volt px-7 py-4 font-display text-sm uppercase tracking-wide text-on-volt transition-colors hover:bg-ink"
+                className="group inline-flex items-center gap-2 bg-ink px-7 py-4 font-display text-sm uppercase tracking-wide text-void transition-colors hover:bg-volt hover:text-on-volt"
               >
                 Voir les maillots
                 <ArrowRight
