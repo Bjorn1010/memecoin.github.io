@@ -67,6 +67,7 @@ export interface StrategyConfig {
   maxHoldSeconds: number | null;
   sellOnMayhemFullExit: boolean;
   minMayhemBuySol: number | null;
+  minPoolLiquiditySol: number | null;
   maxConcurrentPositions: number;
   priorityFeeSol: number;
 }

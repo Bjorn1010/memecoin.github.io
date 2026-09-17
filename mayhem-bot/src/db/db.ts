@@ -3,6 +3,7 @@ import { dirname } from "node:path";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { config } from "../config.js";
 import type { MayhemEvent, PortfolioSnapshot, StrategyConfig, Trade } from "../types.js";
+import type { PortfolioState } from "../engine/portfolio.js";
 
 // node:sqlite wants plain Record<string, SQLInputValue> objects; our domain types are
 // structurally identical (numbers/strings only) but not indexable, so we bridge the type here.
@@ -47,16 +48,67 @@ export function insertSnapshot(s: PortfolioSnapshot) {
   ).run(asParams(s));
 }
 
+/**
+ * Trims the raw firehose tables to a rolling window and reclaims the freed pages.
+ *
+ * mayhem_events grows at roughly 30k rows/hour (~5-10 Mayhem trades a second), which pushed
+ * the committed DB past GitHub's 50MB advisory limit within a few hours and would hit the
+ * hard 100MB cap — at which point pushes fail outright and the run history stops being
+ * saved at all. Events are pure raw input: they are only needed live, to sanity-check a
+ * fresh trade's fill price against the prices actually seen on-chain around it, so a couple
+ * of hours is ample. What must survive is the small stuff — trades, portfolio_state,
+ * migrated_mints — which together are a rounding error on the file size.
+ */
+export function pruneOldData(maxAgeMs: number) {
+  const cutoff = Date.now() - maxAgeMs;
+  const events = db.prepare(`DELETE FROM mayhem_events WHERE detected_at_ms < ?`).run(cutoff);
+  const snaps = db.prepare(`DELETE FROM portfolio_snapshots WHERE timestamp < ?`).run(cutoff);
+  const removed = Number(events.changes ?? 0) + Number(snaps.changes ?? 0);
+  // VACUUM only when something substantial was freed: it rewrites the whole file, so running
+  // it on every sweep would be wasted IO for no size win.
+  if (removed > 10_000) db.exec("VACUUM");
+  return removed;
+}
+
+export function markMintMigrated(mint: string) {
+  db.prepare(`INSERT OR IGNORE INTO migrated_mints (mint, detected_at) VALUES (?, ?)`).run(mint, Date.now());
+}
+
+export function loadMigratedMints(): string[] {
+  const rows = db.prepare(`SELECT mint FROM migrated_mints`).all() as { mint: string }[];
+  return rows.map((r) => r.mint);
+}
+
+export function savePortfolioState(strategyId: string, state: PortfolioState) {
+  db.prepare(
+    `INSERT INTO portfolio_state (strategy_id, state_json, updated_at) VALUES (?, ?, ?)
+     ON CONFLICT(strategy_id) DO UPDATE SET state_json = excluded.state_json, updated_at = excluded.updated_at`,
+  ).run(strategyId, JSON.stringify(state), Date.now());
+}
+
+/** Returns the saved live state for a strategy, or null when there's nothing to resume
+ * (first ever run, or a row too corrupt to parse — either way, start fresh). */
+export function loadPortfolioState(strategyId: string): PortfolioState | null {
+  const row = db.prepare(`SELECT state_json FROM portfolio_state WHERE strategy_id = ?`).get(strategyId) as
+    | { state_json: string }
+    | undefined;
+  if (!row) return null;
+  try {
+    return JSON.parse(row.state_json) as PortfolioState;
+  } catch {
+    return null;
+  }
+}
+
+export function clearPortfolioState(strategyId: string) {
+  db.prepare(`DELETE FROM portfolio_state WHERE strategy_id = ?`).run(strategyId);
+}
+
 export function upsertStrategyConfig(cfg: StrategyConfig) {
   db.prepare(
     `INSERT INTO strategies (id, config_json) VALUES (?, ?)
      ON CONFLICT(id) DO UPDATE SET config_json = excluded.config_json`,
   ).run(cfg.id, JSON.stringify(cfg));
-}
-
-export function loadStrategyConfigs(): StrategyConfig[] {
-  const rows = db.prepare(`SELECT config_json FROM strategies`).all() as { config_json: string }[];
-  return rows.map((r) => JSON.parse(r.config_json) as StrategyConfig);
 }
 
 export function recentTrades(strategyId: string, limit = 200): Trade[] {
@@ -89,7 +141,7 @@ export function recentMayhemEvents(limit = 100): MayhemEvent[] {
     .prepare(
       `SELECT id, wallet, kind, mint, signature, slot, block_time as blockTime, sol_amount as solAmount,
               token_amount as tokenAmount, price_sol as priceSol, wallet_token_balance_after as walletTokenBalanceAfter,
-              detected_at_ms as detectedAtMs
+              detected_at_ms as detectedAtMs, sol_reserves_ui as solReservesUi, token_reserves_ui as tokenReservesUi
        FROM mayhem_events ORDER BY detected_at_ms DESC LIMIT ?`,
     )
     .all(limit) as unknown as MayhemEvent[];

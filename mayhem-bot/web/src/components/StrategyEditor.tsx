@@ -132,6 +132,14 @@ export function StrategyEditor({ config, onClose }: { config: StrategyConfig; on
             onChange={(v) => setDraft((d) => ({ ...d, minMayhemBuySol: v }))}
           />
           <NumberField
+            label="Liquidité pool min."
+            value={draft.minPoolLiquiditySol}
+            step={1}
+            suffix="SOL"
+            allowNull
+            onChange={(v) => setDraft((d) => ({ ...d, minPoolLiquiditySol: v }))}
+          />
+          <NumberField
             label="Positions max en //"
             value={draft.maxConcurrentPositions}
             step={1}

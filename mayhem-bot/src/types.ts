@@ -78,9 +78,21 @@ export interface StrategyConfig {
   takeProfitPct: number | null; // e.g. 0.1 = +10%
   stopLossPct: number | null; // e.g. 0.1 = -10%
   trailingStopPct: number | null; // e.g. 0.2 = -20% from peak
+  /** Trailing stop doesn't arm until the position is up at least this much — null arms on
+   * any profit at all (changePct > 0). Mayhem's own edge is a lottery-ticket distribution
+   * (median -47.6%, mean +26.7%, driven almost entirely by rare +100%+ trades — see
+   * presets.ts), so arming a -25% trail the instant a position ticks green cuts a real pump
+   * off during its first ordinary pullback, before it has a chance to become one of the
+   * tail winners the whole strategy depends on. */
+  trailingArmPct: number | null;
   maxHoldSeconds: number | null;
   sellOnMayhemFullExit: boolean;
   minMayhemBuySol: number | null; // ignore mayhem buys smaller than this
+  minPoolLiquiditySol: number | null; // ignore entries into pools shallower than this (SOL-side reserves) — thin pools mean brutal AMM slippage
   maxConcurrentPositions: number;
   priorityFeeSol: number; // flat simulated priority/tip fee paid per trade, each side
+  /** Don't copy the buy on the bonding curve at all — watch the mint and only enter once
+   * it migrates off pump.fun onto a real AMM pool, trading whatever deeper liquidity that
+   * pool has instead of the ~16 SOL median reserves Mayhem snipes into pre-migration. */
+  waitForMigration: boolean;
 }

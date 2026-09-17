@@ -42,6 +42,22 @@ export class StrategyRunner {
     if (event.kind !== "buy") return trades;
     if (holdsPosition) return trades; // already in this coin, let exits manage it
     if (this.config.minMayhemBuySol != null && event.solAmount < this.config.minMayhemBuySol) return trades;
+    // waitForMigration strategies never buy on the bonding curve itself — EngineManager
+    // watches the mint instead and calls enterAfterMigration() once it's off the curve.
+    if (this.config.waitForMigration) return trades;
+    // No reserves means we cannot model this fill at all, and entering anyway is not a
+    // harmless approximation — it manufactures profit. The entry gets booked at the raw
+    // event price with zero slippage, while the matching exit goes through simulateSell()
+    // against whatever reserves have landed in the cache by then. The two legs end up priced
+    // off different bases, which produced eight consecutive 3.5x-13x round trips on one mint
+    // in under four seconds each. It also silently defeated the depth filter below: with
+    // reserves unknown, a `>= 40 SOL` requirement admitted a pool that never held more than
+    // 27 SOL. Roughly 4% of Mayhem buy events arrive without reserves; skipping them costs
+    // little and is the only honest option.
+    if (!poolReserves) return trades;
+    if (this.config.minPoolLiquiditySol != null && poolReserves.solReservesUi < this.config.minPoolLiquiditySol) {
+      return trades; // pool too thin — AMM slippage would eat the trade alive
+    }
     if (!this.portfolio.canOpen(this.config.maxConcurrentPositions)) return trades;
 
     const t = this.portfolio.buy({
@@ -58,6 +74,29 @@ export class StrategyRunner {
     return trades;
   }
 
+  /** Entry path for waitForMigration strategies: called once a mint Mayhem bought
+   * pre-migration has just come off the bonding curve. No bonding-curve reserves exist for
+   * the new AMM pool (DexScreener gives us spot price only), so this fill has no simulated
+   * slippage — a known, disclosed simplification, not a claim that post-migration fills are
+   * actually free. */
+  enterAfterMigration(mint: string, priceSol: number, entryEventId: string, mayhemBuySolAmount: number): Trade | null {
+    if (!this.config.enabled) return null;
+    if (!this.config.waitForMigration) return null;
+    if (this.portfolio.positions.has(mint)) return null;
+    if (this.config.minMayhemBuySol != null && mayhemBuySolAmount < this.config.minMayhemBuySol) return null;
+    if (!this.portfolio.canOpen(this.config.maxConcurrentPositions)) return null;
+
+    return this.portfolio.buy({
+      mint,
+      priceSol,
+      solAmount: this.config.positionSizeSol,
+      reason: "copy_mayhem_buy_post_migration",
+      latencyMs: 0,
+      entryEventId,
+      priorityFeeSol: this.config.priorityFeeSol,
+    });
+  }
+
   /** Periodic price-driven exit check (take-profit / stop-loss / max hold). */
   tick(prices: Map<string, number>, reserves: Map<string, PoolReserves>): Trade[] {
     if (!this.config.enabled) return [];
@@ -70,6 +109,12 @@ export class StrategyRunner {
       this.portfolio.markPrice(pos.mint, price);
       const changePct = (price - pos.avgEntryPriceSol) / pos.avgEntryPriceSol;
       const drawdownFromPeakPct = (price - pos.peakPriceSol) / pos.peakPriceSol;
+      // Armed off the peak ever reached, not the current price — a one-way ratchet. A
+      // position that pumped to +200% and has since fallen back to +40% has already proven
+      // itself a tail winner; it must stay eligible for the trailing stop even though its
+      // current gain has dropped back under trailingArmPct, or a big pullback-then-crash
+      // would ride all the way down to stop_loss instead of locking in the gain it had.
+      const peakGainPct = (pos.peakPriceSol - pos.avgEntryPriceSol) / pos.avgEntryPriceSol;
       const heldSeconds = (Date.now() - pos.openedAt) / 1000;
 
       let reason: string | null = null;
@@ -80,7 +125,7 @@ export class StrategyRunner {
       } else if (
         this.config.trailingStopPct != null &&
         drawdownFromPeakPct <= -this.config.trailingStopPct &&
-        changePct > 0
+        peakGainPct >= (this.config.trailingArmPct ?? 0)
       ) {
         reason = "trailing_stop";
       } else if (this.config.maxHoldSeconds != null && heldSeconds >= this.config.maxHoldSeconds) {
