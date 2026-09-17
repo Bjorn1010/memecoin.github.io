@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 import { useRef } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ChevronDown } from "lucide-react";
 import { Img } from "@/components/ui/Img";
 import { Counter } from "@/components/motion/Counter";
 import { Magnetic } from "@/components/motion/Magnetic";
@@ -158,6 +158,30 @@ export function HeroEditorial({ references, clubCount }: { references: number; c
           </div>
         </motion.dl>
       </motion.div>
+
+      {/* The one explicit cue that there's a page below the fold, not just a
+          banner. Fades in last, after everything else has landed; it scrolls
+          out of view with the rest of the hero rather than fighting for its
+          own scroll-linked opacity, which would only fight the entrance
+          animation for control of the same property. */}
+      {!reduced && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.6, duration: 0.8 }}
+          className="pointer-events-none absolute inset-x-0 bottom-6 flex justify-center lg:bottom-8"
+        >
+          <div className="flex flex-col items-center gap-2 text-steel-400">
+            <span className="label-mono">Défiler pour découvrir</span>
+            <motion.span
+              animate={{ y: [0, 6, 0] }}
+              transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <ChevronDown size={16} strokeWidth={2} />
+            </motion.span>
+          </div>
+        </motion.div>
+      )}
     </section>
   );
 }

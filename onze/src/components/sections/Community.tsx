@@ -1,3 +1,6 @@
+"use client";
+
+import { motion, useReducedMotion } from "motion/react";
 import { Star } from "lucide-react";
 
 /* Customer reviews.
@@ -15,6 +18,7 @@ const PLACEHOLDERS = [
 ];
 
 export function Community() {
+  const reduced = useReducedMotion();
   return (
     <div>
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
@@ -31,7 +35,14 @@ export function Community() {
 
       <ul className="grid gap-3 md:grid-cols-3">
         {PLACEHOLDERS.map((review, i) => (
-          <li key={i} className="border border-dashed border-steel-600 bg-base p-6">
+          <motion.li
+            key={i}
+            initial={reduced ? undefined : { opacity: 0, y: 20 }}
+            whileInView={reduced ? undefined : { opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.5, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] }}
+            className="border border-dashed border-steel-600 bg-base p-6"
+          >
             <div className="flex gap-0.5 text-steel-500" aria-hidden>
               {Array.from({ length: 5 }).map((_, s) => (
                 <Star key={s} size={14} strokeWidth={1.5} />
@@ -41,7 +52,7 @@ export function Community() {
             <p className="label-mono mt-5 text-steel-500">
               {review.name} · {review.product}
             </p>
-          </li>
+          </motion.li>
         ))}
       </ul>
     </div>

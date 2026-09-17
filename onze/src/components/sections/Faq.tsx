@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { transition } from "@/lib/motion";
@@ -53,8 +53,15 @@ export function Faq() {
 
 function Item({ q, a, defaultOpen }: { q: string; a: string; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(!!defaultOpen);
+  const reduced = useReducedMotion();
   return (
-    <div className="border-b border-line">
+    <motion.div
+      initial={reduced ? undefined : { opacity: 0, y: 16 }}
+      whileInView={reduced ? undefined : { opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.6 }}
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className="border-b border-line"
+    >
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -83,6 +90,6 @@ function Item({ q, a, defaultOpen }: { q: string; a: string; defaultOpen?: boole
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 }
