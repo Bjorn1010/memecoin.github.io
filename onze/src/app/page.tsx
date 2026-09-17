@@ -6,6 +6,8 @@ import { EditorialBand } from "@/components/sections/EditorialBand";
 import { JustDropped } from "@/components/sections/JustDropped";
 import { TrustRow } from "@/components/sections/TrustRow";
 import { Community } from "@/components/sections/Community";
+import { WhyOnze } from "@/components/sections/WhyOnze";
+import { Faq } from "@/components/sections/Faq";
 import { Newsletter } from "@/components/sections/Newsletter";
 import { TeamCard } from "@/components/sections/TeamRail";
 import { PinnedStory } from "@/components/sections/PinnedStory";
@@ -173,6 +175,11 @@ export default function HomePage() {
       </Section>
 
       <Section className="!pt-0">
+        <Head eyebrow="Pourquoi ONZE" title="Ce que vous ne voyez pas ailleurs" />
+        <WhyOnze />
+      </Section>
+
+      <Section className="!pt-0">
         <Head eyebrow="Explore clubs" title="Vos couleurs" href="/clubs" cta="Tous les clubs" />
       </Section>
       {/* Full-bleed: the rail is meant to run past both edges of the page. */}
@@ -260,6 +267,11 @@ export default function HomePage() {
 
       <Section className="!pt-0">
         <Community />
+      </Section>
+
+      <Section className="!pt-0">
+        <Head eyebrow="Foire aux questions" title="Une question avant de commander ?" />
+        <Faq />
       </Section>
 
       <Newsletter />
