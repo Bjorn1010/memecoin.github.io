@@ -1317,7 +1317,7 @@ La niacine (vitamine B3) et la vitamine B6 contribuent à la réduction de la fa
 
   const pmremGenerator = new THREE.PMREMGenerator(renderer);
   const hdriLoader = new RGBELoader();
-  hdriLoader.load('https://cdn.mprez.fr/ciaoenergy/webgl/hdri2.hdr', function (texture) {
+  hdriLoader.load('assets/webgl/hdri2.hdr', function (texture) {
     const envMap = pmremGenerator.fromEquirectangular(texture).texture;
     texture.dispose();
     scene.environment = envMap;
@@ -1441,7 +1441,7 @@ La niacine (vitamine B3) et la vitamine B6 contribuent à la réduction de la fa
   });
   applyEnvironmentTint(baseMaterial);
 
-  const baseGltf = await gltfLoader.loadAsync('https://cdn.mprez.fr/ciaoenergy/webgl/base.glb');
+  const baseGltf = await gltfLoader.loadAsync('assets/webgl/base.glb');
   baseGltf.scene.traverse((child) => {
     if (!child.isMesh) return;
     child.material = baseMaterial;
@@ -1452,7 +1452,7 @@ La niacine (vitamine B3) et la vitamine B6 contribuent à la réduction de la fa
   // #endregion Base
   // #region Cans
 
-  const canGltf = await gltfLoader.loadAsync('https://cdn.mprez.fr/ciaoenergy/webgl/can.glb');
+  const canGltf = await gltfLoader.loadAsync('assets/webgl/can.glb');
 
   const canMetallic = new THREE.TextureLoader().load('assets/img/6a0edb0e83db8ea830f2875d_5b37bb5107a2849b546a7b5d4bd06ef4_can-metallic-2.avif');
 
@@ -3736,10 +3736,10 @@ La niacine (vitamine B3) et la vitamine B6 contribuent à la réduction de la fa
   document.addEventListener('DOMContentLoaded', () => {
     // === CONFIG : tes sons ===
     const SOUNDS = {
-      change: 'https://cdn.prod.website-files.com/69fb53371d5b8e9c3f4e4c69/6a1931adeeccb22ae319671f_a05ee47a5e61560727f7dfe21194a4b9_CIAO-ENERGY-defilementui.mp3', // changement de canette
-      enter: 'https://cdn.prod.website-files.com/69fb53371d5b8e9c3f4e4c69/6a1932a8b13b5bf33b3a1339_c5c6e6976127365d417e66b413c7973e_CIAO-ENERGY-doubleclic-canette.mp3', // 1ère -> 2e section
-      benefits: 'https://cdn.prod.website-files.com/69fb53371d5b8e9c3f4e4c69/6a19377501bbf3759e07daeb_3c593ea845e9d3018a1e70a20d53b230_CIAO-ENERGY-transition2.mp3', // transition vers section benefits
-      click: 'https://cdn.prod.website-files.com/69fb53371d5b8e9c3f4e4c69/6a193703d7e9f8e098677ed1_dd3a7d784cae6dde94102dfd0857c348_CIAO-ENERGY-Clickui.mp3', // bouton menu + liens menu
+      change: 'assets/audio/CIAO-ENERGY-defilementui.mp3', // changement de canette
+      enter: 'assets/audio/CIAO-ENERGY-doubleclic-canette.mp3', // 1ère -> 2e section
+      benefits: 'assets/audio/CIAO-ENERGY-transition2.mp3', // transition vers section benefits
+      click: 'assets/audio/CIAO-ENERGY-Clickui.mp3', // bouton menu + liens menu
     };
 
     const VOLUME = 0.5; // 0 à 1
