@@ -79,6 +79,15 @@
               <p class="field__hint">Le flocage apparaît en direct au dos du maillot. Laissez vide pour un maillot sans personnalisation.</p>
             </div>
 
+            <div class="field">
+              <div class="field__label"><span>Quantité</span></div>
+              <div class="qty">
+                <button type="button" data-action="dec" aria-label="Retirer un exemplaire">−</button>
+                <span id="qty-value">1</span>
+                <button type="button" data-action="inc" aria-label="Ajouter un exemplaire">+</button>
+              </div>
+            </div>
+
             <button class="btn" type="button" id="add-to-cart">Ajouter au panier</button>
 
             <ul class="product-details" id="p-details"></ul>
@@ -151,7 +160,15 @@
         detailsList.appendChild(li);
       });
 
-      const state = { size: null, name: '', number: product.number };
+      const state = { size: null, name: '', number: product.number, quantity: 1 };
+
+      const qtyValue = document.getElementById('qty-value');
+      document.querySelector('.qty').addEventListener('click', (event) => {
+        const action = event.target.closest('[data-action]')?.dataset.action;
+        if (!action) return;
+        state.quantity = action === 'inc' ? Math.min(20, state.quantity + 1) : Math.max(1, state.quantity - 1);
+        qtyValue.textContent = state.quantity;
+      });
 
       const priceEl = document.getElementById('p-price');
       const renderPrice = () => {
@@ -374,9 +391,11 @@
           size: state.size,
           flocageName: state.name,
           flocageNumber: state.number,
-          quantity: 1,
+          quantity: state.quantity,
         });
-        showToast(`${product.name1} ${product.name2} · ${state.size} ajouté au panier`);
+        showToast(`${product.name1} ${product.name2} · ${state.size} × ${state.quantity} ajouté au panier`);
+        state.quantity = 1;
+        qtyValue.textContent = state.quantity;
       });
 
       // #region Vous aimerez aussi
