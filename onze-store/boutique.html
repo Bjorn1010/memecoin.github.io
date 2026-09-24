@@ -54,6 +54,7 @@
       </header>
 
       <section class="shop-section" style="padding-top: 0">
+        <div class="filter-bar reveal" id="filter-bar" role="group" aria-label="Filtrer par catégorie"></div>
         <div class="product-grid" id="product-grid"></div>
       </section>
     </main>
@@ -68,15 +69,17 @@
     </footer>
 
     <script type="module">
-      import { PRODUCTS, formatPrice } from './assets/js/onze-catalogue.js';
+      import { PRODUCTS, CATEGORIES, formatPrice } from './assets/js/onze-catalogue.js';
       import { drawJerseyFlat } from './assets/js/onze-jersey-texture.js';
       import { bindCartBadge } from './assets/js/onze-cart.js';
 
       const grid = document.getElementById('product-grid');
+      const filterBar = document.getElementById('filter-bar');
 
       PRODUCTS.forEach((product, index) => {
         const card = document.createElement('a');
         card.className = 'product-card reveal';
+        card.dataset.category = product.category;
         card.href = `produit.html?id=${encodeURIComponent(product.id)}`;
         card.style.setProperty('--card-glow', `${product.tasteSecondary}33`);
         card.style.transitionDelay = `${index * 60}ms`;
@@ -100,6 +103,28 @@
         const canvas = card.querySelector('canvas');
         // Le canvas doit connaître sa largeur CSS avant d'être dessiné.
         requestAnimationFrame(() => drawJerseyFlat(canvas, product));
+      });
+
+      // Filtre par catégorie
+      const chips = [{ id: 'all', label: 'Tous' }, ...CATEGORIES].map((cat) => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'filter-chip';
+        chip.textContent = cat.label;
+        chip.dataset.category = cat.id;
+        chip.setAttribute('aria-pressed', String(cat.id === 'all'));
+        filterBar.appendChild(chip);
+        return chip;
+      });
+
+      filterBar.addEventListener('click', (event) => {
+        const chip = event.target.closest('.filter-chip');
+        if (!chip) return;
+        const category = chip.dataset.category;
+        chips.forEach((el) => el.setAttribute('aria-pressed', String(el === chip)));
+        grid.querySelectorAll('.product-card').forEach((card) => {
+          card.classList.toggle('is-filtered', category !== 'all' && card.dataset.category !== category);
+        });
       });
 
       // Redessine à la volée pour rester net après un redimensionnement.
