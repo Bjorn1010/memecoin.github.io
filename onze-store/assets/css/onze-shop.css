@@ -741,7 +741,10 @@
   bottom: 2rem;
   transform: translate(-50%, 1.5rem);
   z-index: 100;
-  padding: 0.9rem 1.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.9rem 0.9rem 0.9rem 1.4rem;
   border-radius: 999px;
   background: #fff;
   color: #0b0b0d;
@@ -755,6 +758,18 @@
 .toast.is-visible {
   opacity: 1;
   transform: translate(-50%, 0);
+  pointer-events: auto;
+}
+
+.toast__link {
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  background: #0b0b0d;
+  color: #fff !important;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 .shop-footer {
