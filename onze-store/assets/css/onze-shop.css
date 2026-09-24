@@ -113,6 +113,16 @@
   display: none;
 }
 
+@media (max-width: 640px) {
+  .shop-nav__links .hide-mobile {
+    display: none;
+  }
+
+  .shop-nav__links {
+    gap: 1.1rem;
+  }
+}
+
 /* #region Layout */
 
 .shop-section {
