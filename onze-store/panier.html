@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="fr-FR">
+  <head>
+    <meta charset="utf-8" />
+    <title>Panier — Onze</title>
+    <meta content="Votre panier Onze." name="description" />
+    <meta content="width=device-width, initial-scale=1" name="viewport" />
+    <link href="assets/css/ciao-energy.css" rel="stylesheet" type="text/css" />
+    <link href="assets/css/onze-shop.css" rel="stylesheet" type="text/css" />
+    <link href="assets/img/6a1d9bb2854e5557fe84e7d1_Ciao_energy-fav-dark.png" rel="icon" type="image/png" sizes="32x32" />
+    <link href="assets/img/6a1d9bb2da9b342b80d39042_Ciao_energy-fav-dark.png" rel="apple-touch-icon" sizes="180x180" />
+  </head>
+  <body class="shop-body">
+    <div class="demo-banner">Site de démonstration — marque fictive, aucune commande n'est réellement traitée.</div>
+
+    <nav class="shop-nav">
+      <a href="index.html" class="shop-nav__logo" aria-label="Onze — accueil">
+        <img src="assets/img/6a0af6aee3ae4c7c923b77ca_Ciao-Energy_logo.svg" alt="Onze" />
+      </a>
+      <div class="shop-nav__links">
+        <a href="index.html">Expérience</a>
+        <a href="boutique.html">Boutique</a>
+        <a href="index.html#FAQ" class="hide-mobile">FAQ</a>
+        <a href="panier.html" class="shop-cart-link" aria-current="page">
+          Panier
+          <span data-cart-count class="is-empty"></span>
+        </a>
+      </div>
+    </nav>
+
+    <main class="shop-main">
+      <section class="shop-section">
+        <p class="shop-eyebrow">Votre sélection</p>
+        <h1 class="shop-title" style="font-size: clamp(2.25rem, 6vw, 4.5rem)">Panier</h1>
+
+        <div class="cart-layout" id="cart-layout" hidden>
+          <div id="cart-lines"></div>
+
+          <aside class="summary">
+            <div class="summary__row"><span>Sous-total</span><span id="sum-subtotal">—</span></div>
+            <div class="summary__row"><span>Livraison</span><span id="sum-shipping">—</span></div>
+            <div class="summary__row summary__row--total"><span>Total</span><span id="sum-total">—</span></div>
+            <a class="btn" href="commande.html" style="margin-top: 1.25rem">Passer commande</a>
+            <a class="btn btn--ghost" href="boutique.html" style="margin-top: 0.6rem">Continuer mes achats</a>
+            <p class="field__hint" style="margin-top: 1rem">Livraison offerte dès 120 € d'achat.</p>
+          </aside>
+        </div>
+
+        <div class="empty-state" id="cart-empty">
+          <p style="margin-bottom: 1.5rem">Votre panier est vide.</p>
+          <a class="btn btn--inline" href="boutique.html">Découvrir la gamme</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="shop-footer">
+      <div>© 2026 Onze — site de démonstration</div>
+      <div>
+        <a href="mentions-legales.html">Mentions légales</a>
+        <a href="cgu.html">CGU</a>
+        <a href="politique-de-confidentialite.html">Confidentialité</a>
+      </div>
+    </footer>
+
+    <script type="module">
+      import { getProduct, formatPrice, hasFlocage } from './assets/js/onze-catalogue.js';
+      import { drawJerseyFlat } from './assets/js/onze-jersey-texture.js';
+      import { getLines, setQuantity, removeLine, keyOf, lineUnitPrice, getTotal, bindCartBadge } from './assets/js/onze-cart.js';
+
+      const SHIPPING = 5.9;
+      const FREE_SHIPPING_FROM = 120;
+
+      const layout = document.getElementById('cart-layout');
+      const empty = document.getElementById('cart-empty');
+      const container = document.getElementById('cart-lines');
+
+      const render = () => {
+        const lines = getLines();
+        layout.hidden = lines.length === 0;
+        empty.hidden = lines.length > 0;
+        container.innerHTML = '';
+
+        lines.forEach((line) => {
+          const product = getProduct(line.productId);
+          const key = keyOf(line);
+          const personalised = hasFlocage(product, { name: line.flocageName, number: line.flocageNumber });
+
+          const row = document.createElement('article');
+          row.className = 'cart-line';
+          row.innerHTML = `
+            <div class="cart-line__media"><canvas></canvas></div>
+            <div>
+              <h2 class="cart-line__name">${product.name1} ${product.name2}</h2>
+              <p class="cart-line__meta">
+                Taille ${line.size}${personalised ? ` · Flocage ${[line.flocageName, line.flocageNumber].filter(Boolean).join(' ')}` : ''}
+              </p>
+              <p class="cart-line__meta">${formatPrice(lineUnitPrice(line))} l'unité</p>
+            </div>
+            <div class="cart-line__right">
+              <div class="qty">
+                <button type="button" data-action="dec" aria-label="Retirer un exemplaire">−</button>
+                <span>${line.quantity}</span>
+                <button type="button" data-action="inc" aria-label="Ajouter un exemplaire">+</button>
+              </div>
+              <strong>${formatPrice(lineUnitPrice(line) * line.quantity)}</strong>
+              <button type="button" class="link-button" data-action="remove">Retirer</button>
+            </div>
+          `;
+          container.appendChild(row);
+
+          // La vignette montre le dos quand le maillot est personnalisé :
+          // c'est le flocage que le client veut vérifier.
+          const canvas = row.querySelector('canvas');
+          requestAnimationFrame(() =>
+            drawJerseyFlat(canvas, product, {
+              face: personalised ? 'back' : 'front',
+              flocage: { name: line.flocageName, number: line.flocageNumber },
+            }),
+          );
+
+          row.querySelectorAll('[data-action]').forEach((button) => {
+            button.addEventListener('click', () => {
+              const action = button.dataset.action;
+              if (action === 'inc') setQuantity(key, line.quantity + 1);
+              if (action === 'dec') setQuantity(key, line.quantity - 1);
+              if (action === 'remove') removeLine(key);
+            });
+          });
+        });
+
+        const subtotal = getTotal();
+        const shipping = subtotal === 0 || subtotal >= FREE_SHIPPING_FROM ? 0 : SHIPPING;
+        document.getElementById('sum-subtotal').textContent = formatPrice(subtotal);
+        document.getElementById('sum-shipping').textContent = shipping === 0 ? 'Offerte' : formatPrice(shipping);
+        document.getElementById('sum-total').textContent = formatPrice(subtotal + shipping);
+      };
+
+      document.addEventListener('onze:cart-changed', render);
+      render();
+      bindCartBadge();
+    </script>
+  </body>
+</html>

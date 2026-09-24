@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="fr-FR">
+  <head>
+    <meta charset="utf-8" />
+    <title>Boutique — Onze</title>
+    <meta content="La gamme complète des maillots Onze : six coupes athlétiques, flocage thermocollé, tissu technique respirant." name="description" />
+    <meta content="width=device-width, initial-scale=1" name="viewport" />
+    <link href="assets/css/ciao-energy.css" rel="stylesheet" type="text/css" />
+    <link href="assets/css/onze-shop.css" rel="stylesheet" type="text/css" />
+    <link href="assets/img/6a1d9bb2854e5557fe84e7d1_Ciao_energy-fav-dark.png" rel="icon" type="image/png" sizes="32x32" />
+    <link href="assets/img/6a1d9bb2da9b342b80d39042_Ciao_energy-fav-dark.png" rel="apple-touch-icon" sizes="180x180" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body class="shop-body">
+    <div class="demo-banner">Site de démonstration — marque fictive, aucune commande n'est réellement traitée.</div>
+
+    <nav class="shop-nav">
+      <a href="index.html" class="shop-nav__logo" aria-label="Onze — accueil">
+        <img src="assets/img/6a0af6aee3ae4c7c923b77ca_Ciao-Energy_logo.svg" alt="Onze" />
+      </a>
+      <div class="shop-nav__links">
+        <a href="index.html">Expérience</a>
+        <a href="boutique.html" aria-current="page">Boutique</a>
+        <a href="index.html#FAQ" class="hide-mobile">FAQ</a>
+        <a href="panier.html" class="shop-cart-link">
+          Panier
+          <span data-cart-count class="is-empty"></span>
+        </a>
+      </div>
+    </nav>
+
+    <main class="shop-main">
+      <header class="shop-section shop-hero">
+        <p class="shop-eyebrow reveal">Collection 2026 — 6 pièces</p>
+        <h1 class="shop-title reveal">Toute<br />la gamme</h1>
+        <p class="shop-lede reveal">
+          Six maillots, une seule promesse : tissu technique respirant, flocage thermocollé qui tient au lavage, coupe
+          athlétique. Personnalisable au nom et au numéro de votre choix.
+        </p>
+      </header>
+
+      <section class="shop-section" style="padding-top: 0">
+        <div class="product-grid" id="product-grid"></div>
+      </section>
+    </main>
+
+    <footer class="shop-footer">
+      <div>© 2026 Onze — site de démonstration</div>
+      <div>
+        <a href="mentions-legales.html">Mentions légales</a>
+        <a href="cgu.html">CGU</a>
+        <a href="politique-de-confidentialite.html">Confidentialité</a>
+      </div>
+    </footer>
+
+    <script type="module">
+      import { PRODUCTS, formatPrice } from './assets/js/onze-catalogue.js';
+      import { drawJerseyFlat } from './assets/js/onze-jersey-texture.js';
+      import { bindCartBadge } from './assets/js/onze-cart.js';
+
+      const grid = document.getElementById('product-grid');
+
+      PRODUCTS.forEach((product, index) => {
+        const card = document.createElement('a');
+        card.className = 'product-card reveal';
+        card.href = `produit.html?id=${encodeURIComponent(product.id)}`;
+        card.style.setProperty('--card-glow', `${product.tasteSecondary}33`);
+        card.style.transitionDelay = `${index * 60}ms`;
+
+        card.innerHTML = `
+          <div class="product-card__media">
+            <span class="product-card__tag">N°${product.number}</span>
+            <canvas aria-label="Maillot ${product.name1} ${product.name2}" role="img"></canvas>
+          </div>
+          <div class="product-card__body">
+            <div>
+              <h2 class="product-card__name">${product.name1}<br />${product.name2}</h2>
+              <p class="product-card__tagline">${product.tagline}</p>
+            </div>
+            <div class="product-card__price">${formatPrice(product.price)}</div>
+          </div>
+        `;
+
+        grid.appendChild(card);
+
+        const canvas = card.querySelector('canvas');
+        // Le canvas doit connaître sa largeur CSS avant d'être dessiné.
+        requestAnimationFrame(() => drawJerseyFlat(canvas, product));
+      });
+
+      // Redessine à la volée pour rester net après un redimensionnement.
+      let resizeTimer;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+          grid.querySelectorAll('.product-card').forEach((card, index) => {
+            drawJerseyFlat(card.querySelector('canvas'), PRODUCTS[index]);
+          });
+        }, 200);
+      });
+
+      // Apparition au scroll
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-in');
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.15 },
+      );
+      document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+
+      bindCartBadge();
+    </script>
+  </body>
+</html>
