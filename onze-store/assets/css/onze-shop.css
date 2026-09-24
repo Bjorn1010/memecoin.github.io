@@ -478,6 +478,11 @@
   align-items: start;
 }
 
+.cart-layout[hidden],
+.empty-state[hidden] {
+  display: none;
+}
+
 @media (max-width: 860px) {
   .cart-layout {
     grid-template-columns: 1fr;
