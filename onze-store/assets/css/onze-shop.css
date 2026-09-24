@@ -144,6 +144,32 @@
   margin-bottom: 1rem;
 }
 
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--_typography---font-styles--mono, Geistmono, monospace);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--onze-muted);
+  margin-bottom: 1.5rem;
+}
+
+.breadcrumb a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  color: #fff;
+}
+
+.breadcrumb [aria-current='page'] {
+  color: #fff;
+}
+
 .shop-title {
   font-family: var(--_typography---font-styles--heading, 'Franklin Gothic Atf', Arial, sans-serif);
   font-style: italic;
