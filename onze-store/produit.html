@@ -117,6 +117,25 @@
       document.getElementById('p-title').innerHTML = `${product.name1}<br />${product.name2}`;
       document.getElementById('p-desc').textContent = product.description;
       document.getElementById('flocage-price').textContent = `+ ${formatPrice(FLOCAGE_PRICE)}`;
+
+      const productSchema = document.createElement('script');
+      productSchema.type = 'application/ld+json';
+      productSchema.textContent = JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'Product',
+        name: `${product.name1} ${product.name2}`,
+        description: product.description,
+        brand: { '@type': 'Brand', name: 'Onze' },
+        sku: product.id,
+        offers: {
+          '@type': 'Offer',
+          url: location.href,
+          priceCurrency: 'EUR',
+          price: product.price,
+          availability: 'https://schema.org/InStock',
+        },
+      });
+      document.head.appendChild(productSchema);
       document.getElementById('viewer').style.setProperty('--viewer-glow', `${product.tasteSecondary}2e`);
 
       const detailsList = document.getElementById('p-details');
