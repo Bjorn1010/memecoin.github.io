@@ -105,7 +105,7 @@
     </footer>
 
     <script type="module">
-      import { getProduct, formatPrice } from './assets/js/onze-catalogue.js';
+      import { getProduct, formatPrice, hasFlocage } from './assets/js/onze-catalogue.js';
       import { getLines, getTotal, lineUnitPrice, clear, bindCartBadge } from './assets/js/onze-cart.js';
 
       const SHIPPING = 5.9;
@@ -117,10 +117,14 @@
       const summary = document.getElementById('summary-lines');
       lines.forEach((line) => {
         const product = getProduct(line.productId);
+        const personalised = hasFlocage(product, { name: line.flocageName, number: line.flocageNumber });
+        const flocageLabel = personalised
+          ? ` · Flocage ${[line.flocageName, line.flocageNumber].filter(Boolean).join(' ')}`
+          : '';
         const row = document.createElement('div');
         row.className = 'summary__row';
         row.innerHTML = `
-          <span>${product.name1} ${product.name2} · ${line.size} × ${line.quantity}</span>
+          <span>${product.name1} ${product.name2} · ${line.size} × ${line.quantity}${flocageLabel}</span>
           <span>${formatPrice(lineUnitPrice(line) * line.quantity)}</span>
         `;
         summary.appendChild(row);
