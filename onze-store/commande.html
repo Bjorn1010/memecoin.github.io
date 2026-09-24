@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fr-FR">
+  <head>
+    <meta charset="utf-8" />
+    <title>Commande — Onze</title>
+    <meta content="Finalisez votre commande Onze." name="description" />
+    <meta content="Commande — Onze" property="og:title" />
+    <meta content="Finalisez votre commande Onze." property="og:description" />
+    <meta content="assets/img/6a1c669055af9680ca67da10_Ciao-energy_meta-img.jpg" property="og:image" />
+    <meta property="og:type" content="website" />
+    <meta content="Commande — Onze" name="twitter:title" />
+    <meta content="Finalisez votre commande Onze." name="twitter:description" />
+    <meta content="summary_large_image" name="twitter:card" />
+    <meta content="width=device-width, initial-scale=1" name="viewport" />
+    <link href="assets/css/ciao-energy.css" rel="stylesheet" type="text/css" />
+    <link href="assets/css/onze-shop.css" rel="stylesheet" type="text/css" />
+    <link href="assets/img/6a1d9bb2854e5557fe84e7d1_Ciao_energy-fav-dark.png" rel="icon" type="image/png" sizes="32x32" />
+    <link href="assets/img/6a1d9bb2da9b342b80d39042_Ciao_energy-fav-dark.png" rel="apple-touch-icon" sizes="180x180" />
+  </head>
+  <body class="shop-body">
+    <div class="demo-banner">Site de démonstration — aucun paiement n'est traité, aucune donnée n'est transmise.</div>
+
+    <nav class="shop-nav">
+      <a href="index.html" class="shop-nav__logo" aria-label="Onze — accueil">
+        <img src="assets/img/6a0af6aee3ae4c7c923b77ca_Ciao-Energy_logo.svg" alt="Onze" />
+      </a>
+      <div class="shop-nav__links">
+        <a href="index.html">Expérience</a>
+        <a href="boutique.html">Boutique</a>
+        <a href="panier.html" class="shop-cart-link">
+          Panier
+          <span data-cart-count class="is-empty"></span>
+        </a>
+      </div>
+    </nav>
+
+    <main class="shop-main">
+      <section class="shop-section" id="checkout-section">
+        <p class="shop-eyebrow"><a href="panier.html" style="color: inherit">← Panier</a></p>
+        <h1 class="shop-title" style="font-size: clamp(2.25rem, 6vw, 4.5rem)">Commande</h1>
+
+        <div class="cart-layout">
+          <form id="checkout-form" novalidate>
+            <div class="field">
+              <div class="field__label"><span>Coordonnées</span></div>
+              <input class="text-input" type="email" id="email" placeholder="Adresse e-mail" required autocomplete="email" />
+            </div>
+
+            <div class="field">
+              <div class="field__label"><span>Livraison</span></div>
+              <div style="display: grid; gap: 0.6rem">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem">
+                  <input class="text-input" type="text" id="firstname" placeholder="Prénom" required autocomplete="given-name" />
+                  <input class="text-input" type="text" id="lastname" placeholder="Nom" required autocomplete="family-name" />
+                </div>
+                <input class="text-input" type="text" id="address" placeholder="Adresse" required autocomplete="street-address" />
+                <div style="display: grid; grid-template-columns: 8rem 1fr; gap: 0.6rem">
+                  <input class="text-input" type="text" id="zip" placeholder="Code postal" required autocomplete="postal-code" />
+                  <input class="text-input" type="text" id="city" placeholder="Ville" required autocomplete="address-level2" />
+                </div>
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="field__label"><span>Paiement</span></div>
+              <p class="field__hint" style="margin: 0 0 0.75rem">
+                Aucun champ de paiement n'est demandé : ce site est une démonstration, la commande n'est jamais transmise.
+              </p>
+            </div>
+
+            <p id="checkout-error" style="color: #ff7676; font-size: 0.85rem; min-height: 1.2rem; margin: 0 0 0.75rem"></p>
+            <button class="btn" type="submit">Valider la commande</button>
+          </form>
+
+          <aside class="summary">
+            <h2 style="font-size: 0.8rem; letter-spacing: 0.2em; text-transform: uppercase; margin: 0 0 1rem; color: var(--onze-muted)">
+              Récapitulatif
+            </h2>
+            <div id="summary-lines"></div>
+            <div class="summary__row"><span>Sous-total</span><span id="sum-subtotal">—</span></div>
+            <div class="summary__row"><span>Livraison</span><span id="sum-shipping">—</span></div>
+            <div class="summary__row summary__row--total"><span>Total</span><span id="sum-total">—</span></div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="shop-section" id="confirmation" hidden style="text-align: center">
+        <p class="shop-eyebrow">Commande enregistrée</p>
+        <h1 class="shop-title" style="font-size: clamp(2.25rem, 6vw, 4.5rem)">Merci<br />pour tout</h1>
+        <p class="shop-lede" style="margin: 0 auto 2rem">
+          Votre commande de démonstration n° <strong id="order-ref"></strong> est bien enregistrée côté navigateur.
+          Aucun paiement n'a été effectué et aucune donnée n'a quitté cette page.
+        </p>
+        <a class="btn btn--inline" href="boutique.html">Retour à la boutique</a>
+      </section>
+    </main>
+
+    <footer class="shop-footer">
+      <div>© 2026 Onze — site de démonstration</div>
+      <div>
+        <a href="mentions-legales.html">Mentions légales</a>
+        <a href="cgu.html">CGU</a>
+        <a href="politique-de-confidentialite.html">Confidentialité</a>
+      </div>
+    </footer>
+
+    <script type="module">
+      import { getProduct, formatPrice } from './assets/js/onze-catalogue.js';
+      import { getLines, getTotal, lineUnitPrice, clear, bindCartBadge } from './assets/js/onze-cart.js';
+
+      const SHIPPING = 5.9;
+      const FREE_SHIPPING_FROM = 120;
+
+      const lines = getLines();
+      if (!lines.length) location.replace('panier.html');
+
+      const summary = document.getElementById('summary-lines');
+      lines.forEach((line) => {
+        const product = getProduct(line.productId);
+        const row = document.createElement('div');
+        row.className = 'summary__row';
+        row.innerHTML = `
+          <span>${product.name1} ${product.name2} · ${line.size} × ${line.quantity}</span>
+          <span>${formatPrice(lineUnitPrice(line) * line.quantity)}</span>
+        `;
+        summary.appendChild(row);
+      });
+
+      const subtotal = getTotal();
+      const shipping = subtotal >= FREE_SHIPPING_FROM ? 0 : SHIPPING;
+      document.getElementById('sum-subtotal').textContent = formatPrice(subtotal);
+      document.getElementById('sum-shipping').textContent = shipping === 0 ? 'Offerte' : formatPrice(shipping);
+      document.getElementById('sum-total').textContent = formatPrice(subtotal + shipping);
+
+      const form = document.getElementById('checkout-form');
+      const errorEl = document.getElementById('checkout-error');
+
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const required = ['email', 'firstname', 'lastname', 'address', 'zip', 'city'];
+        const missing = required.find((id) => !document.getElementById(id).value.trim());
+        if (missing) {
+          errorEl.textContent = 'Merci de compléter tous les champs.';
+          document.getElementById(missing).focus();
+          return;
+        }
+        const email = document.getElementById('email').value.trim();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          errorEl.textContent = 'Adresse e-mail invalide.';
+          document.getElementById('email').focus();
+          return;
+        }
+
+        // Démonstration : la commande n'est envoyée nulle part, on vide
+        // simplement le panier local et on affiche la confirmation.
+        document.getElementById('order-ref').textContent = `ONZ-${Date.now().toString().slice(-6)}`;
+        clear();
+        document.getElementById('checkout-section').hidden = true;
+        document.getElementById('confirmation').hidden = false;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+
+      bindCartBadge();
+    </script>
+  </body>
+</html>

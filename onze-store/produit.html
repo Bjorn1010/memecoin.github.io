@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="fr-FR">
+  <head>
+    <meta charset="utf-8" />
+    <title>Maillot — Onze</title>
+    <meta content="Configurez votre maillot Onze : taille, nom et numéro floqués, visualisés en 3D en temps réel." name="description" />
+    <meta content="Maillot — Onze" property="og:title" />
+    <meta content="Configurez votre maillot Onze : taille, nom et numéro floqués, visualisés en 3D en temps réel." property="og:description" />
+    <meta content="assets/img/6a1c669055af9680ca67da10_Ciao-energy_meta-img.jpg" property="og:image" />
+    <meta property="og:type" content="website" />
+    <meta content="Maillot — Onze" name="twitter:title" />
+    <meta content="Configurez votre maillot Onze : taille, nom et numéro floqués, visualisés en 3D en temps réel." name="twitter:description" />
+    <meta content="summary_large_image" name="twitter:card" />
+    <meta content="width=device-width, initial-scale=1" name="viewport" />
+    <link href="assets/css/ciao-energy.css" rel="stylesheet" type="text/css" />
+    <link href="assets/css/onze-shop.css" rel="stylesheet" type="text/css" />
+    <link href="assets/img/6a1d9bb2854e5557fe84e7d1_Ciao_energy-fav-dark.png" rel="icon" type="image/png" sizes="32x32" />
+    <link href="assets/img/6a1d9bb2da9b342b80d39042_Ciao_energy-fav-dark.png" rel="apple-touch-icon" sizes="180x180" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body class="shop-body">
+    <div class="demo-banner">Site de démonstration — marque fictive, aucune commande n'est réellement traitée.</div>
+
+    <nav class="shop-nav">
+      <a href="index.html" class="shop-nav__logo" aria-label="Onze — accueil">
+        <img src="assets/img/6a0af6aee3ae4c7c923b77ca_Ciao-Energy_logo.svg" alt="Onze" />
+      </a>
+      <div class="shop-nav__links">
+        <a href="index.html">Expérience</a>
+        <a href="boutique.html">Boutique</a>
+        <a href="index.html#FAQ" class="hide-mobile">FAQ</a>
+        <a href="panier.html" class="shop-cart-link">
+          Panier
+          <span data-cart-count class="is-empty"></span>
+        </a>
+      </div>
+    </nav>
+
+    <main class="shop-main">
+      <section class="shop-section">
+        <p class="shop-eyebrow"><a href="boutique.html" style="color: inherit">← Boutique</a></p>
+
+        <div class="product-layout">
+          <div>
+            <div class="product-viewer" id="viewer">
+              <div class="product-viewer__loading" id="viewer-loading">Chargement du modèle…</div>
+              <span class="product-viewer__hint">Cliquez-glissez pour tourner le maillot</span>
+            </div>
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem">
+              <button class="btn btn--ghost" type="button" data-face="front">Voir le recto</button>
+              <button class="btn btn--ghost" type="button" data-face="back">Voir le verso</button>
+            </div>
+          </div>
+
+          <div class="product-info">
+            <p class="shop-eyebrow" id="p-eyebrow"></p>
+            <h1 class="shop-title" style="font-size: clamp(2.25rem, 5vw, 4rem)" id="p-title"></h1>
+            <p class="product-info__price" id="p-price"></p>
+            <p class="product-info__desc" id="p-desc"></p>
+
+            <div class="field">
+              <div class="field__label"><span>Taille</span><span id="size-error" style="color: #ff7676"></span></div>
+              <div class="size-list" id="size-list"></div>
+            </div>
+
+            <div class="field">
+              <div class="field__label"><span>Flocage</span><span id="flocage-price"></span></div>
+              <div class="flocage-grid">
+                <input class="text-input" id="flocage-name" type="text" maxlength="12" placeholder="Nom (ex. MARTIN)" autocomplete="off" />
+                <input class="text-input" id="flocage-number" type="text" inputmode="numeric" maxlength="2" placeholder="N°" autocomplete="off" />
+              </div>
+              <p class="field__hint">Le flocage apparaît en direct au dos du maillot. Laissez vide pour un maillot sans personnalisation.</p>
+            </div>
+
+            <button class="btn" type="button" id="add-to-cart">Ajouter au panier</button>
+
+            <ul class="product-details" id="p-details"></ul>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="shop-footer">
+      <div>© 2026 Onze — site de démonstration</div>
+      <div>
+        <a href="mentions-legales.html">Mentions légales</a>
+        <a href="cgu.html">CGU</a>
+        <a href="politique-de-confidentialite.html">Confidentialité</a>
+      </div>
+    </footer>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script type="module">
+      import * as THREE from 'three';
+      import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+      import { getProduct, SIZES, FLOCAGE_PRICE, formatPrice, hasFlocage } from './assets/js/onze-catalogue.js';
+      import { createJerseyMesh } from './assets/js/onze-jersey.js';
+      import { addLine, bindCartBadge } from './assets/js/onze-cart.js';
+
+      const params = new URLSearchParams(location.search);
+      const product = getProduct(params.get('id'));
+
+      // #region Contenu
+
+      document.title = `Maillot ${product.name1} ${product.name2} — Onze`;
+      document.querySelector('meta[property="og:title"]')?.setAttribute('content', document.title);
+      document.querySelector('meta[name="twitter:title"]')?.setAttribute('content', document.title);
+      document.getElementById('p-eyebrow').textContent = product.tagline;
+      document.getElementById('p-title').innerHTML = `${product.name1}<br />${product.name2}`;
+      document.getElementById('p-desc').textContent = product.description;
+      document.getElementById('flocage-price').textContent = `+ ${formatPrice(FLOCAGE_PRICE)}`;
+
+      const productSchema = document.createElement('script');
+      productSchema.type = 'application/ld+json';
+      productSchema.textContent = JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'Product',
+        name: `${product.name1} ${product.name2}`,
+        description: product.description,
+        brand: { '@type': 'Brand', name: 'Onze' },
+        sku: product.id,
+        offers: {
+          '@type': 'Offer',
+          url: location.href,
+          priceCurrency: 'EUR',
+          price: product.price,
+          availability: 'https://schema.org/InStock',
+        },
+      });
+      document.head.appendChild(productSchema);
+      document.getElementById('viewer').style.setProperty('--viewer-glow', `${product.tasteSecondary}2e`);
+
+      const detailsList = document.getElementById('p-details');
+      product.details.forEach((detail) => {
+        const li = document.createElement('li');
+        li.textContent = detail;
+        detailsList.appendChild(li);
+      });
+
+      const state = { size: null, name: '', number: product.number };
+
+      const priceEl = document.getElementById('p-price');
+      const renderPrice = () => {
+        const personalised = hasFlocage(product, { name: state.name, number: state.number });
+        priceEl.textContent = personalised
+          ? `${formatPrice(product.price + FLOCAGE_PRICE)} · flocage inclus`
+          : formatPrice(product.price);
+      };
+      renderPrice();
+
+      // #region Tailles
+
+      const sizeList = document.getElementById('size-list');
+      SIZES.forEach((size) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'size-option';
+        button.textContent = size;
+        button.setAttribute('aria-pressed', 'false');
+        button.addEventListener('click', () => {
+          state.size = size;
+          sizeList.querySelectorAll('.size-option').forEach((el) => el.setAttribute('aria-pressed', String(el === button)));
+          document.getElementById('size-error').textContent = '';
+        });
+        sizeList.appendChild(button);
+      });
+
+      // #region Scène 3D
+
+      const viewer = document.getElementById('viewer');
+      const loading = document.getElementById('viewer-loading');
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 0.95;
+      viewer.appendChild(renderer.domElement);
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
+      camera.position.set(0, 0, 6.1);
+
+      // Éclairage studio : une dominante, un déboucheur doux, un contre-jour
+      // teinté. Volontairement contenu — un maillot noir doit rester noir.
+      const key = new THREE.SpotLight(0xffffff, 26, 22, Math.PI / 5, 0.85, 1.1);
+      key.position.set(2.6, 3.4, 4.2);
+      scene.add(key);
+
+      const fill = new THREE.DirectionalLight(0xffffff, 0.55);
+      fill.position.set(-3, -1, 2.5);
+      scene.add(fill);
+
+      const rim = new THREE.SpotLight(new THREE.Color(product.tasteSecondary), 14, 18, Math.PI / 4, 0.9, 1.2);
+      rim.position.set(-2.4, 1.6, -3.2);
+      scene.add(rim);
+
+      scene.add(new THREE.AmbientLight(0xffffff, 0.16));
+
+      const lowPower = window.innerWidth < 900;
+      const jersey = createJerseyMesh(product, { lowPower, flocage: { name: state.name, number: state.number } });
+      scene.add(jersey);
+
+      // L'environnement HDRI donne au tissu ses reflets doux.
+      new RGBELoader().load(
+        'assets/webgl/hdri2.hdr',
+        (texture) => {
+          const pmrem = new THREE.PMREMGenerator(renderer);
+          scene.environment = pmrem.fromEquirectangular(texture).texture;
+          texture.dispose();
+          pmrem.dispose();
+        },
+        undefined,
+        () => {
+          /* Sans HDRI la scène reste éclairée par les lampes. */
+        },
+      );
+
+      const resize = () => {
+        const size = viewer.clientWidth;
+        if (!size) return;
+        renderer.setSize(size, size, false);
+        camera.aspect = 1;
+        camera.updateProjectionMatrix();
+      };
+      resize();
+      window.addEventListener('resize', resize);
+
+      // #region Interaction
+
+      const rotation = { current: 0, target: 0, velocity: 0 };
+      const tilt = { current: 0, target: 0 };
+      let dragging = false;
+      let lastX = 0;
+      let lastY = 0;
+      let idle = true;
+
+      const pointerDown = (event) => {
+        dragging = true;
+        idle = false;
+        viewer.classList.add('is-touched');
+        lastX = event.clientX;
+        lastY = event.clientY;
+        viewer.setPointerCapture?.(event.pointerId);
+      };
+
+      const pointerMove = (event) => {
+        if (!dragging) return;
+        const dx = event.clientX - lastX;
+        const dy = event.clientY - lastY;
+        lastX = event.clientX;
+        lastY = event.clientY;
+        rotation.target += dx * 0.011;
+        tilt.target = THREE.MathUtils.clamp(tilt.target + dy * 0.006, -0.55, 0.55);
+      };
+
+      const pointerUp = () => {
+        dragging = false;
+      };
+
+      viewer.addEventListener('pointerdown', pointerDown);
+      viewer.addEventListener('pointermove', pointerMove);
+      window.addEventListener('pointerup', pointerUp);
+      viewer.addEventListener('pointercancel', pointerUp);
+
+      document.querySelectorAll('[data-face]').forEach((button) => {
+        button.addEventListener('click', () => {
+          idle = false;
+          viewer.classList.add('is-touched');
+          const turns = Math.round(rotation.target / (Math.PI * 2));
+          rotation.target = turns * Math.PI * 2 + (button.dataset.face === 'back' ? Math.PI : 0);
+          tilt.target = 0;
+        });
+      });
+
+      const clock = new THREE.Clock();
+      const animate = () => {
+        requestAnimationFrame(animate);
+        const delta = Math.min(clock.getDelta(), 0.05);
+
+        if (idle && !dragging) rotation.target += delta * 0.35;
+
+        rotation.current += (rotation.target - rotation.current) * Math.min(1, delta * 6);
+        tilt.current += (tilt.target - tilt.current) * Math.min(1, delta * 6);
+
+        jersey.rotation.y = rotation.current;
+        jersey.rotation.x = tilt.current;
+        // Léger flottement, comme sur la page d'accueil
+        jersey.position.y = Math.sin(clock.elapsedTime * 0.9) * 0.045;
+        jersey.rotation.z = Math.sin(clock.elapsedTime * 0.6) * 0.03;
+
+        renderer.render(scene, camera);
+      };
+
+      requestAnimationFrame(() => {
+        resize();
+        loading.remove();
+        animate();
+      });
+
+      // #region Flocage en direct
+
+      const nameInput = document.getElementById('flocage-name');
+      const numberInput = document.getElementById('flocage-number');
+      numberInput.value = state.number;
+
+      let flocageTimer;
+      const applyFlocage = () => {
+        clearTimeout(flocageTimer);
+        // Le rendu de texture est coûteux : on attend une pause de frappe.
+        flocageTimer = setTimeout(() => {
+          jersey.userData.setFlocage({ name: state.name, number: state.number });
+        }, 120);
+        renderPrice();
+      };
+
+      nameInput.addEventListener('input', () => {
+        state.name = nameInput.value.replace(/[^a-zA-ZÀ-ÿ' -]/g, '').toUpperCase();
+        nameInput.value = state.name;
+        applyFlocage();
+      });
+
+      numberInput.addEventListener('input', () => {
+        state.number = numberInput.value.replace(/\D/g, '').slice(0, 2);
+        numberInput.value = state.number;
+        applyFlocage();
+      });
+
+      // Montre le dos dès qu'on commence à personnaliser : c'est là que ça se passe.
+      let revealedBack = false;
+      [nameInput, numberInput].forEach((input) => {
+        input.addEventListener('focus', () => {
+          if (revealedBack) return;
+          revealedBack = true;
+          idle = false;
+          viewer.classList.add('is-touched');
+          rotation.target = Math.round(rotation.target / (Math.PI * 2)) * Math.PI * 2 + Math.PI;
+        });
+      });
+
+      // #region Panier
+
+      const toast = document.getElementById('toast');
+      let toastTimer;
+      const showToast = (message) => {
+        toast.textContent = message;
+        toast.classList.add('is-visible');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('is-visible'), 2600);
+      };
+
+      document.getElementById('add-to-cart').addEventListener('click', () => {
+        if (!state.size) {
+          document.getElementById('size-error').textContent = 'Choisissez une taille';
+          sizeList.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return;
+        }
+        addLine({
+          productId: product.id,
+          size: state.size,
+          flocageName: state.name,
+          flocageNumber: state.number,
+          quantity: 1,
+        });
+        showToast(`${product.name1} ${product.name2} · ${state.size} ajouté au panier`);
+      });
+
+      bindCartBadge();
+    </script>
+  </body>
+</html>
