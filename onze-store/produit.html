@@ -66,8 +66,30 @@
             <p class="product-info__desc" id="p-desc"></p>
 
             <div class="field">
-              <div class="field__label"><span>Taille</span><span id="size-error" style="color: #ff7676"></span></div>
+              <div class="field__label">
+                <span>Taille</span>
+                <span id="size-error" style="color: #ff7676"></span>
+                <button type="button" class="link-button" id="size-guide-toggle">Guide des tailles</button>
+              </div>
               <div class="size-list" id="size-list"></div>
+              <table class="size-guide" id="size-guide" hidden>
+                <caption class="sr-only">Mesures à plat, en centimètres</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Taille</th>
+                    <th scope="col">Tour de poitrine</th>
+                    <th scope="col">Longueur</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><th scope="row">XS</th><td>86–90 cm</td><td>66 cm</td></tr>
+                  <tr><th scope="row">S</th><td>91–96 cm</td><td>68 cm</td></tr>
+                  <tr><th scope="row">M</th><td>97–102 cm</td><td>70 cm</td></tr>
+                  <tr><th scope="row">L</th><td>103–108 cm</td><td>72 cm</td></tr>
+                  <tr><th scope="row">XL</th><td>109–114 cm</td><td>74 cm</td></tr>
+                  <tr><th scope="row">XXL</th><td>115–120 cm</td><td>76 cm</td></tr>
+                </tbody>
+              </table>
             </div>
 
             <div class="field">
@@ -194,6 +216,11 @@
           document.getElementById('size-error').textContent = '';
         });
         sizeList.appendChild(button);
+      });
+
+      const sizeGuide = document.getElementById('size-guide');
+      document.getElementById('size-guide-toggle').addEventListener('click', () => {
+        sizeGuide.hidden = !sizeGuide.hidden;
       });
 
       // #region Scène 3D
