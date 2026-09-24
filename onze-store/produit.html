@@ -4,6 +4,13 @@
     <meta charset="utf-8" />
     <title>Maillot — Onze</title>
     <meta content="Configurez votre maillot Onze : taille, nom et numéro floqués, visualisés en 3D en temps réel." name="description" />
+    <meta content="Maillot — Onze" property="og:title" />
+    <meta content="Configurez votre maillot Onze : taille, nom et numéro floqués, visualisés en 3D en temps réel." property="og:description" />
+    <meta content="assets/img/6a1c669055af9680ca67da10_Ciao-energy_meta-img.jpg" property="og:image" />
+    <meta property="og:type" content="website" />
+    <meta content="Maillot — Onze" name="twitter:title" />
+    <meta content="Configurez votre maillot Onze : taille, nom et numéro floqués, visualisés en 3D en temps réel." name="twitter:description" />
+    <meta content="summary_large_image" name="twitter:card" />
     <meta content="width=device-width, initial-scale=1" name="viewport" />
     <link href="assets/css/ciao-energy.css" rel="stylesheet" type="text/css" />
     <link href="assets/css/onze-shop.css" rel="stylesheet" type="text/css" />
@@ -104,6 +111,8 @@
       // #region Contenu
 
       document.title = `Maillot ${product.name1} ${product.name2} — Onze`;
+      document.querySelector('meta[property="og:title"]')?.setAttribute('content', document.title);
+      document.querySelector('meta[name="twitter:title"]')?.setAttribute('content', document.title);
       document.getElementById('p-eyebrow').textContent = product.tagline;
       document.getElementById('p-title').innerHTML = `${product.name1}<br />${product.name2}`;
       document.getElementById('p-desc').textContent = product.description;
