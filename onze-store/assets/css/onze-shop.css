@@ -163,6 +163,44 @@
   margin: 0;
 }
 
+/* #region Filtres */
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0 0 clamp(1.5rem, 3vw, 2.5rem);
+}
+
+.filter-chip {
+  padding: 0.55rem 1.1rem;
+  border: 1px solid var(--onze-line);
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.68);
+  font: inherit;
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: all 0.25s var(--onze-ease);
+}
+
+.filter-chip:hover {
+  border-color: var(--onze-line-strong);
+  color: #fff;
+}
+
+.filter-chip[aria-pressed='true'] {
+  background: #fff;
+  border-color: #fff;
+  color: #0b0b0d;
+  font-weight: 600;
+}
+
+.product-card.is-filtered {
+  display: none;
+}
+
 /* #region Grille produits */
 
 .product-grid {

@@ -85,6 +85,11 @@
           </div>
         </div>
       </section>
+
+      <section class="shop-section" style="padding-top: 0">
+        <p class="shop-eyebrow">Vous aimerez aussi</p>
+        <div class="product-grid" id="related-grid"></div>
+      </section>
     </main>
 
     <footer class="shop-footer">
@@ -101,8 +106,9 @@
     <script type="module">
       import * as THREE from 'three';
       import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
-      import { getProduct, SIZES, FLOCAGE_PRICE, formatPrice, hasFlocage } from './assets/js/onze-catalogue.js';
+      import { getProduct, PRODUCTS, SIZES, FLOCAGE_PRICE, formatPrice, hasFlocage } from './assets/js/onze-catalogue.js';
       import { createJerseyMesh } from './assets/js/onze-jersey.js';
+      import { drawJerseyFlat } from './assets/js/onze-jersey-texture.js';
       import { addLine, bindCartBadge } from './assets/js/onze-cart.js';
 
       const params = new URLSearchParams(location.search);
@@ -371,6 +377,33 @@
           quantity: 1,
         });
         showToast(`${product.name1} ${product.name2} · ${state.size} ajouté au panier`);
+      });
+
+      // #region Vous aimerez aussi
+
+      const relatedGrid = document.getElementById('related-grid');
+      const currentIndex = PRODUCTS.findIndex((p) => p.id === product.id);
+      const related = [1, 2, 3].map((offset) => PRODUCTS[(currentIndex + offset) % PRODUCTS.length]);
+      related.forEach((item) => {
+        const card = document.createElement('a');
+        card.className = 'product-card';
+        card.href = `produit.html?id=${encodeURIComponent(item.id)}`;
+        card.style.setProperty('--card-glow', `${item.tasteSecondary}33`);
+        card.innerHTML = `
+          <div class="product-card__media">
+            <span class="product-card__tag">N°${item.number}</span>
+            <canvas aria-label="Maillot ${item.name1} ${item.name2}" role="img"></canvas>
+          </div>
+          <div class="product-card__body">
+            <div>
+              <h2 class="product-card__name">${item.name1}<br />${item.name2}</h2>
+              <p class="product-card__tagline">${item.tagline}</p>
+            </div>
+            <div class="product-card__price">${formatPrice(item.price)}</div>
+          </div>
+        `;
+        relatedGrid.appendChild(card);
+        requestAnimationFrame(() => drawJerseyFlat(card.querySelector('canvas'), item));
       });
 
       bindCartBadge();

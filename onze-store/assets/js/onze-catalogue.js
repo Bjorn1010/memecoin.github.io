@@ -8,6 +8,7 @@ export const FLOCAGE_PRICE = 12;
 export const PRODUCTS = [
   {
     id: 'domicile-noir',
+    category: 'domicile',
     name1: 'Domicile',
     name2: 'Noir',
     number: '11',
@@ -25,6 +26,7 @@ export const PRODUCTS = [
   },
   {
     id: 'exterieur-blanc',
+    category: 'exterieur',
     name1: 'Extérieur',
     name2: 'Blanc',
     number: '7',
@@ -42,6 +44,7 @@ export const PRODUCTS = [
   },
   {
     id: 'third-dore',
+    category: 'third',
     name1: 'Third',
     name2: 'Doré',
     number: '9',
@@ -59,6 +62,7 @@ export const PRODUCTS = [
   },
   {
     id: 'gardien-vert',
+    category: 'gardien',
     name1: 'Gardien',
     name2: 'Vert',
     number: '1',
@@ -76,6 +80,7 @@ export const PRODUCTS = [
   },
   {
     id: 'training-gris',
+    category: 'training',
     name1: 'Training',
     name2: 'Gris',
     number: '4',
@@ -93,6 +98,7 @@ export const PRODUCTS = [
   },
   {
     id: 'edition-limitee',
+    category: 'edition',
     name1: 'Édition',
     name2: 'Limitée',
     number: '10',
@@ -108,6 +114,15 @@ export const PRODUCTS = [
       "Bordeaux profond, filet doré, numérotée à la main de 1 à 500. Quand c'est parti, c'est parti — on ne relance pas la série.",
     details: ['Polyester technique recyclé 170 g/m²', 'Numérotation manuelle 1 à 500', 'Filet doré tissé', 'Fabriqué en Europe'],
   },
+];
+
+export const CATEGORIES = [
+  { id: 'domicile', label: 'Domicile' },
+  { id: 'exterieur', label: 'Extérieur' },
+  { id: 'third', label: 'Third' },
+  { id: 'gardien', label: 'Gardien' },
+  { id: 'training', label: 'Training' },
+  { id: 'edition', label: 'Édition limitée' },
 ];
 
 export const getProduct = (id) => PRODUCTS.find((p) => p.id === id) || PRODUCTS[0];
