@@ -43,6 +43,7 @@
           <form id="checkout-form" novalidate>
             <div class="field">
               <div class="field__label"><span>Coordonnées</span></div>
+              <label class="sr-only" for="email">Adresse e-mail</label>
               <input class="text-input" type="email" id="email" placeholder="Adresse e-mail" required autocomplete="email" />
             </div>
 
@@ -50,12 +51,17 @@
               <div class="field__label"><span>Livraison</span></div>
               <div style="display: grid; gap: 0.6rem">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem">
+                  <label class="sr-only" for="firstname">Prénom</label>
                   <input class="text-input" type="text" id="firstname" placeholder="Prénom" required autocomplete="given-name" />
+                  <label class="sr-only" for="lastname">Nom</label>
                   <input class="text-input" type="text" id="lastname" placeholder="Nom" required autocomplete="family-name" />
                 </div>
+                <label class="sr-only" for="address">Adresse</label>
                 <input class="text-input" type="text" id="address" placeholder="Adresse" required autocomplete="street-address" />
                 <div style="display: grid; grid-template-columns: 8rem 1fr; gap: 0.6rem">
+                  <label class="sr-only" for="zip">Code postal</label>
                   <input class="text-input" type="text" id="zip" placeholder="Code postal" required autocomplete="postal-code" />
+                  <label class="sr-only" for="city">Ville</label>
                   <input class="text-input" type="text" id="city" placeholder="Ville" required autocomplete="address-level2" />
                 </div>
               </div>
