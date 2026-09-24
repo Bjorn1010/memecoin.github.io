@@ -544,6 +544,29 @@
   width: auto;
 }
 
+.trust-bullets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  margin: 1.1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trust-bullets li {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--onze-muted);
+  font-size: 0.78rem;
+}
+
+.trust-bullets li::before {
+  content: '✓';
+  color: #6fe3a6;
+  font-weight: 700;
+}
+
 .product-details {
   margin-top: 2rem;
   padding-top: 1.5rem;
