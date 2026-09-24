@@ -106,19 +106,28 @@
         }, 200);
       });
 
-      // Apparition au scroll
-      const observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              entry.target.classList.add('is-in');
-              observer.unobserve(entry.target);
-            }
-          });
-        },
-        { threshold: 0.15 },
-      );
-      document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+      // Apparition au scroll, avec filet de sécurité si l'observer ne
+      // déclenche jamais (contenu qui doit rester lisible dans tous les cas).
+      const revealTargets = document.querySelectorAll('.reveal');
+      const revealAll = () => revealTargets.forEach((el) => el.classList.add('is-in'));
+
+      if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add('is-in');
+                observer.unobserve(entry.target);
+              }
+            });
+          },
+          { threshold: 0.15 },
+        );
+        revealTargets.forEach((el) => observer.observe(el));
+        setTimeout(revealAll, 2500);
+      } else {
+        revealAll();
+      }
 
       bindCartBadge();
     </script>
