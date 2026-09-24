@@ -91,6 +91,13 @@
           Votre commande de démonstration n° <strong id="order-ref"></strong> est bien enregistrée côté navigateur.
           Aucun paiement n'a été effectué et aucune donnée n'a quitté cette page.
         </p>
+        <aside class="summary" style="max-width: 26rem; margin: 0 auto 2rem; text-align: left">
+          <h2 style="font-size: 0.8rem; letter-spacing: 0.2em; text-transform: uppercase; margin: 0 0 1rem; color: var(--onze-muted)">
+            Récapitulatif
+          </h2>
+          <div id="confirmation-lines"></div>
+          <div class="summary__row summary__row--total"><span>Total payé</span><span id="confirmation-total">—</span></div>
+        </aside>
         <a class="btn btn--inline" href="boutique.html">Retour à la boutique</a>
       </section>
     </main>
@@ -158,6 +165,8 @@
         // Démonstration : la commande n'est envoyée nulle part, on vide
         // simplement le panier local et on affiche la confirmation.
         document.getElementById('order-ref').textContent = `ONZ-${Date.now().toString().slice(-6)}`;
+        document.getElementById('confirmation-lines').innerHTML = summary.innerHTML;
+        document.getElementById('confirmation-total').textContent = formatPrice(subtotal + shipping);
         clear();
         document.getElementById('checkout-section').hidden = true;
         document.getElementById('confirmation').hidden = false;
