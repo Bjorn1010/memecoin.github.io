@@ -74,7 +74,7 @@
               </p>
             </div>
 
-            <p id="checkout-error" style="color: #ff7676; font-size: 0.85rem; min-height: 1.2rem; margin: 0 0 0.75rem"></p>
+            <p id="checkout-error" role="alert" style="color: #ff7676; font-size: 0.85rem; min-height: 1.2rem; margin: 0 0 0.75rem"></p>
             <button class="btn" type="submit">Valider la commande</button>
           </form>
 
@@ -152,21 +152,29 @@
       const form = document.getElementById('checkout-form');
       const errorEl = document.getElementById('checkout-error');
 
+      const required = ['email', 'firstname', 'lastname', 'address', 'zip', 'city'];
+      const clearInvalid = () => required.forEach((id) => document.getElementById(id).removeAttribute('aria-invalid'));
+      required.forEach((id) => document.getElementById(id).addEventListener('input', clearInvalid));
+
       form.addEventListener('submit', (event) => {
         event.preventDefault();
-        const required = ['email', 'firstname', 'lastname', 'address', 'zip', 'city'];
         const missing = required.find((id) => !document.getElementById(id).value.trim());
         if (missing) {
           errorEl.textContent = 'Merci de compléter tous les champs.';
-          document.getElementById(missing).focus();
+          const field = document.getElementById(missing);
+          field.setAttribute('aria-invalid', 'true');
+          field.focus();
           return;
         }
         const email = document.getElementById('email').value.trim();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
           errorEl.textContent = 'Adresse e-mail invalide.';
-          document.getElementById('email').focus();
+          const emailField = document.getElementById('email');
+          emailField.setAttribute('aria-invalid', 'true');
+          emailField.focus();
           return;
         }
+        clearInvalid();
 
         // Démonstration : la commande n'est envoyée nulle part, on vide
         // simplement le panier local et on affiche la confirmation.
