@@ -10,6 +10,24 @@
   --onze-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.skip-link {
+  position: absolute;
+  top: -4rem;
+  left: 1rem;
+  z-index: 999;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.4rem;
+  background: #fff;
+  color: #0b0b0d;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 1rem;
+}
+
 .shop-body {
   background: var(--onze-surface);
   color: #fff;
