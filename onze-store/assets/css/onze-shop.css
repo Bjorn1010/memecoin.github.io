@@ -197,7 +197,7 @@
   font-style: normal;
   font-weight: 500;
   text-transform: uppercase;
-  line-height: 0.88;
+  line-height: 0.96;
   letter-spacing: -0.015em;
   font-size: clamp(2.75rem, 8vw, 6.5rem);
   margin: 0 0 1.25rem;
@@ -333,7 +333,7 @@
   font-style: normal;
   text-transform: uppercase;
   font-size: 1.35rem;
-  line-height: 0.95;
+  line-height: 1;
   margin: 0 0 0.4rem;
 }
 
