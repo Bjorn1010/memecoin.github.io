@@ -99,7 +99,7 @@
           const row = document.createElement('article');
           row.className = 'cart-line';
           row.innerHTML = `
-            <div class="cart-line__media"><canvas></canvas></div>
+            <div class="cart-line__media"><canvas aria-hidden="true"></canvas></div>
             <div>
               <h2 class="cart-line__name">${product.name1} ${product.name2}</h2>
               <p class="cart-line__meta">
