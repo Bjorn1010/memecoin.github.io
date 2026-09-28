@@ -178,6 +178,14 @@
           emailField.focus();
           return;
         }
+        const zip = document.getElementById('zip').value.trim();
+        if (!/^\d{5}$/.test(zip)) {
+          errorEl.textContent = 'Code postal invalide (5 chiffres).';
+          const zipField = document.getElementById('zip');
+          zipField.setAttribute('aria-invalid', 'true');
+          zipField.focus();
+          return;
+        }
         clearInvalid();
 
         // Démonstration : la commande n'est envoyée nulle part, on vide
