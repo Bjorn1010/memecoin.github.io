@@ -269,6 +269,11 @@
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 0.95;
+      renderer.domElement.setAttribute('role', 'img');
+      renderer.domElement.setAttribute(
+        'aria-label',
+        `Aperçu 3D du maillot ${product.name1} ${product.name2}, glissez pour le faire tourner`,
+      );
       viewer.appendChild(renderer.domElement);
 
       const scene = new THREE.Scene();
