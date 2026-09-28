@@ -1,43 +1,45 @@
-# Onze — boutique de maillots (démo)
+# Onze — boutique de maillots de football
 
-Site de démonstration pour une marque fictive de maillots de football,
-**Onze**. Construit en partant d'un mirroir statique de
-[ciaoenergy.com](https://ciaoenergy.com) (structure, CSS, choréographie
-d'animation Three.js/GSAP/Lenis) puis entièrement rebrandé : la canette 3D
-est remplacée par un maillot 3D procédural, et tout le contenu (textes,
-couleurs, logo, FAQ, mentions légales) a été réécrit pour Onze.
+Boutique en ligne de maillots personnalisables, exploitée en Suisse
+(Rilind Asllani et Pedro Miguel Pires Gomes, Yverdon-les-Bains). Site
+statique (GitHub Pages) : expérience 3D au scroll sur l'accueil, boutique,
+fiches produit configurables, panier et tunnel de commande.
 
-## Ce qui a changé par rapport au mirroir Ciao Energy d'origine
-
-- **Scène 3D** : le modèle de canette (`can.glb`) est remplacé par une
-  géométrie de maillot construite procéduralement dans Three.js
-  (`ExtrudeGeometry` + `UVGenerator` maison), texturée par un canvas généré
-  à la volée (couleurs, numéro, nom du maillot). Le reste du moteur 3D
-  (caméra, carrousel au scroll, éclairage, HDRI, composeur/bloom) n'a pas
-  été touché — seule la partie « quel objet afficher » a changé.
-- **Contenu** : les 6 saveurs Ciao Energy sont devenues 6 maillots
-  (Domicile Noir, Extérieur Blanc, Third Doré, Gardien Vert, Training Gris,
-  Édition Limitée), les 4 arguments nutritionnels sont devenus 4 arguments
-  textile (tissu technique, flocage thermocollé, coupe athlétique, couleurs
-  qui tiennent), la FAQ a été réécrite en conséquence.
-- **Marque** : logo, favicons, image OG et écran de chargement redessinés
-  pour « ONZE » (SVG texte + canvas générés, pas d'assets Ciao Energy
-  visibles).
-- **Formulaire newsletter neutralisé** : le vrai backend Brevo et la vraie
-  clé reCAPTCHA de Ciao Energy ont été retirés. Le formulaire est une
-  simulation purement statique (affiche le message de succès existant sans
-  rien transmettre nulle part).
-- **Pages légales** : les vraies informations d'entreprise de Ciao Energy
-  (raison sociale, SIREN, adresse, nom du responsable de publication) ont
-  été retirées et remplacées par des mentions clairement fictives — ce site
-  n'a aucune existence légale réelle.
+La structure et la choréographie d'animation (Three.js, GSAP, Lenis)
+proviennent à l'origine d'un site Webflow ; tout le contenu, les médias, la
+typographie et la direction artistique sont propres à Onze. Aucun média,
+son, modèle 3D, slogan ni police de la source d'origine n'est conservé.
 
 ## Pages
 
-- `index.html` — page d'accueil
-- `cgu.html` — conditions générales d'utilisation (démo)
-- `mentions-legales.html` — mentions légales (démo, informations fictives)
-- `politique-de-confidentialite.html` — politique de confidentialité (démo)
+- `index.html` — accueil : carrousel 3D des 6 maillots, bouton « Commander »
+  qui suit le maillot affiché
+- `boutique.html` — la gamme, filtrable par catégorie
+- `produit.html?id=…` — fiche produit : aperçu 3D (rendu 2D si la 3D est
+  indisponible), taille, flocage nom/numéro en direct
+- `panier.html` — panier, progression vers la livraison offerte, suggestions
+- `commande.html` — coordonnées, acceptation des CGV, envoi de la commande
+- `cgv.html`, `cgu.html`, `mentions-legales.html`,
+  `politique-de-confidentialite.html` — pages légales (droit suisse)
+
+## Comment une commande arrive
+
+Il n'y a pas de serveur ni de paiement en ligne. À la fin du tunnel, le site
+rédige un récapitulatif (référence `ONZ-AAMMJJ-XXXXXX`, articles, total,
+adresse) que le client envoie en un geste :
+
+- par **WhatsApp** au 076 770 31 78 (lien `wa.me` pré-rempli), ou
+- par **e-mail** à miguel.pires780@gmail.com (lien `mailto:` pré-rempli).
+
+Le vendeur confirme la commande par écrit et envoie les instructions de
+paiement ; le colis part à réception du paiement (voir CGV, articles 4 et 5).
+
+## Configuration
+
+Prix, frais de port, seuil de livraison offerte et coordonnées de contact
+sont centralisés dans `assets/js/onze-catalogue.js` (`PRODUCTS`, `SHIPPING`,
+`CONTACT`). Si un montant change, mettre aussi à jour les textes des CGV
+(article 3) et le bandeau « Livraison offerte dès 120 CHF ».
 
 ## Lancer en local
 
@@ -47,12 +49,15 @@ python3 -m http.server 8000
 # puis ouvrir http://localhost:8000/index.html
 ```
 
-## Limites connues
+## Dépendances
 
-- Le formulaire newsletter ne fait rien de réel (aucun envoi, aucun
-  stockage) : c'est une démonstration d'interface uniquement.
-- Les pages légales sont fictives et ne constituent pas de vraies mentions
-  légales — ce projet n'est pas une entreprise réelle.
-- L'animation d'intro (vidéo de fond en boucle) nécessite un navigateur
-  avec décodage vidéo matériel/logiciel complet (H.264/VP9) — normal sur
-  desktop et mobile.
+Toutes les bibliothèques sont hébergées dans `assets/vendor/` (GSAP,
+ScrollTrigger, SplitText, jQuery, runtime Webflow), sauf Three.js, chargé
+depuis jsDelivr (déclaré dans la politique de confidentialité).
+
+## Prochaines étapes possibles
+
+- Paiement en ligne (Stripe, TWINT) : nécessite un backend léger
+  (Cloudflare Workers / Vercel / Netlify Functions) pour créer la session
+  de paiement sans jamais exposer la clé secrète côté client.
+- Vraies photos produit en complément du rendu 3D.
