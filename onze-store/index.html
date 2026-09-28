@@ -2712,14 +2712,21 @@ On a fait le choix d&#x27;un tissu technique respirant plutôt qu&#x27;une mati�
         }
       };
 
+      let sceneReadyTimer;
       const onSceneReady = () => {
         if (sceneReady) return;
         sceneReady = true;
+        clearTimeout(sceneReadyTimer);
         enterScene();
       };
       window.addEventListener('carousel:ready', onSceneReady);
       if (window.carousel && window.__sceneReady) {
         onSceneReady();
+      } else {
+        // Filet de sécurité : si la scène 3D ne signale jamais carousel:ready
+        // (chargement anormalement lent, erreur silencieuse), le loader ne
+        // doit pas bloquer indéfiniment le reste du site derrière lui.
+        sceneReadyTimer = setTimeout(onSceneReady, 12000);
       }
 
       const startFakePercent = () => {
@@ -3883,9 +3890,31 @@ On a fait le choix d&#x27;un tissu technique respirant plutôt qu&#x27;une mati�
         });
       });
 
-      // FAQ : son seul (accordéon, pas de scroll)
-      document.querySelectorAll('.faq_question').forEach((q) => {
-        q.addEventListener('click', () => play('click'));
+      // FAQ : accordéon natif (le fichier d'interactions Webflow d'origine
+      // n'existe pas pour ce site recréé, donc rien ne dépliait les réponses).
+      document.querySelectorAll('.faq_accordion').forEach((acc) => {
+        const q = acc.querySelector('.faq_question');
+        const answer = acc.querySelector('.faq_answer');
+        if (!q || !answer) return;
+        q.setAttribute('role', 'button');
+        q.setAttribute('tabindex', '0');
+        q.setAttribute('aria-expanded', 'false');
+        answer.style.transition = 'height 0.35s ease';
+
+        const toggle = () => {
+          const isOpen = q.getAttribute('aria-expanded') === 'true';
+          answer.style.height = isOpen ? '0px' : `${answer.scrollHeight}px`;
+          q.setAttribute('aria-expanded', String(!isOpen));
+          play('click');
+        };
+
+        q.addEventListener('click', toggle);
+        q.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            toggle();
+          }
+        });
       });
     };
     initMenuClicks();
