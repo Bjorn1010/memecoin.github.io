@@ -766,7 +766,7 @@
   <rect x="4" width="2" height="8" rx="1" fill="currentColor"/>
   <rect x="8" width="2" height="8" rx="1" fill="currentColor"/>
   <rect x="12" width="2" height="8" rx="1" fill="currentColor"/>
-</svg></div></div></div></div><a href="index.html" aria-current="page" class="navbar_logo-link w-nav-brand w--current"><img loading="lazy" src="assets/img/onze-logo.svg" alt="Onze - Logo" class="navbar_logo" width="130" height="47"/></a><div class="navbar_menu-wrapper"><div class="navbar_relative"><div class="navbar_menu-button"><div class="navbar_menu-button-wrapper"><div><div class="icon-embed-tiny w-embed"><svg width="100%" height="100%" viewBox="0 0 8 8" xmlns="http://www.w3.org/2000/svg">
+</svg></div></div></div></div><a href="index.html" aria-current="page" class="navbar_logo-link w-nav-brand w--current"><img loading="lazy" src="assets/img/onze-logo.svg" alt="Onze - Logo" class="navbar_logo" width="66" height="47"/></a><div class="navbar_menu-wrapper"><div class="navbar_relative"><div class="navbar_menu-button"><div class="navbar_menu-button-wrapper"><div><div class="icon-embed-tiny w-embed"><svg width="100%" height="100%" viewBox="0 0 8 8" xmlns="http://www.w3.org/2000/svg">
   <circle fill="currentColor"  cx="1" cy="1" r="1" />
   <circle fill="currentColor" cx="7" cy="1" r="1" />
   <circle fill="currentColor" cx="7" cy="7" r="1" />
@@ -3770,7 +3770,7 @@ On a fait le choix d&#x27;un tissu technique respirant plutôt qu&#x27;une mati�
   });
 </script></div><div class="script---sfx w-embed w-script"><script>
   document.addEventListener('DOMContentLoaded', () => {
-    const VOLUME = 0.5; // 0 à 1
+    const VOLUME = 0.3; // 0 à 1
 
     // === Moteur Web Audio : sons synthétisés, aucun fichier audio ===
     let ctx = null;
@@ -3782,25 +3782,38 @@ On a fait le choix d&#x27;un tissu technique respirant plutôt qu&#x27;une mati�
       ctx = new (window.AudioContext || window.webkitAudioContext)();
     };
 
-    // Chaque son est une fonction du temps t (s) renvoyant un échantillon [-1, 1].
-    const noise = () => Math.random() * 2 - 1;
+    // Sons doux façon marimba / carillon : sinusoïdes pures, attaque progressive
+    // (jamais de front brutal, source des « clics » désagréables), décroissance
+    // exponentielle, notes d'une gamme pentatonique pour rester consonantes.
+    const TAU = Math.PI * 2;
+    const envelope = (t, attack, decay) => (t < attack ? t / attack : Math.exp(-(t - attack) * decay));
+    const mallet = (f, t, decay) =>
+      t < 0
+        ? 0
+        : envelope(t, 0.006, decay) *
+          (Math.sin(TAU * f * t) + 0.18 * Math.sin(TAU * 2 * f * t) + 0.22 * Math.sin(TAU * 4 * f * t) * Math.exp(-t * 30)) /
+          1.4;
+    const fadeOut = (t, duration) => Math.min(1, (duration - t) / 0.04);
+
     const SOUNDS = {
-      // tic feutré au changement de maillot
-      change: { duration: 0.09, sample: (t) => Math.sin(2 * Math.PI * 1800 * t) * Math.exp(-t * 70) * 0.6 },
-      // double impulsion grave à l'entrée dans l'expérience
+      // goutte feutrée à chaque changement de maillot
+      change: { duration: 0.4, sample: (t) => mallet(659.25, t, 14) * 0.55 * fadeOut(t, 0.4) },
+      // deux notes montantes à l'entrée dans l'expérience
       enter: {
-        duration: 0.32,
-        sample: (t) =>
-          Math.sin(2 * Math.PI * 120 * t) * Math.exp(-t * 18) +
-          (t > 0.12 ? Math.sin(2 * Math.PI * 180 * (t - 0.12)) * Math.exp(-(t - 0.12) * 18) : 0),
+        duration: 1.1,
+        sample: (t) => (mallet(523.25, t, 6) * 0.5 + mallet(783.99, t - 0.12, 5) * 0.45) * fadeOut(t, 1.1),
       },
-      // souffle montant vers la section bénéfices
+      // nappe chaude et lente vers les bénéfices
       benefits: {
-        duration: 0.6,
-        sample: (t) => noise() * Math.sin(Math.PI * (t / 0.6)) * 0.35 * (0.3 + t),
+        duration: 1.2,
+        sample: (t) =>
+          envelope(t, 0.18, 2.6) *
+          (Math.sin(TAU * 220 * t) + 0.55 * Math.sin(TAU * 329.63 * t) + 0.3 * Math.sin(TAU * 440 * t)) *
+          0.28 *
+          fadeOut(t, 1.2),
       },
-      // clic d'interface
-      click: { duration: 0.05, sample: (t) => (noise() * 0.5 + Math.sin(2 * Math.PI * 900 * t)) * Math.exp(-t * 120) * 0.5 },
+      // petit « tok » boisé pour le menu
+      click: { duration: 0.18, sample: (t) => mallet(987.77, t, 38) * 0.4 * fadeOut(t, 0.18) },
     };
 
     const synthesize = (name, { duration, sample }) => {

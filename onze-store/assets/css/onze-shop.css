@@ -73,7 +73,8 @@
 }
 
 .shop-nav__logo img {
-  width: 6.5rem;
+  width: auto;
+  height: 2.4rem;
   display: block;
 }
 
