@@ -439,16 +439,20 @@
       addButton.addEventListener('click', addToCart);
       document.getElementById('sticky-add').addEventListener('click', addToCart);
 
-      // Barre d'achat mobile : visible quand le bouton principal sort de l'écran.
+      // Barre d'achat mobile : visible une fois le bouton principal dépassé.
+      // Un écouteur de défilement plutôt qu'un IntersectionObserver : un défilement
+      // rapide peut faire passer le bouton d'en dessous à au-dessus de l'écran
+      // sans qu'il soit jamais visible, et l'observer ne se déclencherait pas.
       const stickyBuy = document.getElementById('sticky-buy');
-      if ('IntersectionObserver' in window) {
-        new IntersectionObserver(([entry]) => {
-          const visible = !entry.isIntersecting && entry.boundingClientRect.top < 0;
-          stickyBuy.classList.toggle('is-visible', visible);
-          stickyBuy.setAttribute('aria-hidden', String(!visible));
-          document.getElementById('sticky-add').tabIndex = visible ? 0 : -1;
-        }).observe(addButton);
-      }
+      const stickyAdd = document.getElementById('sticky-add');
+      const updateSticky = () => {
+        const visible = addButton.getBoundingClientRect().bottom < 0;
+        if (visible === stickyBuy.classList.contains('is-visible')) return;
+        stickyBuy.classList.toggle('is-visible', visible);
+        stickyBuy.setAttribute('aria-hidden', String(!visible));
+        stickyAdd.tabIndex = visible ? 0 : -1;
+      };
+      window.addEventListener('scroll', updateSticky, { passive: true });
 
       // #region Vous aimerez aussi
 
