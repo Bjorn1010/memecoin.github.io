@@ -27,6 +27,7 @@
       'background:transparent;color:inherit;border-radius:0.4rem;padding:0.4rem 0.9rem;',
       'font:inherit;cursor:pointer;}',
       '.onze-privacy-notice button:hover{background:rgba(255,255,255,0.1);}',
+      '@media (min-width:900px){.onze-privacy-notice{right:auto;max-width:26rem;margin:0;}}',
     ].join('');
     document.head.appendChild(style);
 
@@ -35,7 +36,7 @@
     bar.setAttribute('role', 'note');
     bar.innerHTML =
       '<p>Ce site ne dépose aucun cookie de mesure d’audience ni de service tiers. ' +
-      'Seul le contenu de votre panier est mémorisé sur votre appareil (stockage local), ' +
+      'Seuls votre panier et votre taille préférée sont mémorisés sur votre appareil (stockage local), ' +
       'sans transmission à un tiers. <a href="politique-de-confidentialite.html">En savoir plus</a></p>' +
       '<button type="button">Compris</button>';
 

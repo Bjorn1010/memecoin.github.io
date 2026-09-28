@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr-FR">
+<html lang="fr-CH">
   <head>
     <meta charset="utf-8" />
     <title>Panier — Onze</title>
@@ -7,7 +7,7 @@
     <meta content="noindex" name="robots" />
     <meta content="Panier — Onze" property="og:title" />
     <meta content="Votre panier Onze." property="og:description" />
-    <meta content="assets/img/6a1c669055af9680ca67da10_Ciao-energy_meta-img.jpg" property="og:image" />
+    <meta content="https://bjorn1010.github.io/memecoin.github.io/onze-store/assets/img/onze-og.jpg" property="og:image" />
     <meta property="og:type" content="website" />
     <meta content="Panier — Onze" name="twitter:title" />
     <meta content="Votre panier Onze." name="twitter:description" />
@@ -15,18 +15,18 @@
     <link href="https://bjorn1010.github.io/memecoin.github.io/onze-store/panier.html" rel="canonical" />
     <meta content="#0b0b0d" name="theme-color" />
     <meta content="width=device-width, initial-scale=1" name="viewport" />
-    <link href="assets/css/ciao-energy.css" rel="stylesheet" type="text/css" />
+    <link href="assets/css/onze-base.css" rel="stylesheet" type="text/css" />
     <link href="assets/css/onze-shop.css" rel="stylesheet" type="text/css" />
-    <link href="assets/img/6a1d9bb2854e5557fe84e7d1_Ciao_energy-fav-dark.png" rel="icon" type="image/png" sizes="32x32" />
-    <link href="assets/img/6a1d9bb2da9b342b80d39042_Ciao_energy-fav-dark.png" rel="apple-touch-icon" sizes="180x180" />
+    <link href="assets/img/onze-favicon-32.png" rel="icon" type="image/png" sizes="32x32" />
+    <link href="assets/img/onze-apple-touch-icon.png" rel="apple-touch-icon" sizes="180x180" />
   </head>
   <body class="shop-body">
     <a href="#main" class="skip-link">Aller au contenu</a>
-    <div class="demo-banner">Site de démonstration — marque fictive, aucune commande n'est réellement traitée.</div>
+    <div class="announce-bar">Livraison offerte en Suisse dès 120 CHF</div>
 
     <nav class="shop-nav">
       <a href="index.html" class="shop-nav__logo" aria-label="Onze — accueil">
-        <img src="assets/img/6a0af6aee3ae4c7c923b77ca_Ciao-Energy_logo.svg" alt="Onze" width="130" height="47" />
+        <img src="assets/img/onze-logo.svg" alt="Onze" width="130" height="47" />
       </a>
       <div class="shop-nav__links">
         <a href="index.html">Expérience</a>
@@ -45,15 +45,22 @@
         <h1 class="shop-title" style="font-size: clamp(2.25rem, 6vw, 4.5rem)">Panier</h1>
 
         <div class="cart-layout" id="cart-layout" hidden>
-          <div id="cart-lines"></div>
+          <div>
+            <div id="cart-lines"></div>
+            <div class="cross-sell" id="cross-sell">
+              <p class="shop-eyebrow">Complétez votre commande</p>
+              <div class="cross-sell__grid" id="cross-sell-grid"></div>
+            </div>
+          </div>
 
           <aside class="summary">
             <div class="summary__row"><span>Sous-total</span><span id="sum-subtotal">—</span></div>
             <div class="summary__row"><span>Livraison</span><span id="sum-shipping">—</span></div>
             <div class="summary__row summary__row--total"><span>Total</span><span id="sum-total">—</span></div>
+            <div class="shipping-progress" data-shipping-progress></div>
             <a class="btn" href="commande.html" style="margin-top: 1.25rem">Passer commande</a>
             <a class="btn btn--ghost" href="boutique.html" style="margin-top: 0.6rem">Continuer mes achats</a>
-            <p class="field__hint" style="margin-top: 1rem">Livraison offerte dès 120 € d'achat.</p>
+            <p class="field__hint" style="margin-top: 1rem">Rien n'est débité à la commande : le paiement se fait après notre confirmation.</p>
           </aside>
         </div>
 
@@ -75,12 +82,38 @@
     </footer>
 
     <script type="module">
-      import { getProduct, formatPrice, hasFlocage } from './assets/js/onze-catalogue.js';
+      import { getProduct, formatPrice, hasFlocage, shippingFor, PRODUCTS } from './assets/js/onze-catalogue.js';
       import { drawJerseyFlat } from './assets/js/onze-jersey-texture.js';
       import { getLines, setQuantity, removeLine, keyOf, lineUnitPrice, getTotal, bindCartBadge } from './assets/js/onze-cart.js';
+      import { renderShippingProgress, mountWhatsAppButton } from './assets/js/onze-ui.js';
 
-      const SHIPPING = 5.9;
-      const FREE_SHIPPING_FROM = 120;
+      const crossSell = document.getElementById('cross-sell');
+      const crossSellGrid = document.getElementById('cross-sell-grid');
+
+      // Les moins chers d'abord : le plus petit pas vers la livraison offerte.
+      const renderCrossSell = (lines) => {
+        const inCart = new Set(lines.map((line) => line.productId));
+        const candidates = PRODUCTS.filter((product) => !inCart.has(product.id));
+        crossSell.hidden = candidates.length === 0;
+        crossSellGrid.innerHTML = '';
+        candidates
+          .sort((a, b) => a.price - b.price)
+          .slice(0, 3)
+          .forEach((product) => {
+            const card = document.createElement('a');
+            card.className = 'cross-sell__card';
+            card.href = `produit.html?id=${encodeURIComponent(product.id)}`;
+            card.innerHTML = `
+              <canvas aria-hidden="true"></canvas>
+              <span>
+                <span class="cross-sell__name">${product.name1} ${product.name2}</span>
+                <span class="cross-sell__price">${formatPrice(product.price)}</span>
+              </span>
+            `;
+            crossSellGrid.appendChild(card);
+            requestAnimationFrame(() => drawJerseyFlat(card.querySelector('canvas'), product));
+          });
+      };
 
       const layout = document.getElementById('cart-layout');
       const empty = document.getElementById('cart-empty');
@@ -141,15 +174,18 @@
         });
 
         const subtotal = getTotal();
-        const shipping = subtotal === 0 || subtotal >= FREE_SHIPPING_FROM ? 0 : SHIPPING;
+        const shipping = shippingFor(subtotal);
         document.getElementById('sum-subtotal').textContent = formatPrice(subtotal);
         document.getElementById('sum-shipping').textContent = shipping === 0 ? 'Offerte' : formatPrice(shipping);
         document.getElementById('sum-total').textContent = formatPrice(subtotal + shipping);
+        renderShippingProgress(document.querySelector('[data-shipping-progress]'), subtotal);
+        if (lines.length) renderCrossSell(lines);
       };
 
       document.addEventListener('onze:cart-changed', render);
       render();
       bindCartBadge();
+      mountWhatsAppButton('Bonjour Onze, j’ai une question sur ma commande :');
     </script>
     <script src="assets/js/onze-privacy-notice.js" defer></script>
   </body>

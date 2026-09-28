@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr-FR">
+<html lang="fr-CH">
   <head>
     <meta charset="utf-8" />
     <title>Commande — Onze</title>
@@ -7,26 +7,26 @@
     <meta content="noindex" name="robots" />
     <meta content="Commande — Onze" property="og:title" />
     <meta content="Finalisez votre commande Onze." property="og:description" />
-    <meta content="assets/img/6a1c669055af9680ca67da10_Ciao-energy_meta-img.jpg" property="og:image" />
+    <meta content="https://bjorn1010.github.io/memecoin.github.io/onze-store/assets/img/onze-og.jpg" property="og:image" />
     <meta property="og:type" content="website" />
     <meta content="Commande — Onze" name="twitter:title" />
     <meta content="Finalisez votre commande Onze." name="twitter:description" />
     <meta content="summary_large_image" name="twitter:card" />
     <link href="https://bjorn1010.github.io/memecoin.github.io/onze-store/commande.html" rel="canonical" />
-    <meta content="#0b0b0d" name="theme-color" />
+    <meta content="#0a0908" name="theme-color" />
     <meta content="width=device-width, initial-scale=1" name="viewport" />
-    <link href="assets/css/ciao-energy.css" rel="stylesheet" type="text/css" />
+    <link href="assets/css/onze-base.css" rel="stylesheet" type="text/css" />
     <link href="assets/css/onze-shop.css" rel="stylesheet" type="text/css" />
-    <link href="assets/img/6a1d9bb2854e5557fe84e7d1_Ciao_energy-fav-dark.png" rel="icon" type="image/png" sizes="32x32" />
-    <link href="assets/img/6a1d9bb2da9b342b80d39042_Ciao_energy-fav-dark.png" rel="apple-touch-icon" sizes="180x180" />
+    <link href="assets/img/onze-favicon-32.png" rel="icon" type="image/png" sizes="32x32" />
+    <link href="assets/img/onze-apple-touch-icon.png" rel="apple-touch-icon" sizes="180x180" />
   </head>
   <body class="shop-body">
     <a href="#main" class="skip-link">Aller au contenu</a>
-    <div class="demo-banner">Site de démonstration — aucun paiement n'est traité, aucune donnée n'est transmise.</div>
+    <div class="announce-bar" data-shipping-announce>Livraison offerte en Suisse dès 120 CHF</div>
 
     <nav class="shop-nav">
       <a href="index.html" class="shop-nav__logo" aria-label="Onze — accueil">
-        <img src="assets/img/6a0af6aee3ae4c7c923b77ca_Ciao-Energy_logo.svg" alt="Onze" width="130" height="47" />
+        <img src="assets/img/onze-logo.svg" alt="Onze" width="130" height="47" />
       </a>
       <div class="shop-nav__links">
         <a href="index.html">Expérience</a>
@@ -40,75 +40,111 @@
 
     <main class="shop-main" id="main" tabindex="-1">
       <section class="shop-section" id="checkout-section">
-        <p class="shop-eyebrow"><a href="panier.html" style="color: inherit">← Panier</a></p>
+        <p class="shop-eyebrow"><a href="panier.html" style="color: inherit">← Modifier le panier</a></p>
         <h1 class="shop-title" style="font-size: clamp(2.25rem, 6vw, 4.5rem)">Commande</h1>
+
+        <ol class="checkout-steps" aria-label="Étapes de la commande">
+          <li class="is-done">Panier</li>
+          <li class="is-current" aria-current="step">Coordonnées</li>
+          <li>Envoi</li>
+        </ol>
 
         <div class="cart-layout">
           <form id="checkout-form" novalidate>
             <div class="field">
               <div class="field__label"><span>Coordonnées</span></div>
-              <label class="sr-only" for="email">Adresse e-mail</label>
-              <input class="text-input" type="email" id="email" placeholder="Adresse e-mail" required autocomplete="email" />
+              <div style="display: grid; gap: 0.6rem">
+                <label class="sr-only" for="email">Adresse e-mail</label>
+                <input class="text-input" type="email" id="email" placeholder="Adresse e-mail" required autocomplete="email" />
+                <label class="sr-only" for="phone">Téléphone (facultatif)</label>
+                <input class="text-input" type="tel" id="phone" placeholder="Téléphone (facultatif, pour le suivi)" autocomplete="tel" />
+              </div>
             </div>
 
             <div class="field">
               <div class="field__label"><span>Livraison</span></div>
               <div style="display: grid; gap: 0.6rem">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem">
+                <div class="form-row form-row--2">
                   <label class="sr-only" for="firstname">Prénom</label>
                   <input class="text-input" type="text" id="firstname" placeholder="Prénom" required autocomplete="given-name" />
                   <label class="sr-only" for="lastname">Nom</label>
                   <input class="text-input" type="text" id="lastname" placeholder="Nom" required autocomplete="family-name" />
                 </div>
-                <label class="sr-only" for="address">Adresse</label>
-                <input class="text-input" type="text" id="address" placeholder="Adresse" required autocomplete="street-address" />
-                <div style="display: grid; grid-template-columns: 8rem 1fr; gap: 0.6rem">
-                  <label class="sr-only" for="zip">Code postal</label>
-                  <input class="text-input" type="text" id="zip" placeholder="Code postal" required autocomplete="postal-code" />
-                  <label class="sr-only" for="city">Ville</label>
-                  <input class="text-input" type="text" id="city" placeholder="Ville" required autocomplete="address-level2" />
+                <label class="sr-only" for="address">Rue et numéro</label>
+                <input class="text-input" type="text" id="address" placeholder="Rue et numéro" required autocomplete="street-address" />
+                <div class="form-row form-row--zip">
+                  <label class="sr-only" for="zip">NPA</label>
+                  <input class="text-input" type="text" id="zip" placeholder="NPA" required inputmode="numeric" maxlength="4" autocomplete="postal-code" />
+                  <label class="sr-only" for="city">Localité</label>
+                  <input class="text-input" type="text" id="city" placeholder="Localité" required autocomplete="address-level2" />
                 </div>
+                <label class="sr-only" for="country">Pays</label>
+                <select class="text-input" id="country" autocomplete="country">
+                  <option value="Suisse" selected>Suisse</option>
+                  <option value="Liechtenstein">Liechtenstein</option>
+                </select>
               </div>
             </div>
 
             <div class="field">
               <div class="field__label"><span>Paiement</span></div>
-              <p class="field__hint" style="margin: 0 0 0.75rem">
-                Aucun champ de paiement n'est demandé : ce site est une démonstration, la commande n'est jamais transmise.
+              <p class="field__hint" style="margin: 0">
+                Rien n'est débité maintenant. Après réception de votre commande, nous vous confirmons la disponibilité et vous
+                envoyons les instructions de paiement. Le colis part dès réception du paiement.
               </p>
             </div>
 
-            <p id="checkout-error" role="alert" style="color: #ff7676; font-size: 0.85rem; min-height: 1.2rem; margin: 0 0 0.75rem"></p>
-            <button class="btn" type="submit">Valider la commande</button>
+            <label class="checkbox">
+              <input type="checkbox" id="accept-cgv" required />
+              <span>J'ai lu et j'accepte les <a href="cgv.html" target="_blank" rel="noopener">conditions générales de vente</a>.</span>
+            </label>
+
+            <p id="checkout-error" role="alert" class="form-error"></p>
+            <button class="btn" type="submit">Continuer</button>
           </form>
 
-          <aside class="summary">
-            <h2 style="font-size: 0.8rem; letter-spacing: 0.2em; text-transform: uppercase; margin: 0 0 1rem; color: var(--onze-muted)">
-              Récapitulatif
-            </h2>
+          <aside class="summary" aria-labelledby="summary-title">
+            <h2 id="summary-title" class="summary__title">Récapitulatif</h2>
             <div id="summary-lines"></div>
             <div class="summary__row"><span>Sous-total</span><span id="sum-subtotal">—</span></div>
             <div class="summary__row"><span>Livraison</span><span id="sum-shipping">—</span></div>
             <div class="summary__row summary__row--total"><span>Total</span><span id="sum-total">—</span></div>
+            <div class="shipping-progress" data-shipping-progress></div>
           </aside>
         </div>
       </section>
 
-      <section class="shop-section" id="confirmation" hidden style="text-align: center">
-        <p class="shop-eyebrow">Commande enregistrée</p>
-        <h1 class="shop-title" style="font-size: clamp(2.25rem, 6vw, 4.5rem)">Merci<br />pour tout</h1>
-        <p class="shop-lede" style="margin: 0 auto 2rem">
-          Votre commande de démonstration n° <strong id="order-ref"></strong> est bien enregistrée côté navigateur.
-          Aucun paiement n'a été effectué et aucune donnée n'a quitté cette page.
+      <section class="shop-section" id="send-section" hidden>
+        <ol class="checkout-steps" aria-label="Étapes de la commande">
+          <li class="is-done">Panier</li>
+          <li class="is-done">Coordonnées</li>
+          <li class="is-current" aria-current="step">Envoi</li>
+        </ol>
+
+        <p class="shop-eyebrow">Commande <strong id="order-ref"></strong></p>
+        <h1 class="shop-title" style="font-size: clamp(2.25rem, 6vw, 4.5rem)" tabindex="-1" id="send-title">Dernière<br />étape</h1>
+        <p class="shop-lede" style="margin-bottom: 2rem">
+          Envoyez-nous votre commande en un geste : le récapitulatif est déjà rédigé. Nous vous répondons avec la
+          confirmation et les instructions de paiement.
         </p>
-        <aside class="summary" style="max-width: 26rem; margin: 0 auto 2rem; text-align: left">
-          <h2 style="font-size: 0.8rem; letter-spacing: 0.2em; text-transform: uppercase; margin: 0 0 1rem; color: var(--onze-muted)">
-            Récapitulatif
-          </h2>
-          <div id="confirmation-lines"></div>
-          <div class="summary__row summary__row--total"><span>Total payé</span><span id="confirmation-total">—</span></div>
-        </aside>
-        <a class="btn btn--inline" href="boutique.html">Retour à la boutique</a>
+
+        <div class="cart-layout">
+          <div>
+            <div class="send-actions">
+              <a class="btn btn--whatsapp" id="send-whatsapp" href="#" target="_blank" rel="noopener">Envoyer par WhatsApp</a>
+              <a class="btn btn--ghost" id="send-email" href="#">Envoyer par e-mail</a>
+              <button class="link-button" type="button" id="copy-order">Copier le récapitulatif</button>
+            </div>
+            <p class="field__hint" id="send-status" role="status" aria-live="polite"></p>
+            <pre class="order-text" id="order-text"></pre>
+          </div>
+
+          <aside class="summary" aria-labelledby="send-summary-title">
+            <h2 id="send-summary-title" class="summary__title">Récapitulatif</h2>
+            <div id="confirmation-lines"></div>
+            <div class="summary__row summary__row--total"><span>Total à régler</span><span id="confirmation-total">—</span></div>
+          </aside>
+        </div>
       </section>
     </main>
 
@@ -123,81 +159,165 @@
     </footer>
 
     <script type="module">
-      import { getProduct, formatPrice, hasFlocage } from './assets/js/onze-catalogue.js';
+      import { getProduct, formatPrice, hasFlocage, shippingFor, CONTACT, whatsappLink } from './assets/js/onze-catalogue.js';
       import { getLines, getTotal, lineUnitPrice, clear, bindCartBadge } from './assets/js/onze-cart.js';
-
-      const SHIPPING = 5.9;
-      const FREE_SHIPPING_FROM = 120;
+      import { renderShippingProgress } from './assets/js/onze-ui.js';
 
       const lines = getLines();
       if (!lines.length) location.replace('panier.html');
 
-      const summary = document.getElementById('summary-lines');
-      lines.forEach((line) => {
+      const describeLine = (line) => {
         const product = getProduct(line.productId);
         const personalised = hasFlocage(product, { name: line.flocageName, number: line.flocageNumber });
-        const flocageLabel = personalised
-          ? ` · Flocage ${[line.flocageName, line.flocageNumber].filter(Boolean).join(' ')}`
-          : '';
+        const flocage = personalised ? ` · Flocage ${[line.flocageName, line.flocageNumber].filter(Boolean).join(' ')}` : '';
+        return {
+          label: `${product.name1} ${product.name2} · Taille ${line.size}${flocage} × ${line.quantity}`,
+          amount: lineUnitPrice(line) * line.quantity,
+        };
+      };
+
+      const described = lines.map(describeLine);
+      const summary = document.getElementById('summary-lines');
+      described.forEach(({ label, amount }) => {
         const row = document.createElement('div');
         row.className = 'summary__row';
-        row.innerHTML = `
-          <span>${product.name1} ${product.name2} · ${line.size} × ${line.quantity}${flocageLabel}</span>
-          <span>${formatPrice(lineUnitPrice(line) * line.quantity)}</span>
-        `;
+        const labelEl = document.createElement('span');
+        labelEl.textContent = label;
+        const amountEl = document.createElement('span');
+        amountEl.textContent = formatPrice(amount);
+        row.append(labelEl, amountEl);
         summary.appendChild(row);
       });
 
       const subtotal = getTotal();
-      const shipping = subtotal >= FREE_SHIPPING_FROM ? 0 : SHIPPING;
+      const shipping = shippingFor(subtotal);
+      const total = subtotal + shipping;
       document.getElementById('sum-subtotal').textContent = formatPrice(subtotal);
       document.getElementById('sum-shipping').textContent = shipping === 0 ? 'Offerte' : formatPrice(shipping);
-      document.getElementById('sum-total').textContent = formatPrice(subtotal + shipping);
+      document.getElementById('sum-total').textContent = formatPrice(total);
+      renderShippingProgress(document.querySelector('[data-shipping-progress]'), subtotal);
+
+      // #region Validation
 
       const form = document.getElementById('checkout-form');
       const errorEl = document.getElementById('checkout-error');
+      const field = (id) => document.getElementById(id);
+      const value = (id) => field(id).value.trim();
 
-      const required = ['email', 'firstname', 'lastname', 'address', 'zip', 'city'];
-      const clearInvalid = () => required.forEach((id) => document.getElementById(id).removeAttribute('aria-invalid'));
-      required.forEach((id) => document.getElementById(id).addEventListener('input', clearInvalid));
+      const REQUIRED = ['email', 'firstname', 'lastname', 'address', 'zip', 'city'];
+      const clearInvalid = () => {
+        [...REQUIRED, 'phone', 'accept-cgv'].forEach((id) => field(id).removeAttribute('aria-invalid'));
+        errorEl.textContent = '';
+      };
+      form.addEventListener('input', clearInvalid);
+
+      field('zip').addEventListener('input', () => {
+        field('zip').value = field('zip').value.replace(/\D/g, '').slice(0, 4);
+      });
+
+      const fail = (id, message) => {
+        errorEl.textContent = message;
+        field(id).setAttribute('aria-invalid', 'true');
+        field(id).focus();
+        return false;
+      };
+
+      const validate = () => {
+        const missing = REQUIRED.find((id) => !value(id));
+        if (missing) return fail(missing, 'Merci de compléter tous les champs obligatoires.');
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value('email'))) return fail('email', 'Adresse e-mail invalide.');
+        if (!/^\d{4}$/.test(value('zip'))) return fail('zip', 'NPA invalide (4 chiffres).');
+        if (value('phone') && value('phone').replace(/[^\d+]/g, '').length < 9) {
+          return fail('phone', 'Numéro de téléphone incomplet.');
+        }
+        if (!field('accept-cgv').checked) return fail('accept-cgv', 'Merci d’accepter les conditions générales de vente.');
+        return true;
+      };
+
+      // #region Récapitulatif
+
+      const makeRef = () => {
+        const now = new Date();
+        const date = `${String(now.getFullYear()).slice(2)}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+        const bytes = crypto.getRandomValues(new Uint8Array(3));
+        const random = [...bytes].map((b) => b.toString(36).padStart(2, '0').slice(-2)).join('').toUpperCase();
+        return `ONZ-${date}-${random}`;
+      };
+
+      const buildOrderText = (ref) =>
+        [
+          `Bonjour Onze, voici ma commande ${ref} :`,
+          '',
+          ...described.map(({ label, amount }) => `• ${label} — ${formatPrice(amount)}`),
+          '',
+          `Sous-total : ${formatPrice(subtotal)}`,
+          `Livraison : ${shipping === 0 ? 'offerte' : formatPrice(shipping)}`,
+          `Total : ${formatPrice(total)}`,
+          '',
+          'Livraison à :',
+          `${value('firstname')} ${value('lastname')}`,
+          value('address'),
+          `${value('zip')} ${value('city')}`,
+          field('country').value,
+          '',
+          `E-mail : ${value('email')}`,
+          value('phone') ? `Téléphone : ${value('phone')}` : null,
+          '',
+          "J'ai lu et j'accepte les conditions générales de vente.",
+        ]
+          .filter((line) => line !== null)
+          .join('\n');
+
+      const sendSection = document.getElementById('send-section');
+      const sendStatus = document.getElementById('send-status');
+
+      const markSent = (channel) => {
+        clear();
+        sendStatus.textContent =
+          channel === 'copy'
+            ? 'Récapitulatif copié. Collez-le dans un message à ' + CONTACT.email + ' ou au ' + CONTACT.phoneDisplay + '.'
+            : 'Merci ! Si l’envoi ne s’est pas ouvert, utilisez un autre bouton ci-dessus.';
+      };
 
       form.addEventListener('submit', (event) => {
         event.preventDefault();
-        const missing = required.find((id) => !document.getElementById(id).value.trim());
-        if (missing) {
-          errorEl.textContent = 'Merci de compléter tous les champs.';
-          const field = document.getElementById(missing);
-          field.setAttribute('aria-invalid', 'true');
-          field.focus();
-          return;
-        }
-        const email = document.getElementById('email').value.trim();
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-          errorEl.textContent = 'Adresse e-mail invalide.';
-          const emailField = document.getElementById('email');
-          emailField.setAttribute('aria-invalid', 'true');
-          emailField.focus();
-          return;
-        }
-        const zip = document.getElementById('zip').value.trim();
-        if (!/^\d{5}$/.test(zip)) {
-          errorEl.textContent = 'Code postal invalide (5 chiffres).';
-          const zipField = document.getElementById('zip');
-          zipField.setAttribute('aria-invalid', 'true');
-          zipField.focus();
-          return;
-        }
         clearInvalid();
+        if (!validate()) return;
 
-        // Démonstration : la commande n'est envoyée nulle part, on vide
-        // simplement le panier local et on affiche la confirmation.
-        document.getElementById('order-ref').textContent = `ONZ-${Date.now().toString().slice(-6)}`;
-        document.getElementById('confirmation-lines').innerHTML = summary.innerHTML;
-        document.getElementById('confirmation-total').textContent = formatPrice(subtotal + shipping);
-        clear();
+        const ref = makeRef();
+        const text = buildOrderText(ref);
+
+        document.getElementById('order-ref').textContent = ref;
+        document.getElementById('order-text').textContent = text;
+        document.getElementById('confirmation-lines').replaceChildren(...summary.cloneNode(true).childNodes);
+        document.getElementById('confirmation-total').textContent = formatPrice(total);
+
+        document.getElementById('send-whatsapp').href = whatsappLink(text);
+        document.getElementById('send-email').href =
+          `mailto:${CONTACT.email}?subject=${encodeURIComponent(`Commande ${ref}`)}&body=${encodeURIComponent(text)}`;
+
+        try {
+          localStorage.setItem('onze:last-order:v1', JSON.stringify({ ref, text, total, createdAt: Date.now() }));
+        } catch (error) {
+          /* stockage indisponible : l'envoi reste possible depuis cette page */
+        }
+
         document.getElementById('checkout-section').hidden = true;
-        document.getElementById('confirmation').hidden = false;
+        sendSection.hidden = false;
         window.scrollTo({ top: 0, behavior: 'smooth' });
+        document.getElementById('send-title').focus({ preventScroll: true });
+      });
+
+      document.getElementById('send-whatsapp').addEventListener('click', () => markSent('whatsapp'));
+      document.getElementById('send-email').addEventListener('click', () => markSent('email'));
+      document.getElementById('copy-order').addEventListener('click', async () => {
+        const text = document.getElementById('order-text').textContent;
+        try {
+          await navigator.clipboard.writeText(text);
+          markSent('copy');
+        } catch (error) {
+          sendStatus.textContent = 'Copie impossible : sélectionnez le texte ci-dessous et copiez-le manuellement.';
+        }
       });
 
       bindCartBadge();

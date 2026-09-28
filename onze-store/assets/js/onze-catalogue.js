@@ -138,5 +138,23 @@ export const hasFlocage = (product, { name, number } = {}) => {
   return Boolean(cleanNumber) && cleanNumber !== String(product.number);
 };
 
+export const CURRENCY = 'CHF';
+
 export const formatPrice = (value) =>
-  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0 }).format(value);
+  new Intl.NumberFormat('fr-CH', {
+    style: 'currency',
+    currency: CURRENCY,
+    minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+  }).format(value);
+
+export const SHIPPING = { fee: 5.9, freeFrom: 120 };
+
+export const shippingFor = (subtotal) => (subtotal === 0 || subtotal >= SHIPPING.freeFrom ? 0 : SHIPPING.fee);
+
+export const CONTACT = {
+  email: 'miguel.pires780@gmail.com',
+  phoneDisplay: '076 770 31 78',
+  whatsapp: '41767703178',
+};
+
+export const whatsappLink = (text) => `https://wa.me/${CONTACT.whatsapp}${text ? `?text=${encodeURIComponent(text)}` : ''}`;
