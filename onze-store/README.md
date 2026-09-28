@@ -30,8 +30,8 @@ couleurs, logo, FAQ, mentions légales) a été réécrit pour Onze.
 - **Pages légales** : les informations d'entreprise de Ciao Energy ont été
   retirées et remplacées par les informations réelles de l'exploitant du
   site (mentions légales, CGV, CGU, politique de confidentialité — droit
-  suisse). Le code postal et la localité de l'adresse restent à compléter
-  (voir `[code postal et localité à compléter]` dans les 3 fichiers).
+  suisse), adresse complète comprise (Rue des Philosophes 18A, 1400
+  Yverdon-les-Bains).
 
 ## Pages
 
@@ -59,10 +59,6 @@ python3 -m http.server 8000
   backend léger (Cloudflare Workers / Vercel / Netlify Functions) pour créer
   une session Stripe côté serveur sans jamais exposer la clé secrète
   côté client.
-- Le code postal et la localité de l'adresse de l'exploitant sont à
-  compléter dans `mentions-legales.html`, `cgu.html`, `cgv.html` et
-  `politique-de-confidentialite.html` (recherchez
-  `[code postal et localité à compléter]`).
 - L'animation d'intro (vidéo de fond en boucle) nécessite un navigateur
   avec décodage vidéo matériel/logiciel complet (H.264/VP9) — normal sur
   desktop et mobile.
