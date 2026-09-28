@@ -11,6 +11,7 @@
     <meta content="Maillot — Onze" name="twitter:title" />
     <meta content="Configurez votre maillot Onze : taille, nom et numéro floqués, visualisés en 3D en temps réel." name="twitter:description" />
     <meta content="summary_large_image" name="twitter:card" />
+    <link href="https://bjorn1010.github.io/memecoin.github.io/onze-store/produit.html" rel="canonical" id="canonical-link" />
     <meta content="width=device-width, initial-scale=1" name="viewport" />
     <link href="assets/css/ciao-energy.css" rel="stylesheet" type="text/css" />
     <link href="assets/css/onze-shop.css" rel="stylesheet" type="text/css" />
@@ -168,6 +169,7 @@
       document.title = `Maillot ${product.name1} ${product.name2} — Onze`;
       document.querySelector('meta[property="og:title"]')?.setAttribute('content', document.title);
       document.querySelector('meta[name="twitter:title"]')?.setAttribute('content', document.title);
+      document.getElementById('canonical-link')?.setAttribute('href', `https://bjorn1010.github.io/memecoin.github.io/onze-store/produit.html?id=${encodeURIComponent(product.id)}`);
       document.getElementById('p-eyebrow').textContent = product.tagline;
       document.getElementById('p-title').innerHTML = `${product.name1}<br />${product.name2}`;
       document.getElementById('p-desc').textContent = product.description;
