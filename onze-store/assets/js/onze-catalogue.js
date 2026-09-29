@@ -138,6 +138,10 @@ export const hasFlocage = (product, { name, number } = {}) => {
   return Boolean(cleanNumber) && cleanNumber !== String(product.number);
 };
 
+export const productImage = (product, face = 'front') => `assets/img/products/${product.id}-${face}.webp`;
+
+export const productPagePath = (product) => `maillot-${product.id}.html`;
+
 export const CURRENCY = 'CHF';
 
 export const formatPrice = (value) =>

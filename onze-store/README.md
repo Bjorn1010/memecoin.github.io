@@ -15,8 +15,10 @@ son, modèle 3D, slogan ni police de la source d'origine n'est conservé.
 - `index.html` — accueil : carrousel 3D des 6 maillots, bouton « Commander »
   qui suit le maillot affiché
 - `boutique.html` — la gamme, filtrable par catégorie
-- `produit.html?id=…` — fiche produit : aperçu 3D (rendu 2D si la 3D est
-  indisponible), taille, flocage nom/numéro en direct
+- `maillot-<id>.html` — une fiche produit par maillot (générées, voir plus bas) :
+  aperçu 3D (rendu 2D si la 3D est indisponible), taille, flocage en direct.
+  `produit.html?id=…` est le modèle, non indexé
+- `a-propos.html` — présentation, comment commander, FAQ, contact
 - `panier.html` — panier, progression vers la livraison offerte, suggestions
 - `commande.html` — coordonnées, acceptation des CGV, envoi de la commande
 - `cgv.html`, `cgu.html`, `mentions-legales.html`,
@@ -49,11 +51,28 @@ python3 -m http.server 8000
 # puis ouvrir http://localhost:8000/index.html
 ```
 
+## Générer les pages produit, le sitemap et les images
+
+Après toute modification de `produit.html` ou du catalogue :
+
+```bash
+node onze-store/tools/build-product-pages.mjs
+```
+
+Cela réécrit les six `maillot-*.html` (titre, description, image de partage et
+adresse canonique propres à chaque produit) et `sitemap.xml`. Les images
+`assets/img/products/<id>-front|back.webp` sont des rendus de
+`drawJerseyFlat` : à refaire si le dessin d'un maillot change.
+
+À noter : `robots.txt` doit être à la racine du domaine ; sur
+`github.io/memecoin.github.io/` ce n'est pas possible, il faudra un domaine
+propre. Le sitemap peut en attendant être déclaré dans Google Search Console.
+
 ## Dépendances
 
-Toutes les bibliothèques sont hébergées dans `assets/vendor/` (GSAP,
-ScrollTrigger, SplitText, jQuery, runtime Webflow), sauf Three.js, chargé
-depuis jsDelivr (déclaré dans la politique de confidentialité).
+Aucune ressource externe : GSAP, ScrollTrigger, SplitText, jQuery, le runtime
+Webflow et Three.js (`assets/vendor/three/`) sont hébergés dans
+`assets/vendor/`.
 
 ## Prochaines étapes possibles
 
