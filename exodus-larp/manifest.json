@@ -1,6 +1,6 @@
 {
-  "name": "Exodus",
-  "short_name": "Exodus",
+  "name": "Larpodus",
+  "short_name": "Larpodus",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

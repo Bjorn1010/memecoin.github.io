@@ -6,11 +6,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Exodus">
+<meta name="apple-mobile-web-app-title" content="Larpodus">
 <meta name="theme-color" content="#161623">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>Exodus</title>
+<title>Larpodus</title>
 <style>
 :root{--pur:#6c4dff;--pur2:#8467ff;--txt:#fff;--mut:#9a9aaf;--grn:#5be04b;--line:rgba(255,255,255,.1);--glass:rgba(255,255,255,.065)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
@@ -173,12 +173,11 @@ input[type=number]{-moz-appearance:textfield}
       <div class="ctr" id="ctr" onclick="toggleHide()"></div></div>
     <div class="pills" id="pills">
       <div class="pill p" onclick="openTrade('buy')"><svg viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M5 20h14"/></svg>Acheter</div>
-      <div class="pill" onclick="openReceive()"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 8v10h10"/></svg>Recevoir</div>
-      <div class="pill" onclick="openSend()"><svg viewBox="0 0 24 24"><path d="M6 18L18 6M8 6h10v10"/></svg>Envoyer</div>
       <div class="pill" onclick="openTrade('sell')"><svg viewBox="0 0 24 24"><path d="M12 20V8M7 13l5-5 5 5M5 4h14"/></svg>Vendre</div>
     </div>
     <input class="fi sr" id="sr" placeholder="Rechercher" oninput="renderList()">
     <div class="cards" id="list"></div>
+    <div class="hint" style="margin-top:4px;font-size:12px;opacity:.55">Larpodus · mode démo</div>
   </div>
 
   <!-- SWAP -->
@@ -223,7 +222,7 @@ input[type=number]{-moz-appearance:textfield}
 <script>
 'use strict';
 const $=s=>document.querySelector(s);
-const LOGO='<path fill="#fff" d="M277 100V163L167 232L178 272H277V328H178L167 368L277 437V498L107 392L133 300L107 208Z"/><path fill="#fff" d="M323 100V163L433 232L422 272H323V328H422L433 368L323 437V498L493 392L467 300L493 208Z"/>';
+const LOGO='<path d="M300 70L500 185V415L300 530L100 415V185Z" fill="none" stroke="#fff" stroke-width="44" stroke-linejoin="round"/><path d="M240 190V400H370" fill="none" stroke="#fff" stroke-width="56" stroke-linecap="round" stroke-linejoin="round"/>';
 $('#logoS').innerHTML=LOGO;
 const CUR={EUR:{s:'€',r:1},USD:{s:'$',r:1.08},CHF:{s:'CHF ',r:.94},GBP:{s:'£',r:.85}};
 const CAT=[['LTC','Litecoin',60.49,-2.3,'#bdbdbd',0],['SOL','Solana',103.98,-2.2,'#111',0],['BTC','Bitcoin',73046.51,-.7,'url(#hb)',0],['ETH','Ethereum',2355.75,.6,'#3a3d5c',0],
@@ -233,13 +232,13 @@ const CAT=[['LTC','Litecoin',60.49,-2.3,'#bdbdbd',0],['SOL','Solana',103.98,-2.2
 const GLY={BTC:'₿',LTC:'Ł',ETH:'◆',USDT:'₮',BNB:'◆',XRP:'✕',DOGE:'Ð',ADA:'₳',AVAX:'A',TRX:'T',LINK:'⬡',TON:'▼',DOT:'●',USDC:'$'};
 const CG={BTC:'bitcoin',ETH:'ethereum',SOL:'solana',USDT:'tether',USDC:'usd-coin',BNB:'binancecoin',XRP:'ripple',DOGE:'dogecoin',ADA:'cardano',AVAX:'avalanche-2',LTC:'litecoin',TRX:'tron',SHIB:'shiba-inu',PEPE:'pepe',LINK:'chainlink',TON:'the-open-network',DOT:'polkadot'};
 const STAKE={SOL:1,ETH:1,ADA:1,DOT:1};
-const KEY='exodus-larp-v2';
+const KEY='larpodus-v1';
 const MOIS=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
 let S,ready=false,curTab=0;
 function fresh(){const y=new Date();y.setMonth(5,4);y.setHours(17,54,0,0);
  return{cur:'EUR',hide:false,seed:Math.floor(Math.random()*1e9),
  assets:CAT.map(([sym,name,price,ch,color])=>({sym,name,price,ch,color,qty:sym==='LTC'?.005159:sym==='SOL'?.000959:0,custom:false})),
- tx:[{type:'out',sym:'LTC',qty:.240221,eur:9.42,ts:y.getTime()}]}}
+ tx:[]}}
 function load(){try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}if(!S||!S.assets)S=fresh()}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 load();
@@ -263,20 +262,6 @@ function hexIcon(a,sz){sz=sz||46;let inner;
  const fill=a.sym==='LTC'?'url(#hl)':a.color;
  return `<svg class="hex" width="${sz}" height="${sz}" viewBox="0 0 46 46"><defs><linearGradient id="hl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e4e4e4"/><stop offset="1" stop-color="#8e8e8e"/></linearGradient></defs><path d="M23 2.5l17.5 10v21L23 43.5 5.5 33.5v-21z" fill="${fill}" stroke="rgba(255,255,255,.28)" stroke-width="1.4" stroke-linejoin="round"/>${inner}</svg>`}
 const stk='<svg class="stk" viewBox="0 0 20 22"><path d="M10 1l8 4.5v11L10 21 2 16.5v-11z" fill="#3a3a52" stroke="rgba(255,255,255,.3)"/><path d="M6.5 14.5l7-7M7.3 8.4h.1M12.7 13.6h.1" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>';
-
-/* qr / address */
-function addr(sym){let h=0;const s=sym+S.seed;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;const r=()=>{h=(h*1664525+1013904223)>>>0;return h};
- const hx='0123456789abcdef',b58='123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';let o='';
- if(sym==='BTC'){o='bc1q';for(let i=0;i<38;i++)o+=hx[r()%16];return o}
- if(sym==='LTC'){o='ltc1q';for(let i=0;i<38;i++)o+=hx[r()%16];return o}
- if(['SOL','XRP','TRX','TON','DOT'].includes(sym)){for(let i=0;i<(sym==='SOL'?44:34);i++)o+=b58[r()%58];return(sym==='XRP'?'r':sym==='TRX'?'T':'')+o}
- o='0x';for(let i=0;i<40;i++)o+=hx[r()%16];return o}
-function qr(str){let h=5381;for(const c of str)h=(h*33+c.charCodeAt(0))>>>0;const r=()=>{h=(h*1664525+1013904223)>>>0;return h>>>16};
- const N=25;let d='';const fin=(x,y)=>{d+=`M${x} ${y}h7v7h-7z M${x+1} ${y+1}v5h5v-5z M${x+2} ${y+2}h3v3h-3z`};
- const inF=(x,y)=>(x<8&&y<8)||(x>N-9&&y<8)||(x<8&&y>N-9);
- for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(!inF(x,y)&&r()%2)d+=`M${x} ${y}h1v1h-1z`;
- fin(0,0);fin(N-7,0);fin(0,N-7);
- return `<svg class="qr" viewBox="0 0 ${N} ${N}" shape-rendering="crispEdges"><path fill="#000" fill-rule="evenodd" d="${d}"/></svg>`}
 
 /* ---------- portfolio ---------- */
 let shown=0,anim;
@@ -336,7 +321,7 @@ function openAsset(sym,keep){const a=A(sym);if(!keep)dRange='1A';
  <span class="l" style="top:${(pad-14)/H*100}%;transform:translateY(-50%)">${CS()}${nf(mx*R(),2)}</span><span class="l" style="top:${(H-pad+14)/H*100}%;transform:translateY(-50%)">${CS()}${nf(mn*R(),2)}</span></div>
  <div class="bal"><div><b>${qf(a.qty)}</b><span>${esc(a.sym)}</span></div><div><div class="v"><span class="cu">${CS().trim()}</span><span class="in">${S.hide?'•••':vv[0]}</span><span class="de">${S.hide?'':'.'+vv[1]}</span></div><span>Valeur</span></div></div>
  ${th||''}<div style="height:120px"></div>
- <div class="acts" style="position:fixed;left:0;right:0;bottom:0;margin:0;padding:14px 8px calc(env(safe-area-inset-bottom) + 12px)">${ac('buy','Buy / Sell',`openTrade('buy','${sym}')`,1)}${ac('swap','Swap',`swapFrom('${sym}')`)}${ac('send','Envoyer',`openSend('${sym}')`)}${ac('recv','Recevoir',`openReceive('${sym}')`)}</div>`)}
+ <div class="acts" style="position:fixed;left:0;right:0;bottom:0;margin:0;padding:14px 8px calc(env(safe-area-inset-bottom) + 12px)">${ac('buy','Buy / Sell',`openTrade('buy','${sym}')`,1)}${ac('swap','Swap',`swapFrom('${sym}')`)}</div>`)}
 function cycRange(sym){const k=['1J','1S','1M','1A'];dRange=k[(k.indexOf(dRange)+1)%4];const y=$('#sh').scrollTop;openAsset(sym,1);$('#sh').scrollTop=y}
 function txRow(t,ctx){const a=A(t.sym)||{sym:t.sym,name:t.sym,color:'#555'};
  const bd={in:ICONS.recv,out:ICONS.send,buy:ICONS.buy,sell:'<path d="M12 20V8M7 13l5-5 5 5"/>',swap:ICONS.swap}[t.type];
@@ -369,23 +354,6 @@ function doTrade(){const a=A($('#tSym').value),q=tQty();if(q==null||isNaN(q)||(q
  else{a.qty+=q;S.tx.unshift({type:'buy',sym:a.sym,qty:q,eur:q*a.price*R(),ts:now})}
  save();closeSh();tab(0);render();toast(tMode==='buy'?'✓ Achat effectué':'✓ Vente effectuée')}
 
-/* send / receive */
-function openSend(sym){const f=S.assets.find(a=>a.qty>0);
- sheet(`<h3>Envoyer</h3><label class="f">Crypto</label><select class="fi" id="sSym" onchange="sPrev()">${optsA(sym||(f&&f.sym)||'BTC')}</select>
- <label class="f">Adresse</label><input class="fi" id="sTo" placeholder="Coller l'adresse" autocapitalize="off" autocorrect="off" spellcheck="false">
- <label class="f">Montant</label><input class="fi" id="sAmt" type="number" inputmode="decimal" placeholder="0" oninput="sPrev()">
- <div class="chips"><button onclick="sMax()">Max</button></div><div class="hint" id="sHint"></div>
- <button class="cta" style="width:100%;margin:8px 0 0" onclick="doSend()">Envoyer</button>`,1);sPrev()}
-function sPrev(){const a=A($('#sSym').value),q=parseFloat($('#sAmt').value)||0;$('#sHint').textContent=`Disponible : ${qf(a.qty)} ${a.sym}${q?` · ≈ ${CS()}${nf(q*a.price*R(),2)}`:''}`}
-function sMax(){$('#sAmt').value=A($('#sSym').value).qty;sPrev()}
-function doSend(){const a=A($('#sSym').value),q=parseFloat($('#sAmt').value),to=$('#sTo').value.trim();
- if(to.length<10){toast('Adresse invalide');return}if(!(q>0)){toast('Saisissez un montant');return}if(q>a.qty+1e-12){toast('Solde insuffisant');return}
- sheet(`<h3>Envoi en cours…</h3><div class="spin"></div><div class="hint">Diffusion de la transaction</div>`,1);
- setTimeout(()=>{a.qty=Math.max(0,a.qty-q);S.tx.unshift({type:'out',sym:a.sym,qty:q,eur:q*a.price*R(),ts:Date.now()});save();closeSh();render();toast(`✓ ${qf(q)} ${a.sym} envoyé`)},1600)}
-function openReceive(sym){sheet(`<h3>Recevoir</h3><select class="fi" id="rSym" onchange="rcv()">${optsA(sym||'BTC')}</select><div id="rB"></div>`,1);rcv()}
-function rcv(){const s=$('#rSym').value,ad=addr(s);$('#rB').innerHTML=qr(ad)+`<div class="ad">${ad}</div><button class="cta" style="width:100%;margin:16px 0 0" onclick="cp('${ad}')">Copier l'adresse</button>`}
-function cp(t){(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Adresse copiée'),()=>toast('Adresse copiée'))}
-
 /* swap */
 let sf='LTC',st='SOL';
 const chev='<svg viewBox="0 0 12 12"><path d="M2 4l4 4 4-4"/></svg>';
@@ -412,7 +380,7 @@ function openSettings(){sheet(`<h3>Paramètres</h3>
  <div class="set" onclick="cycCur()"><span>Devise</span><span>${S.cur}</span></div>
  <div class="set" onclick="openCustom()"><span>Ajouter un actif</span><span>＋</span></div>
  <div class="set" onclick="resetAll()"><span style="color:#ff6b7f">Réinitialiser le portefeuille</span><span></span></div>
- <div class="hint" style="margin-top:26px">Exodus 26.9.29<br>Simulation pour le fun — aucun fonds réel.</div>`,1)}
+ <div class="hint" style="margin-top:26px">Larpodus 1.0<br>Simulation pour le fun — aucun fonds réel.</div>`,1)}
 function cycCur(){const k=Object.keys(CUR);S.cur=k[(k.indexOf(S.cur)+1)%k.length];save();render();openSettings()}
 function resetAll(){if(confirm('Tout réinitialiser ? Soldes et historique seront effacés.')){localStorage.removeItem(KEY);S=fresh();save();shown=0;closeSh();render();toast('Portefeuille réinitialisé')}}
 function openCustom(){sheet(`<h3>Nouvel actif</h3><label class="f">Nom</label><input class="fi" id="cN" placeholder="Memecoin" maxlength="20"><label class="f">Ticker</label><input class="fi" id="cS" placeholder="MEME" maxlength="6" autocapitalize="characters"><label class="f">Prix (${S.cur})</label><input class="fi" id="cP" type="number" inputmode="decimal" placeholder="0.0042"><label class="f">Quantité</label><input class="fi" id="cQ" type="number" inputmode="decimal" placeholder="1000000"><button class="cta" style="width:100%;margin:22px 0 0" onclick="doCustom()">Ajouter</button>`,1)}
