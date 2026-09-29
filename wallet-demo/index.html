@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0b13">
+<title>Orbit Wallet – Démo</title>
+<style>
+:root{--bg:#0b0b13;--card:#151524;--card2:#1d1d31;--txt:#f4f4fa;--mut:#8b8ba7;--up:#38e2a0;--down:#ff6b81;--a:#7b5cff;--b:#00d1ff}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+body{background:#050509;color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;justify-content:center;min-height:100vh}
+.app{width:100%;max-width:430px;min-height:100vh;background:radial-gradient(120% 60% at 50% 0,#241a5a 0,var(--bg) 60%);display:flex;flex-direction:column;position:relative;padding-bottom:84px}
+header{display:flex;justify-content:space-between;align-items:center;padding:18px 20px 6px}
+.logo{display:flex;align-items:center;gap:8px;font-weight:700}
+.logo i{width:26px;height:26px;border-radius:50%;background:conic-gradient(var(--a),var(--b),var(--a))}
+.ib{width:36px;height:36px;border-radius:50%;background:#ffffff14;border:0;color:var(--txt);font-size:16px}
+.bal{text-align:center;padding:22px 20px 6px}
+.bal small{color:var(--mut);font-size:13px}
+.bal h1{font-size:44px;letter-spacing:-1px;margin:6px 0 4px;font-variant-numeric:tabular-nums}
+.chg{font-size:14px;color:var(--up);font-weight:600}
+.chg.d{color:var(--down)}
+.chart{padding:14px 12px 0}
+svg{width:100%;height:120px;display:block}
+.rng{display:flex;justify-content:center;gap:6px;margin:6px 0 14px}
+.rng button{background:none;border:0;color:var(--mut);padding:6px 12px;border-radius:14px;font-weight:600;font-size:13px}
+.rng button.on{background:#ffffff1c;color:var(--txt)}
+.act{display:flex;justify-content:space-around;padding:4px 16px 18px}
+.act div{text-align:center;font-size:12px;color:var(--mut)}
+.act b{display:flex;width:52px;height:52px;margin:0 auto 6px;border-radius:50%;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--a),var(--b));color:#fff;font-size:20px}
+h2{font-size:15px;padding:0 20px 8px;color:var(--mut);font-weight:600}
+.list{margin:0 14px;background:var(--card);border-radius:20px;overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid #ffffff0a}
+.row:last-child{border:0}
+.ico{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:14px}
+.nm{flex:1}.nm b{display:block;font-size:15px}.nm span{font-size:12px;color:var(--mut)}
+.vl{text-align:right}.vl b{display:block;font-size:15px;font-variant-numeric:tabular-nums}.vl span{font-size:12px;color:var(--up)}.vl span.d{color:var(--down)}
+nav{position:fixed;bottom:0;width:100%;max-width:430px;display:flex;justify-content:space-around;background:#0e0e1af0;backdrop-filter:blur(12px);padding:10px 0 calc(10px + env(safe-area-inset-bottom));border-top:1px solid #ffffff10}
+nav a{color:var(--mut);font-size:11px;text-align:center;text-decoration:none}
+nav a.on{color:var(--txt)}nav a span{display:block;font-size:20px}
+.demo{text-align:center;color:var(--mut);font-size:11px;padding:16px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo"><i></i>Orbit</div>
+    <button class="ib" id="eye" aria-label="Masquer le solde">👁</button>
+  </header>
+
+  <section class="bal">
+    <small>Solde du portefeuille</small>
+    <h1 id="total">$0.00</h1>
+    <div class="chg" id="chg">+0.00%</div>
+  </section>
+
+  <div class="chart"><svg id="svg" viewBox="0 0 400 120" preserveAspectRatio="none">
+    <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7b5cff" stop-opacity=".45"/><stop offset="1" stop-color="#7b5cff" stop-opacity="0"/></linearGradient></defs>
+    <path id="area" fill="url(#g)"/><path id="line" fill="none" stroke="#9d86ff" stroke-width="2.5" stroke-linejoin="round"/>
+  </svg></div>
+  <div class="rng" id="rng"><button data-r="0">1J</button><button data-r="1" class="on">1S</button><button data-r="2">1M</button><button data-r="3">1A</button></div>
+
+  <div class="act">
+    <div><b>↑</b>Envoyer</div><div><b>↓</b>Recevoir</div><div><b>⇄</b>Échanger</div><div><b>＋</b>Acheter</div>
+  </div>
+
+  <h2>Actifs</h2>
+  <div class="list" id="assets"></div>
+  <p class="demo">Démo d'interface — données fictives, aucun fonds réel.</p>
+
+  <nav>
+    <a class="on" href="#"><span>◉</span>Portefeuille</a>
+    <a href="#"><span>⇄</span>Échange</a>
+    <a href="#"><span>▦</span>Explorer</a>
+    <a href="#"><span>⚙</span>Réglages</a>
+  </nav>
+</div>
+
+<script>
+const assets=[
+ {n:"Bitcoin",s:"BTC",q:0.184,p:64210,c:1.8,col:"#f7931a"},
+ {n:"Ethereum",s:"ETH",q:2.41,p:3120,c:-0.9,col:"#627eea"},
+ {n:"Solana",s:"SOL",q:18.5,p:148,c:4.2,col:"#9945ff"},
+ {n:"Tether",s:"USDT",q:850,p:1,c:0,col:"#26a17b"},
+ {n:"Cardano",s:"ADA",q:1200,p:0.46,c:-2.1,col:"#0d5be1"}
+];
+const $=id=>document.getElementById(id);
+const fmt=n=>n.toLocaleString("en-US",{style:"currency",currency:"USD"});
+let hidden=false,range=1;
+const total=assets.reduce((t,a)=>t+a.q*a.p,0);
+const rc=[[0.6,3],[2.4,-1.2],[-3.1,6],[18.2,-4]];
+function series(seed){let v=[],x=100,r=seed;for(let i=0;i<40;i++){r=(r*9301+49297)%233280;x+=(r/233280-.47)*7;v.push(x)}return v}
+function draw(){
+  const v=series(range*7+3),mn=Math.min(...v),mx=Math.max(...v);
+  const pts=v.map((y,i)=>[i*400/39,110-(y-mn)/(mx-mn||1)*100]);
+  const d="M"+pts.map(p=>p.join(",")).join("L");
+  $("line").setAttribute("d",d);$("area").setAttribute("d",d+"L400,120L0,120Z");
+  const ch=rc[range][1]>0?rc[range][0]:-Math.abs(rc[range][0]);
+  const up=v[v.length-1]>=v[0],pc=((v[v.length-1]/v[0]-1)*100);
+  $("chg").textContent=(pc>=0?"▲ +":"▼ ")+pc.toFixed(2)+"%";$("chg").className="chg"+(pc<0?" d":"");
+}
+function render(){
+  $("total").textContent=hidden?"••••••":fmt(total);
+  $("assets").innerHTML=assets.map(a=>`<div class="row"><div class="ico" style="background:${a.col}">${a.s[0]}</div>
+  <div class="nm"><b>${a.n}</b><span>${hidden?"•••":a.q+" "+a.s}</span></div>
+  <div class="vl"><b>${hidden?"••••":fmt(a.q*a.p)}</b><span class="${a.c<0?"d":""}">${a.c>=0?"+":""}${a.c}%</span></div></div>`).join("");
+}
+$("eye").onclick=()=>{hidden=!hidden;render()};
+$("rng").onclick=e=>{const b=e.target.closest("button");if(!b)return;range=+b.dataset.r;
+  [...$("rng").children].forEach(x=>x.classList.toggle("on",x===b));draw()};
+render();draw();
+</script>
+</body>
+</html>
