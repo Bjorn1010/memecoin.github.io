@@ -14,6 +14,7 @@
     <link href="https://bjorn1010.github.io/memecoin.github.io/onze-store/boutique.html" rel="canonical" />
     <meta content="#0b0b0d" name="theme-color" />
     <meta content="width=device-width, initial-scale=1" name="viewport" />
+    <link href="manifest.webmanifest" rel="manifest" />
     <link href="assets/css/onze-base.css" rel="stylesheet" type="text/css" />
     <link href="assets/css/onze-shop.css" rel="stylesheet" type="text/css" />
     <link href="assets/img/onze-favicon-32.png" rel="icon" type="image/png" sizes="32x32" />
@@ -50,13 +51,14 @@
 
       <section class="shop-section" style="padding-top: 0">
         <div class="filter-bar reveal" id="filter-bar" role="group" aria-label="Filtrer par catégorie"></div>
-        <div class="product-grid" id="product-grid"></div>
+        <div class="product-grid" id="product-grid" data-loading></div>
       </section>
     </main>
 
     <footer class="shop-footer">
       <div>© 2026 Onze</div>
       <div>
+        <a href="a-propos.html">À propos</a>
         <a href="mentions-legales.html">Mentions légales</a>
         <a href="cgv.html">CGV</a>
         <a href="cgu.html">CGU</a>
@@ -65,8 +67,7 @@
     </footer>
 
     <script type="module">
-      import { PRODUCTS, CATEGORIES, formatPrice } from './assets/js/onze-catalogue.js';
-      import { drawJerseyFlat } from './assets/js/onze-jersey-texture.js';
+      import { PRODUCTS, CATEGORIES, formatPrice, productImage, productPagePath } from './assets/js/onze-catalogue.js';
       import { bindCartBadge } from './assets/js/onze-cart.js';
       import { mountWhatsAppButton } from './assets/js/onze-ui.js';
 
@@ -77,14 +78,14 @@
         const card = document.createElement('a');
         card.className = 'product-card reveal';
         card.dataset.category = product.category;
-        card.href = `produit.html?id=${encodeURIComponent(product.id)}`;
+        card.href = productPagePath(product);
         card.style.setProperty('--card-glow', `${product.tasteSecondary}33`);
         card.style.transitionDelay = `${index * 60}ms`;
 
         card.innerHTML = `
           <div class="product-card__media">
             <span class="product-card__tag">N°${product.number}</span>
-            <canvas aria-label="Maillot ${product.name1} ${product.name2}" role="img"></canvas>
+            <img src="${productImage(product)}" width="480" height="640" alt="Maillot ${product.name1} ${product.name2}" loading="${index < 4 ? 'eager' : 'lazy'}" decoding="async" />
           </div>
           <div class="product-card__body">
             <div>
@@ -96,11 +97,9 @@
         `;
 
         grid.appendChild(card);
-
-        const canvas = card.querySelector('canvas');
-        // Le canvas doit connaître sa largeur CSS avant d'être dessiné.
-        requestAnimationFrame(() => drawJerseyFlat(canvas, product));
       });
+
+      grid.removeAttribute('data-loading');
 
       // Filtre par catégorie
       const chips = [{ id: 'all', label: 'Tous' }, ...CATEGORIES].map((cat) => {
@@ -122,17 +121,6 @@
         grid.querySelectorAll('.product-card').forEach((card) => {
           card.classList.toggle('is-filtered', category !== 'all' && card.dataset.category !== category);
         });
-      });
-
-      // Redessine à la volée pour rester net après un redimensionnement.
-      let resizeTimer;
-      window.addEventListener('resize', () => {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(() => {
-          grid.querySelectorAll('.product-card').forEach((card, index) => {
-            drawJerseyFlat(card.querySelector('canvas'), PRODUCTS[index]);
-          });
-        }, 200);
       });
 
       // Apparition au scroll, avec filet de sécurité si l'observer ne

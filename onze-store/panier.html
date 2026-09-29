@@ -15,6 +15,7 @@
     <link href="https://bjorn1010.github.io/memecoin.github.io/onze-store/panier.html" rel="canonical" />
     <meta content="#0b0b0d" name="theme-color" />
     <meta content="width=device-width, initial-scale=1" name="viewport" />
+    <link href="manifest.webmanifest" rel="manifest" />
     <link href="assets/css/onze-base.css" rel="stylesheet" type="text/css" />
     <link href="assets/css/onze-shop.css" rel="stylesheet" type="text/css" />
     <link href="assets/img/onze-favicon-32.png" rel="icon" type="image/png" sizes="32x32" />
@@ -74,6 +75,7 @@
     <footer class="shop-footer">
       <div>© 2026 Onze</div>
       <div>
+        <a href="a-propos.html">À propos</a>
         <a href="mentions-legales.html">Mentions légales</a>
         <a href="cgv.html">CGV</a>
         <a href="cgu.html">CGU</a>
@@ -82,7 +84,7 @@
     </footer>
 
     <script type="module">
-      import { getProduct, formatPrice, hasFlocage, shippingFor, PRODUCTS } from './assets/js/onze-catalogue.js';
+      import { getProduct, formatPrice, hasFlocage, shippingFor, PRODUCTS, productImage, productPagePath } from './assets/js/onze-catalogue.js';
       import { drawJerseyFlat } from './assets/js/onze-jersey-texture.js';
       import { getLines, setQuantity, removeLine, keyOf, lineUnitPrice, getTotal, bindCartBadge } from './assets/js/onze-cart.js';
       import { renderShippingProgress, mountWhatsAppButton } from './assets/js/onze-ui.js';
@@ -102,16 +104,15 @@
           .forEach((product) => {
             const card = document.createElement('a');
             card.className = 'cross-sell__card';
-            card.href = `produit.html?id=${encodeURIComponent(product.id)}`;
+            card.href = productPagePath(product);
             card.innerHTML = `
-              <canvas aria-hidden="true"></canvas>
+              <img src="${productImage(product)}" width="480" height="640" alt="" loading="lazy" decoding="async" />
               <span>
                 <span class="cross-sell__name">${product.name1} ${product.name2}</span>
                 <span class="cross-sell__price">${formatPrice(product.price)}</span>
               </span>
             `;
             crossSellGrid.appendChild(card);
-            requestAnimationFrame(() => drawJerseyFlat(card.querySelector('canvas'), product));
           });
       };
 

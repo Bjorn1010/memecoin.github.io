@@ -1,0 +1,15 @@
+{
+  "name": "Onze — maillots de football",
+  "short_name": "Onze",
+  "description": "Maillots de football personnalisables, livrés en Suisse.",
+  "start_url": "boutique.html",
+  "scope": "./",
+  "display": "standalone",
+  "lang": "fr-CH",
+  "background_color": "#0a0908",
+  "theme_color": "#0a0908",
+  "icons": [
+    { "src": "assets/img/onze-favicon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/img/onze-favicon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

@@ -15,6 +15,7 @@
     <link href="https://bjorn1010.github.io/memecoin.github.io/onze-store/commande.html" rel="canonical" />
     <meta content="#0a0908" name="theme-color" />
     <meta content="width=device-width, initial-scale=1" name="viewport" />
+    <link href="manifest.webmanifest" rel="manifest" />
     <link href="assets/css/onze-base.css" rel="stylesheet" type="text/css" />
     <link href="assets/css/onze-shop.css" rel="stylesheet" type="text/css" />
     <link href="assets/img/onze-favicon-32.png" rel="icon" type="image/png" sizes="32x32" />
@@ -151,6 +152,7 @@
     <footer class="shop-footer">
       <div>© 2026 Onze</div>
       <div>
+        <a href="a-propos.html">À propos</a>
         <a href="mentions-legales.html">Mentions légales</a>
         <a href="cgv.html">CGV</a>
         <a href="cgu.html">CGU</a>
@@ -297,7 +299,7 @@
           `mailto:${CONTACT.email}?subject=${encodeURIComponent(`Commande ${ref}`)}&body=${encodeURIComponent(text)}`;
 
         try {
-          localStorage.setItem('onze:last-order:v1', JSON.stringify({ ref, text, total, createdAt: Date.now() }));
+          localStorage.setItem('onze:last-order:v1', JSON.stringify({ ref, total, createdAt: Date.now() }));
         } catch (error) {
           /* stockage indisponible : l'envoi reste possible depuis cette page */
         }
