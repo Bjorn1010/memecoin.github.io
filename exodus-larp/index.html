@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Exodus">
+<meta name="theme-color" content="#11111b">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Exodus</title>
+<style>
+:root{--bg:#11111b;--card:#1b1b2b;--card2:#232338;--txt:#fff;--mut:#8b8ba7;--grn:#2ee6a6;--red:#ff5c7a;--acc1:#8a4dff;--acc2:#2f8cff;--line:#2a2a40}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;overscroll-behavior:none;-webkit-user-select:none;user-select:none}
+body{position:fixed;inset:0;overflow:hidden}
+#app{position:absolute;inset:0;display:flex;flex-direction:column}
+.view{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:calc(env(safe-area-inset-top) + 14px) 18px 110px;display:none}
+.view.on{display:block}
+h1{font-size:15px;font-weight:600;color:var(--mut);margin:0 0 4px;letter-spacing:.2px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.pill{background:var(--card);border-radius:20px;padding:6px 12px;font-size:12px;color:var(--mut);display:flex;gap:6px;align-items:center}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--grn)}
+.total{font-size:44px;font-weight:700;letter-spacing:-1px;margin:6px 0 0;line-height:1.1}
+.total small{font-size:24px;color:var(--mut);font-weight:600}
+.chg{font-size:14px;font-weight:600;margin-top:4px}
+.up{color:var(--grn)}.dn{color:var(--red)}
+.chart{margin:14px -18px 0;height:150px}
+.chart svg{width:100%;height:100%;display:block}
+.ranges{display:flex;justify-content:space-between;margin:6px 0 14px}
+.ranges button{background:none;border:0;color:var(--mut);font-size:13px;font-weight:600;padding:6px 12px;border-radius:14px}
+.ranges button.on{background:var(--card2);color:#fff}
+.actions{display:flex;gap:10px;margin-bottom:20px}
+.btn{flex:1;border:0;border-radius:14px;padding:14px 8px;font-size:15px;font-weight:600;color:#fff;background:var(--card2)}
+.btn.pri{background:linear-gradient(135deg,var(--acc1),var(--acc2))}
+.btn:active{opacity:.75;transform:scale(.98)}
+.sec{display:flex;justify-content:space-between;align-items:center;margin:8px 0 8px}
+.sec h2{font-size:17px;margin:0}
+.sec a{color:var(--acc2);font-size:14px;font-weight:600}
+.row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border:0}
+.coin{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex:none;color:#fff}
+.grow{flex:1;min-width:0}
+.nm{font-weight:600;font-size:16px}
+.sub{font-size:13px;color:var(--mut);margin-top:2px}
+.r{text-align:right}
+.card{background:var(--card);border-radius:18px;padding:16px}
+.tabbar{position:absolute;left:0;right:0;bottom:0;display:flex;background:rgba(17,17,27,.94);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--line);padding:8px 8px calc(env(safe-area-inset-bottom) + 6px)}
+.tab{flex:1;background:none;border:0;color:var(--mut);font-size:11px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0}
+.tab svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tab.on{color:#fff}
+.tab.on svg{stroke:url(#g)}
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:20}
+.sheet-bg.on{display:block}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--card);border-radius:24px 24px 0 0;padding:10px 20px calc(env(safe-area-inset-bottom) + 22px);max-height:92%;overflow-y:auto;animation:up .25s ease}
+@keyframes up{from{transform:translateY(100%)}to{transform:none}}
+.grab{width:40px;height:4px;border-radius:2px;background:#444460;margin:0 auto 14px}
+.sheet h3{margin:0 0 14px;font-size:20px;text-align:center}
+label{display:block;font-size:12px;color:var(--mut);margin:12px 0 6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+input,select{width:100%;background:var(--card2);border:1px solid transparent;color:#fff;border-radius:12px;padding:14px;font-size:17px;outline:none;-webkit-user-select:text;user-select:text;appearance:none;-webkit-appearance:none}
+input:focus,select:focus{border-color:var(--acc1)}
+.seg{display:flex;background:var(--card2);border-radius:12px;padding:3px;margin-top:4px}
+.seg button{flex:1;border:0;background:none;color:var(--mut);font-weight:600;font-size:14px;padding:9px;border-radius:10px}
+.seg button.on{background:var(--acc1);color:#fff}
+.chips{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.chips button{background:var(--card2);border:0;color:#fff;border-radius:16px;padding:8px 14px;font-size:14px;font-weight:600}
+.big{width:100%;margin-top:18px;padding:16px;font-size:17px}
+.qr{width:190px;height:190px;background:#fff;border-radius:16px;padding:12px;margin:8px auto 14px;display:block}
+.addr{background:var(--card2);border-radius:12px;padding:14px;font-size:13px;word-break:break-all;text-align:center;font-family:ui-monospace,Menlo,monospace;-webkit-user-select:text;user-select:text}
+.hero{display:flex;flex-direction:column;align-items:center;margin:8px 0 18px}
+.hero .coin{width:64px;height:64px;font-size:24px;margin-bottom:10px}
+.hero .amt{font-size:32px;font-weight:700}
+.tx .ic{width:38px;height:38px;border-radius:50%;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:18px;flex:none}
+.swapbox{background:var(--card);border-radius:18px;padding:14px;margin-bottom:8px}
+.swapbox .h{display:flex;justify-content:space-between;font-size:13px;color:var(--mut);margin-bottom:8px}
+.swapbox .line{display:flex;gap:10px;align-items:center}
+.swapbox select{width:120px;flex:none;padding:12px}
+.swapbox input{background:none;text-align:right;font-size:24px;font-weight:700;padding:8px 0}
+.flip{display:block;margin:-18px auto;position:relative;z-index:2;width:38px;height:38px;border-radius:50%;background:var(--card2);border:4px solid var(--bg);color:#fff;font-size:16px}
+.set{display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid var(--line);font-size:16px}
+.set:last-child{border:0}
+.sw{width:50px;height:30px;border-radius:15px;background:var(--card2);position:relative;transition:.2s;flex:none}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:.2s}
+.sw.on{background:var(--acc1)}.sw.on::after{left:23px}
+.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 10px);transform:translate(-50%,-120px);background:var(--card2);border:1px solid var(--line);padding:12px 18px;border-radius:14px;font-size:14px;font-weight:600;z-index:60;transition:.3s;max-width:90%;text-align:center}
+.toast.on{transform:translate(-50%,0)}
+.lock{position:fixed;inset:0;z-index:50;background:radial-gradient(circle at 50% 0,#2b1d5c,#11111b 60%);display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.lock.on{display:flex}
+.lock h2{margin:14px 0 4px}
+.dots{display:flex;gap:14px;margin:22px 0 30px}
+.dots i{width:14px;height:14px;border-radius:50%;border:2px solid var(--mut)}
+.dots i.f{background:#fff;border-color:#fff}
+.pad{display:grid;grid-template-columns:repeat(3,76px);gap:14px}
+.pad button{height:76px;border-radius:50%;border:0;background:rgba(255,255,255,.08);color:#fff;font-size:28px;font-weight:500}
+.pad button:active{background:rgba(255,255,255,.25)}
+.shake{animation:sh .35s}
+@keyframes sh{20%,60%{transform:translateX(-10px)}40%,80%{transform:translateX(10px)}}
+.empty{color:var(--mut);text-align:center;padding:30px 0;font-size:14px}
+.spin{width:44px;height:44px;border:4px solid var(--card2);border-top-color:var(--acc2);border-radius:50%;animation:rot .8s linear infinite;margin:20px auto}
+@keyframes rot{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8a4dff"/><stop offset="1" stop-color="#2f8cff"/></linearGradient></defs></svg>
+
+<div id="app">
+  <section class="view on" id="v-portfolio">
+    <div class="top"><h1>Portfolio</h1><div class="pill"><span class="dot"></span><span id="sync">Synced</span></div></div>
+    <div class="total" id="total" onclick="toggleHide()"></div>
+    <div class="chg" id="chg"></div>
+    <div class="chart"><svg id="chart" viewBox="0 0 400 150" preserveAspectRatio="none"></svg></div>
+    <div class="ranges" id="ranges"></div>
+    <div class="actions">
+      <button class="btn pri" onclick="openAdd()">＋ Add funds</button>
+      <button class="btn" onclick="openSend()">Send</button>
+      <button class="btn" onclick="openReceive()">Receive</button>
+    </div>
+    <div class="sec"><h2>Assets</h2><a onclick="go('wallet')">See all</a></div>
+    <div id="pf-assets"></div>
+    <div class="sec" style="margin-top:22px"><h2>Recent activity</h2><a onclick="go('history')">See all</a></div>
+    <div id="pf-tx"></div>
+  </section>
+
+  <section class="view" id="v-wallet">
+    <div class="top"><h1>Wallet</h1><div class="pill" onclick="openCustom()" style="color:#fff">＋ New asset</div></div>
+    <div id="wl-assets"></div>
+  </section>
+
+  <section class="view" id="v-exchange">
+    <div class="top"><h1>Exchange</h1></div>
+    <div style="height:8px"></div>
+    <div class="swapbox"><div class="h"><span>From</span><span id="fromBal"></span></div>
+      <div class="line"><select id="fromSel"></select><input id="fromAmt" type="number" inputmode="decimal" placeholder="0"></div></div>
+    <button class="flip" onclick="flipSwap()">⇅</button>
+    <div class="swapbox" style="margin-top:8px"><div class="h"><span>To</span><span id="toBal"></span></div>
+      <div class="line"><select id="toSel"></select><input id="toAmt" type="number" inputmode="decimal" placeholder="0" readonly></div></div>
+    <div class="chips" id="pct"></div>
+    <div class="sub" id="rate" style="text-align:center;margin-top:16px"></div>
+    <button class="btn pri big" onclick="doSwap()">Exchange</button>
+  </section>
+
+  <section class="view" id="v-history">
+    <div class="top"><h1>History</h1></div>
+    <div id="hs-list"></div>
+  </section>
+
+  <section class="view" id="v-settings">
+    <div class="top"><h1>Settings</h1></div>
+    <div class="card" style="padding:4px 16px">
+      <div class="set" onclick="toggleHide()"><span>Hide balances</span><span class="sw" id="swHide"></span></div>
+      <div class="set" onclick="cycleCur()"><span>Currency</span><span style="color:var(--mut)" id="curLbl"></span></div>
+      <div class="set" onclick="setPin()"><span>Passcode</span><span style="color:var(--mut)" id="pinLbl"></span></div>
+      <div class="set" onclick="editName()"><span>Wallet name</span><span style="color:var(--mut)" id="nameLbl"></span></div>
+    </div>
+    <div class="card" style="padding:4px 16px;margin-top:14px">
+      <div class="set" onclick="resetAll()"><span style="color:var(--red)">Reset wallet</span><span></span></div>
+    </div>
+    <p class="sub" style="text-align:center;margin-top:26px">Exodus 24.9.29<br>Fun simulation — no real funds.</p>
+  </section>
+
+  <nav class="tabbar" id="tabbar">
+    <button class="tab on" data-v="portfolio"><svg viewBox="0 0 24 24"><path d="M21 12A9 9 0 1 1 12 3v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg>Portfolio</button>
+    <button class="tab" data-v="wallet"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="3"/><path d="M3 10h18M16 15h2"/></svg>Wallet</button>
+    <button class="tab" data-v="exchange"><svg viewBox="0 0 24 24"><path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></svg>Exchange</button>
+    <button class="tab" data-v="history"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>History</button>
+    <button class="tab" data-v="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 0 0-2-1.2L14.3 3h-4l-.4 2.7a7 7 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 2 1.2l.4 2.7h4l.4-2.7a7 7 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z"/></svg>Settings</button>
+  </nav>
+</div>
+
+<div class="sheet-bg" id="bg" onclick="if(event.target===this)closeSheet()"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+<div class="lock" id="lock">
+  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="url(#g)" stroke-width="2.4" stroke-linecap="round"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M14 5l-4 14" style="display:none"/><path d="M5 5l5 5M19 5l-5 5M5 19l5-5M19 19l-5-5"/></svg>
+  <h2>Enter passcode</h2>
+  <div class="dots" id="dots"><i></i><i></i><i></i><i></i></div>
+  <div class="pad" id="pad"></div>
+</div>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const CUR={USD:{s:'$',r:1},EUR:{s:'€',r:.92},CHF:{s:'CHF ',r:.85},GBP:{s:'£',r:.78}};
+const CATALOG=[
+ ['BTC','Bitcoin','#f7931a',95000],['ETH','Ethereum','#627eea',3400],['SOL','Solana','#9945ff',210],
+ ['USDT','Tether','#26a17b',1],['USDC','USD Coin','#2775ca',1],['BNB','BNB','#f3ba2f',620],
+ ['XRP','XRP','#3b4a5a',2.4],['DOGE','Dogecoin','#c2a633',.38],['ADA','Cardano','#0d5adb',.95],
+ ['AVAX','Avalanche','#e84142',42],['LTC','Litecoin','#a6a9aa',110],['TRX','TRON','#eb0029',.24],
+ ['SHIB','Shiba Inu','#e0432f',.000025],['PEPE','Pepe','#3d8c40',.000019],['LINK','Chainlink','#2a5ada',18],
+ ['MATIC','Polygon','#8247e5',.55],['TON','Toncoin','#0098ea',6.2],['DOT','Polkadot','#e6007a',7.5]
+];
+const CG={BTC:'bitcoin',ETH:'ethereum',SOL:'solana',USDT:'tether',USDC:'usd-coin',BNB:'binancecoin',XRP:'ripple',DOGE:'dogecoin',ADA:'cardano',AVAX:'avalanche-2',LTC:'litecoin',TRX:'tron',SHIB:'shiba-inu',PEPE:'pepe',LINK:'chainlink',MATIC:'matic-network',TON:'the-open-network',DOT:'polkadot'};
+const KEY='exodus-larp-v1';
+let S;
+function fresh(){return{name:'Exodus Wallet',cur:'USD',hide:false,pin:'',
+ assets:CATALOG.map(([sym,name,color,price],i)=>({sym,name,color,price,ch:(Math.random()-.45)*8,qty:0,custom:false,show:i<3})),
+ tx:[],seed:Math.floor(Math.random()*1e9)}}
+function load(){try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}if(!S||!S.assets)S=fresh()}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+load();
+let range='1D',locked=!!S.pin;
+
+const A=sym=>S.assets.find(a=>a.sym===sym);
+const cr=()=>CUR[S.cur].r, cs=()=>CUR[S.cur].s;
+const val=a=>a.qty*a.price*cr();
+const totalVal=()=>S.assets.reduce((t,a)=>t+val(a),0);
+function fmt(n,dec){dec=dec??2;return n.toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec})}
+function money(n){if(S.hide)return cs()+'•••••';return cs()+fmt(n)}
+function qtyF(q){if(S.hide)return '•••';if(q===0)return '0';const d=q>=1000?2:q>=1?4:q>=.001?6:8;return fmt(q,d).replace(/\.?0+$/,'')}
+function priceF(p){p*=cr();return cs()+(p>=1?fmt(p):p>=.01?fmt(p,4):fmt(p,8))}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),2200)}
+function coinEl(a,cls){return `<div class="coin ${cls||''}" style="background:${a.color}">${esc(a.sym.slice(0,a.sym.length>3?2:1))}</div>`}
+function fakeAddr(sym){let h=0;const s=sym+S.seed;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;
+ const r=()=>{h=(h*1664525+1013904223)>>>0;return h};const hex='0123456789abcdef',b58='123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+ let o='';if(sym==='BTC'){o='bc1q';for(let i=0;i<38;i++)o+=hex[r()%16]+'';return o.slice(0,42)}
+ if(sym==='SOL'||sym==='XRP'||sym==='TRX'||sym==='TON'){for(let i=0;i<(sym==='SOL'?44:34);i++)o+=b58[r()%58];return(sym==='XRP'?'r':sym==='TRX'?'T':'')+o}
+ o='0x';for(let i=0;i<40;i++)o+=hex[r()%16];return o}
+function qrSvg(str){let h=5381;for(const c of str)h=(h*33+c.charCodeAt(0))>>>0;const r=()=>{h=(h*1664525+1013904223)>>>0;return h>>>16};
+ const N=25;let d='';const fin=(x,y)=>{d+=`M${x} ${y}h7v7h-7z M${x+1} ${y+1}v5h5v-5z M${x+2} ${y+2}h3v3h-3z`};
+ const inF=(x,y)=>(x<8&&y<8)||(x>N-9&&y<8)||(x<8&&y>N-9);
+ for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(!inF(x,y)&&r()%2)d+=`M${x} ${y}h1v1h-1z`;
+ fin(0,0);fin(N-7,0);fin(0,N-7);
+ return `<svg class="qr" viewBox="0 0 ${N} ${N}" shape-rendering="crispEdges"><path fill="#000" fill-rule="evenodd" d="${d}"/></svg>`}
+
+/* ---------- rendering ---------- */
+function assetRow(a,click){return `<div class="row" onclick="${click}('${a.sym}')">${coinEl(a)}<div class="grow"><div class="nm">${esc(a.name)}</div><div class="sub">${priceF(a.price)} <span class="${a.ch>=0?'up':'dn'}">${a.ch>=0?'+':''}${a.ch.toFixed(2)}%</span></div></div><div class="r"><div class="nm">${money(val(a))}</div><div class="sub">${qtyF(a.qty)} ${esc(a.sym)}</div></div></div>`}
+function txRow(t){const ic={in:'↓',out:'↑',swap:'⇄'}[t.type];const a=A(t.sym)||{};
+ const title=t.type==='in'?'Received '+t.sym:t.type==='out'?'Sent '+t.sym:'Exchanged '+t.sym+' → '+t.to;
+ const amt=t.type==='in'?`<span class="up">+${qtyF(t.qty)} ${t.sym}</span>`:t.type==='out'?`<span class="dn">−${qtyF(t.qty)} ${t.sym}</span>`:`<span class="up">+${qtyF(t.toQty)} ${t.to}</span>`;
+ return `<div class="row tx"><div class="ic">${ic}</div><div class="grow"><div class="nm">${title}</div><div class="sub">${new Date(t.ts).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · Confirmed</div></div><div class="r"><div class="nm" style="font-size:15px">${amt}</div></div></div>`}
+
+function series(){
+ const n=range==='1D'?48:range==='1W'?56:range==='1M'?60:range==='1Y'?72:90;
+ const T=totalVal();let h=(S.seed+range.charCodeAt(0)*977+range.length)>>>0;
+ const r=()=>{h=(h*1664525+1013904223)>>>0;return h/4294967296};
+ const vol={'1D':.012,'1W':.025,'1M':.04,'1Y':.09,'ALL':.14}[range];
+ const pts=[T];for(let i=1;i<n;i++)pts.unshift(pts[0]*(1+(r()-.5)*vol*2));
+ return pts}
+function drawChart(){
+ const pts=series(),mn=Math.min(...pts),mx=Math.max(...pts),W=400,H=150,pad=14;
+ const up=pts[pts.length-1]>=pts[0];const col=up?'#2ee6a6':'#ff5c7a';
+ const xy=pts.map((v,i)=>[i/(pts.length-1)*W,H-pad-(mx===mn?.5:(v-mn)/(mx-mn))*(H-pad*2)]);
+ let d='M'+xy.map(p=>p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' L');
+ $('#chart').innerHTML=`<defs><linearGradient id="cf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".35"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs><path d="${d} L${W} ${H} L0 ${H}z" fill="url(#cf)"/><path d="${d}" fill="none" stroke="${col}" stroke-width="2.4" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>`;
+ const first=pts[0],last=pts[pts.length-1],diff=last-first,pc=first?diff/first*100:0;
+ $('#chg').innerHTML=S.hide||totalVal()===0?`<span style="color:var(--mut)">${totalVal()===0?'Add funds to get started':'•••'}</span>`:`<span class="${diff>=0?'up':'dn'}">${diff>=0?'+':'−'}${cs()}${fmt(Math.abs(diff))} (${diff>=0?'+':''}${pc.toFixed(2)}%)</span>`}
+function render(){
+ const T=totalVal();
+ $('#total').innerHTML=S.hide?`${cs()}<span>•••••</span>`:`${cs()}${fmt(Math.floor(T),0)}<small>.${fmt(T%1,2).slice(2)}</small>`;
+ $('#ranges').innerHTML=['1D','1W','1M','1Y','ALL'].map(r=>`<button class="${r===range?'on':''}" onclick="setRange('${r}')">${r}</button>`).join('');
+ drawChart();
+ const held=S.assets.filter(a=>a.qty>0||a.show).sort((a,b)=>val(b)-val(a));
+ $('#pf-assets').innerHTML=held.slice(0,6).map(a=>assetRow(a,'openAsset')).join('');
+ $('#pf-tx').innerHTML=S.tx.length?S.tx.slice(0,3).map(txRow).join(''):'<div class="empty">No activity yet</div>';
+ $('#wl-assets').innerHTML=[...S.assets].sort((a,b)=>val(b)-val(a)||a.sym.localeCompare(b.sym)).map(a=>assetRow(a,'openAsset')).join('');
+ $('#hs-list').innerHTML=S.tx.length?S.tx.map(txRow).join(''):'<div class="empty">No transactions yet</div>';
+ $('#swHide').classList.toggle('on',S.hide);$('#curLbl').textContent=S.cur;$('#pinLbl').textContent=S.pin?'On':'Off';$('#nameLbl').textContent=S.name;
+ updSwap()}
+function setRange(r){range=r;render()}
+function toggleHide(){S.hide=!S.hide;save();render()}
+function cycleCur(){const k=Object.keys(CUR);S.cur=k[(k.indexOf(S.cur)+1)%k.length];save();render()}
+function editName(){const n=prompt('Wallet name',S.name);if(n&&n.trim()){S.name=n.trim().slice(0,30);save();render()}}
+function resetAll(){if(confirm('Reset everything? All balances and history will be erased.')){localStorage.removeItem(KEY);S=fresh();save();render();toast('Wallet reset')}}
+
+/* ---------- navigation ---------- */
+function go(v){document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v));document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.v===v));$('#v-'+v).scrollTop=0}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>go(t.dataset.v));
+
+/* ---------- sheets ---------- */
+function sheet(html){$('#sheet').innerHTML='<div class="grab"></div>'+html;$('#bg').classList.add('on')}
+function closeSheet(){$('#bg').classList.remove('on')}
+const opts=(sel,onlyHeld)=>S.assets.filter(a=>!onlyHeld||a.qty>0).map(a=>`<option value="${a.sym}" ${a.sym===sel?'selected':''}>${a.sym} — ${esc(a.name)}</option>`).join('');
+
+let addMode='add',addUnit='coin';
+function openAdd(sym){addMode='add';addUnit='coin';
+ sheet(`<h3>Add funds</h3>
+ <label>Asset</label><select id="aSym" onchange="addPreview()">${opts(sym||'BTC')}</select>
+ <label>Action</label><div class="seg" id="aMode"><button class="on" onclick="setAM('add')">Add</button><button onclick="setAM('set')">Set balance</button></div>
+ <label>Amount in</label><div class="seg" id="aUnit"><button class="on" onclick="setAU('coin')" id="uCoin">Coin</button><button onclick="setAU('fiat')">${S.cur}</button></div>
+ <input id="aAmt" type="number" inputmode="decimal" placeholder="0" style="margin-top:12px;font-size:28px;font-weight:700" oninput="addPreview()">
+ <div class="chips">${[100,1000,10000,100000,1000000].map(v=>`<button onclick="quickAdd(${v})">${cs()}${v>=1000?v/1000+'K':v}</button>`).join('')}</div>
+ <div class="sub" id="aPrev" style="margin-top:14px;text-align:center;min-height:18px"></div>
+ <button class="btn pri big" onclick="doAdd()">Confirm</button>`);addPreview()}
+function setAM(m){addMode=m;$('#aMode').children[0].classList.toggle('on',m==='add');$('#aMode').children[1].classList.toggle('on',m==='set');addPreview()}
+function setAU(u){addUnit=u;$('#aUnit').children[0].classList.toggle('on',u==='coin');$('#aUnit').children[1].classList.toggle('on',u==='fiat');addPreview()}
+function quickAdd(v){setAU('fiat');$('#aAmt').value=v;addPreview()}
+function addQty(){const a=A($('#aSym').value),v=parseFloat($('#aAmt').value);if(!(v>=0))return null;return addUnit==='fiat'?v/(a.price*cr()):v}
+function addPreview(){const a=A($('#aSym').value),q=addQty();$('#uCoin').textContent=a.sym;
+ $('#aPrev').textContent=q==null?'':`≈ ${qtyF(q)} ${a.sym} · ${cs()}${fmt(q*a.price*cr())}`}
+function doAdd(){const a=A($('#aSym').value),q=addQty();if(!q&&q!==0||q<0||isNaN(q)){toast('Enter an amount');return}
+ if(addMode==='set'){const d=q-a.qty;a.qty=q;if(d>0)S.tx.unshift({type:'in',sym:a.sym,qty:d,ts:Date.now()});else if(d<0)S.tx.unshift({type:'out',sym:a.sym,qty:-d,ts:Date.now()})}
+ else{if(q<=0){toast('Enter an amount');return}a.qty+=q;S.tx.unshift({type:'in',sym:a.sym,qty:q,ts:Date.now()})}
+ a.show=true;save();closeSheet();render();toast('✓ Balance updated')}
+
+function openSend(sym){
+ sheet(`<h3>Send</h3><label>Asset</label><select id="sSym" onchange="sendPrev()">${opts(sym||(S.assets.find(a=>a.qty>0)||{}).sym||'BTC',false)}</select>
+ <label>To address</label><input id="sTo" placeholder="Paste address" autocapitalize="off" autocorrect="off" spellcheck="false">
+ <label>Amount</label><input id="sAmt" type="number" inputmode="decimal" placeholder="0" oninput="sendPrev()">
+ <div class="chips"><button onclick="sendMax()">Max</button></div>
+ <div class="sub" id="sPrev" style="margin-top:14px;text-align:center;min-height:18px"></div>
+ <button class="btn pri big" onclick="doSend()">Send</button>`);sendPrev()}
+function sendPrev(){const a=A($('#sSym').value),q=parseFloat($('#sAmt').value)||0;$('#sPrev').textContent=`Available: ${qtyF(a.qty)} ${a.sym}${q?` · ≈ ${cs()}${fmt(q*a.price*cr())}`:''}`}
+function sendMax(){$('#sAmt').value=A($('#sSym').value).qty;sendPrev()}
+function doSend(){const a=A($('#sSym').value),q=parseFloat($('#sAmt').value),to=$('#sTo').value.trim();
+ if(to.length<10){toast('Enter a valid address');return}if(!(q>0)){toast('Enter an amount');return}if(q>a.qty){toast('Insufficient funds');return}
+ sheet(`<h3>Sending…</h3><div class="spin"></div><div class="sub" style="text-align:center">Broadcasting transaction</div>`);
+ setTimeout(()=>{a.qty-=q;S.tx.unshift({type:'out',sym:a.sym,qty:q,ts:Date.now()});save();closeSheet();render();toast(`✓ Sent ${qtyF(q)} ${a.sym}`)},1600)}
+
+function openReceive(sym){
+ sheet(`<h3>Receive</h3><select id="rSym" onchange="rcv()">${opts(sym||'BTC')}</select><div id="rBody"></div>`);rcv()}
+function rcv(){const s=$('#rSym').value,ad=fakeAddr(s);$('#rBody').innerHTML=qrSvg(ad)+`<div class="addr">${ad}</div><button class="btn big" onclick="cp('${ad}')">Copy address</button>`}
+function cp(t){(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Address copied'),()=>toast('Address copied'))}
+
+function openAsset(sym){const a=A(sym);
+ sheet(`<div class="hero">${coinEl(a)}<div class="amt">${qtyF(a.qty)} ${esc(a.sym)}</div><div class="sub" style="font-size:16px">${money(val(a))}</div></div>
+ <div class="actions"><button class="btn pri" onclick="openAdd('${sym}')">＋ Add</button><button class="btn" onclick="openSend('${sym}')">Send</button><button class="btn" onclick="openReceive('${sym}')">Receive</button></div>
+ <div class="card" style="background:var(--card2)"><div class="set" style="padding:10px 0"><span class="sub">Price</span><span>${priceF(a.price)}</span></div><div class="set" style="padding:10px 0"><span class="sub">24h</span><span class="${a.ch>=0?'up':'dn'}">${a.ch>=0?'+':''}${a.ch.toFixed(2)}%</span></div></div>
+ ${a.custom?`<button class="btn big" style="color:var(--red)" onclick="delCustom('${sym}')">Remove asset</button>`:''}`)}
+
+function openCustom(){sheet(`<h3>New asset</h3><label>Name</label><input id="cName" placeholder="Memecoin" maxlength="20"><label>Ticker</label><input id="cSym" placeholder="MEME" maxlength="6" autocapitalize="characters"><label>Price (USD)</label><input id="cPrice" type="number" inputmode="decimal" placeholder="0.0042"><label>Amount</label><input id="cQty" type="number" inputmode="decimal" placeholder="1000000"><button class="btn pri big" onclick="doCustom()">Add asset</button>`)}
+function doCustom(){const name=$('#cName').value.trim(),sym=$('#cSym').value.trim().toUpperCase(),p=parseFloat($('#cPrice').value),q=parseFloat($('#cQty').value)||0;
+ if(!name||!sym||!(p>0)){toast('Fill name, ticker and price');return}if(A(sym)){toast('Ticker already exists');return}
+ const cols=['#ff6b6b','#ffa94d','#69db7c','#38d9a9','#4dabf7','#9775fa','#f783ac'];
+ S.assets.push({sym,name,color:cols[Math.floor(Math.random()*cols.length)],price:p,ch:(Math.random()-.4)*10,qty:q,custom:true,show:true});
+ if(q>0)S.tx.unshift({type:'in',sym,qty:q,ts:Date.now()});save();closeSheet();render();toast('✓ Asset added')}
+function delCustom(sym){S.assets=S.assets.filter(a=>a.sym!==sym);save();closeSheet();render()}
+
+/* ---------- exchange ---------- */
+function initSwap(){$('#fromSel').innerHTML=opts('BTC');$('#toSel').innerHTML=opts('ETH');
+ $('#pct').innerHTML=[25,50,75,100].map(p=>`<button onclick="pctSwap(${p})">${p===100?'Max':p+'%'}</button>`).join('');
+ ['fromSel','toSel','fromAmt'].forEach(i=>$('#'+i).addEventListener('input',updSwap))}
+function updSwap(){const f=A($('#fromSel').value),t=A($('#toSel').value);if(!f||!t)return;
+ $('#fromBal').textContent='Balance: '+qtyF(f.qty)+' '+f.sym;$('#toBal').textContent='Balance: '+qtyF(t.qty)+' '+t.sym;
+ const v=parseFloat($('#fromAmt').value)||0;const out=v*f.price/t.price*.995;
+ $('#toAmt').value=v?+out.toPrecision(8):'';
+ $('#rate').textContent=`1 ${f.sym} ≈ ${qtyF(f.price/t.price*.995)} ${t.sym} · 0.5% fee`}
+function flipSwap(){const a=$('#fromSel').value;$('#fromSel').value=$('#toSel').value;$('#toSel').value=a;$('#fromAmt').value='';updSwap()}
+function pctSwap(p){const f=A($('#fromSel').value);$('#fromAmt').value=+(f.qty*p/100).toPrecision(10);updSwap()}
+function doSwap(){const f=A($('#fromSel').value),t=A($('#toSel').value),v=parseFloat($('#fromAmt').value);
+ if(f===t){toast('Choose two different assets');return}if(!(v>0)){toast('Enter an amount');return}if(v>f.qty){toast('Insufficient '+f.sym);return}
+ const out=v*f.price/t.price*.995;
+ sheet(`<h3>Exchanging…</h3><div class="spin"></div><div class="sub" style="text-align:center">${qtyF(v)} ${f.sym} → ${t.sym}</div>`);
+ setTimeout(()=>{f.qty-=v;t.qty+=out;t.show=true;S.tx.unshift({type:'swap',sym:f.sym,qty:v,to:t.sym,toQty:out,ts:Date.now()});save();closeSheet();$('#fromAmt').value='';render();toast(`✓ Received ${qtyF(out)} ${t.sym}`)},1800)}
+
+/* ---------- passcode ---------- */
+let entry='',pinMode=null,pinTmp='';
+function buildPad(){$('#pad').innerHTML=[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(k=>k===''?'<span></span>':`<button data-k="${k}">${k}</button>`).join('');
+ $('#pad').onclick=e=>{const k=e.target.dataset&&e.target.dataset.k;if(k==null)return;pinKey(k)}}
+function dots(){[...$('#dots').children].forEach((d,i)=>d.classList.toggle('f',i<entry.length))}
+function showLock(title){$('#lock h2').textContent=title;entry='';dots();$('#lock').classList.add('on')}
+function pinKey(k){if(k==='⌫')entry=entry.slice(0,-1);else if(entry.length<4)entry+=k;dots();if(entry.length<4)return;
+ setTimeout(()=>{
+  if(pinMode==='set'){pinTmp=entry;pinMode='confirm';showLock('Confirm passcode')}
+  else if(pinMode==='confirm'){if(entry===pinTmp){S.pin=entry;save();pinMode=null;$('#lock').classList.remove('on');render();toast('Passcode set')}else{bad();pinMode='set';$('#lock h2').textContent='Enter new passcode'}}
+  else if(pinMode==='off'){if(entry===S.pin){S.pin='';save();pinMode=null;$('#lock').classList.remove('on');render();toast('Passcode removed')}else bad()}
+  else{if(entry===S.pin){$('#lock').classList.remove('on')}else bad()}
+ },120)}
+function bad(){entry='';dots();const d=$('#dots');d.classList.remove('shake');void d.offsetWidth;d.classList.add('shake');navigator.vibrate&&navigator.vibrate(200)}
+function setPin(){if(S.pin){pinMode='off';showLock('Enter passcode to disable')}else{pinMode='set';showLock('Enter new passcode')}}
+
+/* ---------- live prices ---------- */
+async function livePrices(){
+ try{const ids=Object.values(CG).join(',');const r=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`);if(!r.ok)throw 0;const j=await r.json();
+  S.assets.forEach(a=>{const d=j[CG[a.sym]];if(d&&d.usd){a.price=d.usd;a.ch=d.usd_24h_change||0}});save();render()}catch(e){}}
+function jitter(){S.assets.forEach(a=>{if(!a.custom||true)a.price*=1+(Math.random()-.5)*.0016});
+ if(!$('#bg').classList.contains('on')&&!document.activeElement.matches('input,select')){render()}}
+
+/* ---------- boot ---------- */
+initSwap();buildPad();render();
+if(S.pin){pinMode=null;showLock('Enter passcode')}
+livePrices();setInterval(livePrices,60000);setInterval(jitter,4000);
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
