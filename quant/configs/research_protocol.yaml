@@ -1,0 +1,64 @@
+# Protocole de recherche — fixé AVANT le premier cycle.
+# Modifier ce fichier après avoir vu des résultats est exactement le data-snooping
+# que le protocole existe pour empêcher. Toute modification doit être commitée avec
+# sa raison, et le hash de ce fichier est enregistré dans chaque cycle.
+
+version: 1
+
+periods:
+  research_end: "2019-12-31"      # train + validation (walk-forward) avant cette date
+  test_start: "2020-01-01"
+  test_end: "2022-12-31"
+  holdout_start: "2023-01-01"     # consulté une seule fois, verrouillé en base
+
+walk_forward:
+  train_years: 5
+  validation_years: 1
+  step_years: 1
+  min_train_years: 3
+
+budget:
+  max_configs_per_strategy: 9
+  max_trials_per_cycle: 2500      # (stratégie × configuration × classe d'actifs)
+
+sizing_for_research:
+  target_vol_per_instrument: 0.10 # chaque instrument dimensionné à 10 % de vol (causal)
+  vol_lookback_days: 60
+  max_leverage_per_instrument: 3.0
+
+gates:
+  min_trades_research: 30
+  promising:
+    wf_oos_sharpe_min: 0.0        # strictement supérieur
+    wf_positive_years_min: 0.5
+    cost_x1_5_sharpe_min: 0.0
+  paper_test:
+    robustness_score_min: 0.70
+    dsr_min: 0.90
+    pbo_max: 0.50
+    test_sharpe_min: 0.0
+    holdout_sharpe_min: 0.0
+    mc_prob_dd25_max: 0.10        # P(drawdown > 25 %) au dimensionnement de recherche
+  live_candidate:
+    min_paper_days: 60
+    min_paper_trades: 30
+    max_slippage_ratio: 1.5
+
+robustness:
+  param_perturbations: [0.05, 0.10, 0.20]
+  cost_multipliers: [1.25, 1.5]
+  extra_slippage_bps: 2.0
+  entry_delay_bars: 1
+  exit_delay_bars: 1
+  signal_noise_rate: 0.05
+  trade_removal_top: [0.05, 0.10]
+
+monte_carlo:
+  n_paths: 2000
+  seed: 20261003
+  cost_multiplier_range: [1.0, 1.5]
+  trade_drop_rate: 0.10
+  return_noise_sd_fraction: 0.25
+
+capacity:
+  sizes_usd: [10000, 25000, 50000, 100000, 250000, 500000, 1000000, 5000000, 10000000]

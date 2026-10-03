@@ -1,0 +1,105 @@
+# Univers et coûts par classe d'actifs — analysés SÉPARÉMENT, jamais mélangés.
+#
+# Les coûts sont des estimations PRUDENTES de conditions retail / prop-firm, en points
+# de base (bp) du notionnel, PAR CÔTÉ. Ce sont des hypothèses, pas des mesures : elles
+# doivent être remplacées par le spread et le slippage réellement observés en paper
+# trading (le monitoring compare les deux). Les tests de robustesse les multiplient
+# par 1,25 et 1,5.
+#
+# holding_cost_annual : coût de portage sur |position| (swap FX, financement CFD,
+# funding crypto, emprunt de titres). Signe ignoré = toujours payé = conservateur.
+# periods_per_year : 252 jours de bourse, 365 pour la crypto (marché 24/7).
+
+asset_classes:
+  fx:
+    description: "Forex majeur, prix spot Yahoo (pas de volume)"
+    symbols: [EURUSD=X, GBPUSD=X, USDJPY=X, AUDUSD=X, USDCAD=X, USDCHF=X, NZDUSD=X]
+    commission_bps: 0.35
+    half_spread_bps: 0.5
+    slippage_bps: 0.3
+    holding_cost_annual: {long: 0.010, short: 0.010}
+    periods_per_year: 252
+    has_volume: false
+    notes: "Swap réel dépendant du différentiel de taux ; approximé par un coût fixe. Yahoo FX a des hauts/bas aberrants : voir l'audit."
+
+  indices:
+    description: "Indices cash (ce que suivent les CFD de prop firms)"
+    symbols: ["^GSPC", "^NDX", "^DJI", "^RUT", "^GDAXI", "^FTSE", "^N225", "^STOXX50E"]
+    commission_bps: 0.0
+    half_spread_bps: 1.0
+    slippage_bps: 0.5
+    holding_cost_annual: {long: 0.030, short: 0.010}
+    periods_per_year: 252
+    has_volume: true
+    notes: "Indice cash sans dividendes ; financement CFD net approximé à 3 %/an long, 1 %/an short. Non investissable directement."
+
+  futures:
+    description: "Futures continus Yahoo (front month, NON ajustés)"
+    symbols: [ES=F, NQ=F, YM=F, RTY=F, ZN=F, ZB=F]
+    commission_bps: 0.2
+    half_spread_bps: 0.3
+    slippage_bps: 0.5
+    holding_cost_annual: {long: 0.0, short: 0.0}
+    periods_per_year: 252
+    has_volume: true
+    roll_proxies: {ES=F: "^GSPC", NQ=F: "^NDX", YM=F: "^DJI", RTY=F: "^RUT"}
+    notes: "Sauts de roll non corrigés (pas de données par contrat gratuites). Qualité B : l'audit compte les sauts."
+
+  equities:
+    description: "ETF sectoriels US (survivorship limité : l'indice se rebalance en temps réel)"
+    symbols: [XLK, XLF, XLE, XLV, XLI, XLY, XLP, XLU, XLB]
+    commission_bps: 0.5
+    half_spread_bps: 0.5
+    slippage_bps: 0.5
+    holding_cost_annual: {long: 0.0, short: 0.010}
+    periods_per_year: 252
+    has_volume: true
+    use_adjusted: true
+    notes: "Rendements sur cours ajustés des dividendes ; exécution au cours brut."
+
+  crypto:
+    description: "Crypto majeures (Yahoo, 24/7)"
+    symbols: [BTC-USD, ETH-USD, LTC-USD, XRP-USD]
+    commission_bps: 5.0
+    half_spread_bps: 2.0
+    slippage_bps: 2.0
+    holding_cost_annual: {long: 0.05, short: 0.02}
+    periods_per_year: 365
+    has_volume: true
+    notes: "BIAIS DU SURVIVANT : univers choisi parmi les survivants d'aujourd'hui. Funding perp / swap CFD approximé."
+
+  metals:
+    description: "Métaux via ETF physiques/adossés (proxy du spot XAU/XAG)"
+    symbols: [GLD, SLV, PPLT, CPER]
+    commission_bps: 0.5
+    half_spread_bps: 1.0
+    slippage_bps: 0.5
+    holding_cost_annual: {long: 0.0, short: 0.010}
+    periods_per_year: 252
+    has_volume: true
+    use_adjusted: true
+    notes: "Frais de gestion de l'ETF déjà dans le prix."
+
+  commodities:
+    description: "Matières premières via ETF (coût de roll réel inclus dans le prix)"
+    symbols: [USO, UNG, DBA, DBC, DBB]
+    commission_bps: 0.5
+    half_spread_bps: 1.5
+    slippage_bps: 1.0
+    holding_cost_annual: {long: 0.0, short: 0.020}
+    periods_per_year: 252
+    has_volume: true
+    use_adjusted: true
+    notes: "USO/UNG subissent le contango réel : un détenteur d'ETF le paie, un trader de CFD spot ne le paie pas de la même façon."
+
+# Paires pré-déclarées pour l'arbitrage statistique : liens économiques, PAS issues
+# d'un screening (un screening de cointégration sur N² paires est du data-mining).
+pairs:
+  metals: [[GLD, SLV]]
+  indices: [["^GSPC", "^NDX"], ["^GDAXI", "^STOXX50E"]]
+  fx: [[EURUSD=X, GBPUSD=X], [AUDUSD=X, NZDUSD=X]]
+  crypto: [[BTC-USD, ETH-USD]]
+  equities: [[XLK, XLY], [XLP, XLU]]
+  commodities: [[DBC, DBB]]
+
+stop_slippage_multiplier: 2.0     # un stop est un ordre au marché déclenché : slippage doublé
