@@ -1,0 +1,35 @@
+firm: template_futures_trailing_eod
+status: template
+rules_verified: false
+source_url: null
+retrieved_at: null
+notes: "GABARIT illustratif — évaluation futures à drawdown trailing de fin de journée verrouillé au capital de départ. Pas les règles d'une firme réelle."
+programs:
+  - name: eval_50k
+    phase: challenge
+    account_size: 50000
+    profit_target: 0.06
+    max_daily_loss: null
+    daily_reset_tz: America/Chicago
+    max_total_drawdown: 0.04
+    drawdown_type: trailing_eod
+    trailing_lock_at_start: true
+    min_trading_days: 1
+    allowed_instruments: [futures, indices, metals, commodities]
+    max_position_lots: 5
+    trading_hours: {start: "17:00", end: "15:10", tz: America/Chicago}
+    weekend_holding: false
+    overnight_holding: true
+    consistency_rule: {max_day_share_of_profit: 0.50}
+  - name: funded_50k
+    phase: funded
+    account_size: 50000
+    max_daily_loss: null
+    daily_reset_tz: America/Chicago
+    max_total_drawdown: 0.04
+    drawdown_type: trailing_eod
+    trailing_lock_at_start: true
+    allowed_instruments: [futures, indices, metals, commodities]
+    max_position_lots: 5
+    weekend_holding: false
+    payout: {split: 0.90}

@@ -62,3 +62,23 @@ monte_carlo:
 
 capacity:
   sizes_usd: [10000, 25000, 50000, 100000, 250000, 500000, 1000000, 5000000, 10000000]
+
+# ---------------------------------------------------------------------------
+# Journal des changements (après le commit initial). Chaque entrée dit ce qui a
+# changé, pourquoi, et si la raison dépendait d'un résultat de performance.
+changelog:
+  - date: "2026-10-03"
+    change: "classe indices : indices cash Yahoo remplacés par des ETF indiciels"
+    reason: >
+      L'audit montre que l'ouverture des indices cash égale la clôture de la veille dans
+      66-92 % des séances avant 2010 (ouverture périmée). Une stratégie de breakout y
+      affichait un Sharpe positif qui disparaît sur SPY et sur les futures ES : artefact
+      de données, pas un marché négociable.
+    depends_on_performance: "non — invalidité des données ; la décision aurait été la même pour tout résultat"
+  - date: "2026-10-03"
+    change: "simulateur : barre qui touche les deux ordres stop-entry = côté perdant supposé"
+    reason: >
+      Sauter ces barres retire a posteriori les journées aller-retour (on n'apprend qu'à
+      la clôture que les deux niveaux ont été touchés). Biais d'anticipation : Sharpe
+      +2,4 sur ES=F avant correction, −1,4 après.
+    depends_on_performance: "non — correction d'un biais ; la convention pessimiste est la même que stop-avant-objectif"

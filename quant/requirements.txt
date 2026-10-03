@@ -21,3 +21,4 @@ uvicorn[standard]>=0.29
 # CLI / UX
 typer>=0.12
 rich>=13.7
+pyyaml>=6.0

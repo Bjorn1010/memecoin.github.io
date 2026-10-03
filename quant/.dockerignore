@@ -1,0 +1,5 @@
+.venv
+data
+web/node_modules
+reports/*_dev
+**/__pycache__

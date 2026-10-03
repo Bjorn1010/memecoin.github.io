@@ -1,0 +1,45 @@
+firm: template_2step_static
+status: template
+rules_verified: false
+source_url: null
+retrieved_at: null
+notes: "GABARIT illustratif — structure 2 étapes à drawdown statique. Pas les règles d'une firme réelle."
+programs:
+  - name: challenge_100k
+    phase: challenge
+    account_size: 100000
+    currency: USD
+    profit_target: 0.10
+    max_daily_loss: 0.05
+    daily_loss_basis: balance_or_equity_start_of_day
+    daily_reset_tz: Europe/Prague
+    max_total_drawdown: 0.10
+    drawdown_type: static
+    min_trading_days: 4
+    max_calendar_days: null
+    leverage: {fx: 100, indices: 20, metals: 20, commodities: 10, crypto: 2, equities: 5}
+    allowed_instruments: [fx, indices, metals, commodities, crypto, equities]
+    news_restriction: {enabled: false}
+    weekend_holding: true
+    overnight_holding: true
+  - name: verification_100k
+    phase: verification
+    account_size: 100000
+    profit_target: 0.05
+    max_daily_loss: 0.05
+    daily_reset_tz: Europe/Prague
+    max_total_drawdown: 0.10
+    drawdown_type: static
+    min_trading_days: 4
+    leverage: {fx: 100, indices: 20, metals: 20, commodities: 10, crypto: 2, equities: 5}
+    allowed_instruments: [fx, indices, metals, commodities, crypto, equities]
+  - name: funded_100k
+    phase: funded
+    account_size: 100000
+    max_daily_loss: 0.05
+    daily_reset_tz: Europe/Prague
+    max_total_drawdown: 0.10
+    drawdown_type: static
+    leverage: {fx: 100, indices: 20, metals: 20, commodities: 10, crypto: 2, equities: 5}
+    allowed_instruments: [fx, indices, metals, commodities, crypto, equities]
+    payout: {split: 0.80, min_days_between: 14}

@@ -1,0 +1,25 @@
+firm: template_1step_trailing_intraday
+status: template
+rules_verified: false
+source_url: null
+retrieved_at: null
+notes: "GABARIT illustratif — 1 étape, drawdown trailing intraday, règle de cohérence, restriction d'annonces. Pas les règles d'une firme réelle."
+programs:
+  - name: one_step_25k
+    phase: challenge
+    account_size: 25000
+    profit_target: 0.10
+    max_daily_loss: 0.03
+    daily_loss_basis: equity
+    daily_reset_tz: UTC
+    max_total_drawdown: 0.06
+    drawdown_type: trailing_intraday
+    trailing_lock_at_start: true
+    min_trading_days: 3
+    max_calendar_days: 60
+    leverage: {fx: 50, indices: 10, metals: 10, crypto: 1}
+    allowed_instruments: [fx, indices, metals, crypto]
+    news_restriction: {enabled: true, minutes_before: 2, minutes_after: 2}
+    weekend_holding: false
+    overnight_holding: true
+    consistency_rule: {max_day_share_of_profit: 0.40}
