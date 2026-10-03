@@ -40,6 +40,8 @@ FORMULAS = {
     "rejection": "long h jours si mèche basse ≥ w·R_t au plus bas 20 j ; symétrique",
     "volume_spike": "long h jours si V_t / médiane(V)_{20} > k et C_t dans le quart haut du range ; symétrique",
     "volume_divergence": "short h jours si C_t = max N jours et V_t < médiane 20 j ; long symétrique",
+    "mr_equity_basket": "r_t = moyenne_i( s_i,t · r_i,t ), s_i,t = min(0,10 / σ̂_i(60 j), 3) révisé chaque mois ; i ∈ {rsi2_trend, bollinger, pullback, ibs} × {indices, actions, futures}",
+    "trend_multiclass": "r_t = moyenne_i( s_i,t · r_i,t ) ; i ∈ {tsmom 252, SMA 50/200, Donchian 20/10} × 7 classes ; même échelle mensuelle",
     "pairs": "β_t = cov/var glissants (W) de log A, log B ; z du spread ; long spread si z < −e jusqu'à z ≥ 0 ; symétrique",
 }
 

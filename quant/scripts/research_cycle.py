@@ -43,6 +43,7 @@ def git_commit() -> str:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--classes", default=None)
+    ap.add_argument("--hypotheses", default=None, help="liste de stratégies, séparées par des virgules")
     ap.add_argument("--db", default=str(ROOT / "reports" / "research.db"))
     ap.add_argument("--dev", action="store_true", help="ne jamais ouvrir les périodes test / holdout")
     ap.add_argument("--notes", default="")
@@ -59,6 +60,7 @@ def main() -> None:
     (out_dir / "candidates").mkdir(parents=True, exist_ok=True)
 
     lab = Lab(db, cycle_id, protocol, markets, classes=args.classes.split(",") if args.classes else None,
+              hypotheses=args.hypotheses.split(",") if args.hypotheses else None,
               open_sealed=not args.dev, log=lambda m: print(m, flush=True))
     lab.run()
 

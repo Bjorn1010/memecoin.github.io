@@ -82,3 +82,18 @@ changelog:
       la clôture que les deux niveaux ont été touchés). Biais d'anticipation : Sharpe
       +2,4 sur ES=F avant correction, −1,4 après.
     depends_on_performance: "non — correction d'un biais ; la convention pessimiste est la même que stop-avant-objectif"
+  - date: "2026-10-04"
+    change: "classe crypto : Yahoo (BTC-USD…) remplacé par Binance spot (BTCUSDT…), à partir du cycle 2"
+    reason: >
+      Les cassures intrajournalières affichaient des Sharpe de 2,5 à 3,7 sur les barres Yahoo. Le même
+      BTC/ETH sur les barres journalières de Binance donne −2,1 à +0,7, et le rejeu heure par heure
+      (scripts/verify_intraday_breakout.py) confirme : les hauts/bas de l'agrégat Yahoo ne sont pas
+      ceux d'une plateforme négociable. Les essais du cycle 1 restent comptés.
+    depends_on_performance: "déclenché par un résultat trop beau, tranché par une vérification indépendante des données"
+  - date: "2026-10-04"
+    change: "cycle 2 : deux hypothèses combinées (mr_equity_basket, trend_multiclass), une configuration chacune"
+    reason: >
+      Familles choisies APRÈS avoir vu le walk-forward du cycle 1 : c'est une sélection au niveau des
+      hypothèses. Contreparties : paramètres canoniques (pas ceux choisis par le cycle 1), aucune grille,
+      Sharpe déflaté calculé sur tous les essais cumulés des cycles 1 et 2.
+    depends_on_performance: "oui — et c'est déclaré"

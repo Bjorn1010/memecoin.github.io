@@ -112,8 +112,21 @@ class Lab:
                  data: dict[str, dict[str, pd.DataFrame]] | None = None, log: Callable[[str], None] = print,
                  open_sealed: bool = True) -> None:
         self.db, self.cycle_id, self.protocol = db, cycle_id, protocol
-        self.markets = {k: v for k, v in markets.items() if classes is None or k in classes}
         self.hyps = [h for h in HY.HYPOTHESES if hypotheses is None or h.name in hypotheses]
+        # Classes whose single strategies are screened, vs classes only loaded because a
+        # combination needs them as members.
+        self.screen_classes = set(markets) if classes is None else set(classes)
+        needed = set(self.screen_classes)
+        for h in self.hyps:
+            if h.kind == "combo":
+                needed |= HY.member_classes(h)
+        self.markets = {k: v for k, v in markets.items() if k in needed}
+        if any(h.kind == "combo" for h in self.hyps):
+            from .markets import CostProfile
+
+            # Costs are charged inside each member; the combination adds none of its own.
+            self.markets["multi"] = AssetClass("multi", (), CostProfile(0.0, 0.0, 0.0), 252, True)
+            self.screen_classes.add("multi")
         self.vault = Vault(db, cycle_id, protocol["periods"])
         self.log = log
         self.data: dict[str, dict[str, pd.DataFrame]] = data or {}
@@ -129,19 +142,22 @@ class Lab:
     # ------------------------------------------------------------------ A. data
     def load(self) -> None:
         for name, ac in self.markets.items():
+            if name == "multi":
+                self.data[name] = {}
+                continue
             if name not in self.data:
                 self.data[name] = load_class(ac)
-            from .markets import fetch_daily
+            from .markets import fetch, fetch_daily
 
             self.audits[name] = {}
             for s in ac.symbols:
-                raw = fetch_daily(s)
+                raw = fetch(ac, s)
                 proxy = fetch_daily(ac.roll_proxies[s]) if s in ac.roll_proxies else None
                 a = audit_bars(s, raw, trades_weekends=ac.periods_per_year == 365, has_volume=ac.has_volume,
                                proxy=proxy, expected_adjusted=ac.use_adjusted)
                 self.audits[name][s] = a.to_dict()
                 b = self.data[name].get(s)
-                self.db.record_dataset(f"yahoo:{s}:1d", symbol=s, asset_class=name, source="yahoo",
+                self.db.record_dataset(f"{ac.source}:{s}:1d", symbol=s, asset_class=name, source=ac.source,
                                        first_ts=a.first, last_ts=a.last, n_bars=a.n_bars,
                                        content_hash=content_hash(b) if b is not None else None, audit=a.to_dict())
                 if a.grade == "F" and s in self.data[name]:
@@ -151,6 +167,9 @@ class Lab:
     def run_class(self, h: HY.Hypothesis, cfg: dict, ac: AssetClass, *, cost_mult: float = 1.0,
                   extra_slip: float = 0.0, entry_delay: int = 0, exit_delay: int = 0, noise: float = 0.0,
                   seed: int = 0) -> ClassRun:
+        if h.kind == "combo":
+            return self._run_combo(h, cfg, cost_mult=cost_mult, extra_slip=extra_slip, entry_delay=entry_delay,
+                                   exit_delay=exit_delay, noise=noise, seed=seed)
         data = self.data[ac.name]
         costs = ac.costs.scaled(cost_mult, extra_slip)
         ppy = ac.periods_per_year
@@ -228,6 +247,46 @@ class Lab:
         T = pd.concat(trade_frames, ignore_index=True) if trade_frames else pd.DataFrame()
         return ClassRun(cls, T, R, scale, cls.copy())
 
+    def _run_combo(self, h: HY.Hypothesis, cfg: dict, **kw) -> ClassRun:
+        """Equal-risk average of member streams, each run with its canonical parameters
+        and its own class costs, then scaled to the research volatility with yesterday's
+        estimate, the scale being revised once a month (a daily revision would trade
+        every day for free)."""
+        target = self.sizing["target_vol_per_instrument"]
+        cap = self.sizing["max_leverage_per_instrument"]
+        streams, trades = {}, []
+        for strat, cls in cfg["members"]:
+            mh = HY.by_name(strat)
+            ac = self.markets[cls]
+            run = self.run_class(mh, dict(mh.baseline), ac, **kw)
+            r = run.returns
+            if r.empty:
+                continue
+            # 24/7 markets: fold weekend returns into the next business day so every
+            # member lives on one calendar and annualisation stays at 252.
+            if ac.periods_per_year == 365:
+                bday = r.index + pd.offsets.BDay(0)
+                r = (1 + r).groupby(bday).prod() - 1
+            vol = r.rolling(60, min_periods=30).std() * np.sqrt(252)
+            scale = (target / vol).shift(1).clip(upper=cap)
+            monthly = scale.groupby([scale.index.year, scale.index.month]).transform("first")
+            key = f"{strat}@{cls}"
+            streams[key] = r * monthly.fillna(0.0)
+            if len(run.trades):
+                t = run.trades.copy()
+                t["symbol"] = key
+                trades.append(t)
+        if not streams:
+            empty = pd.Series(dtype="float64")
+            return ClassRun(empty, pd.DataFrame(), pd.DataFrame(), empty, empty)
+        R = pd.DataFrame(streams).sort_index()
+        cls_r = R.mean(axis=1, skipna=True).fillna(0.0)
+        T = pd.concat(trades, ignore_index=True) if trades else pd.DataFrame()
+        if len(T):
+            for col in ("gross", "cost", "net", "size"):
+                T[col] = T[col] / len(streams)
+        return ClassRun(cls_r, T, R, pd.Series(1.0, index=cls_r.index), cls_r.copy())
+
     # ------------------------------------------------------------------ B. grid + walk-forward
     def walk_forward(self, M: pd.DataFrame, configs: list[dict], ppy: int) -> dict:
         wfp = self.protocol["walk_forward"]
@@ -272,10 +331,14 @@ class Lab:
     def screen(self) -> None:
         gates = self.protocol["gates"]
         for name, ac in self.markets.items():
-            if not self.data.get(name):
+            if not self.data.get(name) and name != "multi":
                 continue
             ppy = ac.periods_per_year
+            if name not in self.screen_classes:
+                continue
             for h in self.hyps:
+                if (h.kind == "combo") != (name == "multi"):
+                    continue
                 if h.kind == "deferred":
                     self.skipped.append({"strategy": h.name, "market": name, "status": "DEFERRED",
                                          "reason": h.deferred_reason})

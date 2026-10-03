@@ -65,6 +65,7 @@ class AssetClass:
     notes: str = ""
     roll_proxies: dict = field(default_factory=dict)
     pairs: tuple[tuple[str, str], ...] = ()
+    source: str = "yahoo"
 
 
 def load_markets(path: Path | None = None) -> dict[str, AssetClass]:
@@ -92,6 +93,7 @@ def load_markets(path: Path | None = None) -> dict[str, AssetClass]:
             notes=spec.get("notes", ""),
             roll_proxies=dict(spec.get("roll_proxies", {}) or {}),
             pairs=tuple(tuple(p) for p in pairs.get(name, [])),
+            source=spec.get("source", "yahoo"),
         )
     return out
 
@@ -186,11 +188,38 @@ def prepare_bars(raw: pd.DataFrame, *, use_adjusted: bool) -> pd.DataFrame:
     return df[["open", "high", "low", "close", "volume", "raw_close"]]
 
 
+def fetch_binance_daily(symbol: str, *, refresh: bool = False) -> pd.DataFrame:
+    """Daily bars of a Binance spot pair: a venue one can actually trade, unlike Yahoo's
+    crypto aggregate, whose daily highs and lows produced breakout Sharpe ratios of
+    2.5-3.7 that vanish on Binance's own daily and hourly bars
+    (scripts/verify_intraday_breakout.py)."""
+    path = _cache_path(f"binance_{symbol}_1d")
+    if path.exists() and not refresh:
+        return pd.read_parquet(path)
+    from ..data.sources.binance_vision import klines
+
+    k = klines(symbol, "1d", start="2017-08-17")
+    if k.empty:
+        return pd.DataFrame(columns=["open", "high", "low", "close", "volume", "adj_close"])
+    k.index = (pd.to_datetime(k["ts"], unit="ms", utc=True) - pd.Timedelta(days=1)).normalize()
+    frame = k[["open", "high", "low", "close", "quote_volume"]].rename(columns={"quote_volume": "volume"})
+    frame = frame.astype("float64")
+    frame["volume"] = frame["volume"] / frame["close"]  # base units, like every other source
+    frame["adj_close"] = frame["close"]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    frame.to_parquet(path)
+    return frame
+
+
+def fetch(ac: "AssetClass", symbol: str, *, refresh: bool = False) -> pd.DataFrame:
+    return fetch_binance_daily(symbol, refresh=refresh) if ac.source == "binance" else fetch_daily(symbol, refresh=refresh)
+
+
 def load_class(ac: AssetClass, *, refresh: bool = False) -> dict[str, pd.DataFrame]:
     out = {}
     for s in ac.symbols:
         try:
-            raw = fetch_daily(s, refresh=refresh)
+            raw = fetch(ac, s, refresh=refresh)
         except Exception:  # noqa: BLE001 — a dead source is recorded by the audit, not fatal
             continue
         if raw is None or raw.empty:

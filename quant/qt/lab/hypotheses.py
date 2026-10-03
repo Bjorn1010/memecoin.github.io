@@ -211,6 +211,34 @@ HYPOTHESES: list[Hypothesis] = [
       "rupture de la relation (le spread diverge pour toujours)", "Arbitrage statistique entre substituts.",
       "Changements structurels (or/argent, politique monétaire).",
       {"window": 120, "entry": 2.0}, _grid(window=[60, 120, 250], entry=[1.5, 2.0, 2.5])),
+    # ------------------------------------------------------------------ combinations (cycle 2)
+    # Pre-registered after cycle 1, which is exactly why they are flagged: the families
+    # were chosen having seen cycle 1's walk-forward. Members use CANONICAL parameters,
+    # never the ones cycle 1's walk-forward picked, there is no grid (one configuration,
+    # one trial each), and every cycle-1 trial still counts in their deflated Sharpe.
+    H("mr_equity_basket", "ensemble", None, "combo",
+      "Un panier à risque égal de règles de retour à la moyenne court terme (RSI(2) tendance, Bollinger, pullback, IBS) "
+      "sur indices, ETF sectoriels et futures a un rendement net positif hors échantillon et plus stable que chaque règle seule.",
+      "moyenne de 12 flux (4 règles × 3 classes), chacun ramené à 10 % de vol (échelle revue chaque mois)",
+      "paramètres canoniques, aucune optimisation", "1 à 10 jours par trade", "rendement net du panier > 0, Sharpe déflaté ≥ 0,90",
+      "krachs où les excès s'étendent (2008, mars 2020) ; règles corrélées entre elles",
+      "Prime de fourniture de liquidité à court terme sur les actions (Nagel 2012) ; diversifier des edges faibles et "
+      "peu corrélés augmente le Sharpe en racine du nombre de paris indépendants.",
+      "Corrélation des règles proche de 1 (un seul pari) ; régimes de forte tendance baissière.",
+      {"members": (("rsi2_trend", "indices"), ("bollinger_reversion", "indices"), ("pullback", "indices"), ("ibs", "indices"),
+                   ("rsi2_trend", "equities"), ("bollinger_reversion", "equities"), ("pullback", "equities"), ("ibs", "equities"),
+                   ("rsi2_trend", "futures"), ("bollinger_reversion", "futures"), ("pullback", "futures"), ("ibs", "futures"))}),
+    H("trend_multiclass", "ensemble", None, "combo",
+      "Un portefeuille de suivi de tendance (momentum 12 mois, croisement 50/200, Donchian 20/10) réparti à risque égal sur "
+      "les 7 classes d'actifs a un rendement net positif hors échantillon.",
+      "moyenne de 21 flux (3 règles × 7 classes), chacun ramené à 10 % de vol (échelle revue chaque mois)",
+      "paramètres canoniques, aucune optimisation", "semaines à mois", "rendement net > 0, Sharpe déflaté ≥ 0,90",
+      "retournements brutaux simultanés ; coût de portage",
+      "Prime de tendance documentée sur un siècle et sur de nombreux marchés (Hurst, Ooi, Pedersen 2017) ; la diversification "
+      "entre classes est la source principale de son Sharpe.",
+      "Marchés sans tendance pendant des années (2011-2013) ; corrélations qui montent vers 1 en crise.",
+      {"members": tuple((s, c) for c in ("fx", "indices", "futures", "equities", "crypto", "metals", "commodities")
+                        for s in ("tsmom", "sma_cross", "donchian"))}),
     # ------------------------------------------------------------------ deferred
     H("opening_range_breakout", "breakout", None, "deferred",
       "La cassure du range des 30 premières minutes se prolonge dans la séance.", "", "", "", "", "", "", "",
@@ -230,6 +258,10 @@ def by_name(name: str) -> Hypothesis:
         if h.name == name:
             return h
     raise KeyError(name)
+
+
+def member_classes(h: Hypothesis) -> set[str]:
+    return {c for _, c in h.baseline.get("members", ())}
 
 
 def active() -> list[Hypothesis]:
