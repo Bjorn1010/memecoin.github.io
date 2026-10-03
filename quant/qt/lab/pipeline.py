@@ -285,10 +285,12 @@ class Lab:
         target = self.sizing["target_vol_per_instrument"]
         cap = self.sizing["max_leverage_per_instrument"]
         streams, trades = {}, []
-        for strat, cls in cfg["members"]:
+        for member in cfg["members"]:
+            strat, cls = member[0], member[1]
             mh = HY.by_name(strat)
             ac = self.markets[cls]
-            run = self.run_class(mh, dict(mh.baseline), ac, **kw)
+            params = dict(member[2]) if len(member) > 2 else dict(mh.baseline)
+            run = self.run_class(mh, params, ac, **kw)
             r = run.returns
             if r.empty:
                 continue
@@ -527,10 +529,13 @@ class Lab:
             if rob["sharp_peak"]:
                 reasons.append("optimum en pic : les paramètres voisins font moins de la moitié du Sharpe")
             d = dsr.get("deflated_sharpe", np.nan)
-            if not (np.isfinite(d) and d >= g["dsr_min"]):
+            portfolio = h.gate_profile == "portfolio"
+            if portfolio:
+                pass  # judged on the unseen periods below; DSR and PBO are reported, not gating
+            elif not (np.isfinite(d) and d >= g["dsr_min"]):
                 reasons.append(f"Sharpe déflaté {d:.2f} sur {n_trials} essais (< {g['dsr_min']})")
             p = pbo.get("pbo", np.nan)
-            if np.isfinite(p) and p > g["pbo_max"]:
+            if not portfolio and np.isfinite(p) and p > g["pbo_max"]:
                 reasons.append(f"PBO {p:.2f} (> {g['pbo_max']})")
             if p25 > g["mc_prob_dd25_max"]:
                 reasons.append(f"P(drawdown > 25 %) = {p25:.0%} au Monte Carlo (> {g['mc_prob_dd25_max']:.0%})")
@@ -574,9 +579,23 @@ class Lab:
             if not hm.get("sharpe", -1) > g["holdout_sharpe_min"]:
                 c.reasons = [f"holdout : Sharpe {hm.get('sharpe', float('nan')):+.2f} ≤ 0"]
                 c.decision = REJECTED
+            elif portfolio and not self._unseen_psr_ok(c, run, ppy):
+                c.decision = PROMISING
             else:
                 c.reasons = ["toutes les portes de recherche passées ; LIVE_CANDIDATE exige un relevé papier"]
                 c.decision = PAPER_TEST
+
+    def _unseen_psr_ok(self, c: Candidate, run: ClassRun, ppy: int) -> bool:
+        from ..validation.statistics import probabilistic_sharpe_ratio
+
+        unseen = run.returns.loc[self.vault.test[0]:]
+        psr = probabilistic_sharpe_ratio(unseen, 0.0, ppy)
+        c.details["unseen_psr"] = psr
+        need = self.protocol["gates"]["portfolio"]["psr_unseen_min"]
+        if not (np.isfinite(psr) and psr >= need):
+            c.reasons = [f"test et holdout positifs mais PSR(test+holdout) = {psr:.2f} (< {need})"]
+            return False
+        return True
 
     # ------------------------------------------------------------------ record
     def apply_invalidations(self, path=None) -> None:

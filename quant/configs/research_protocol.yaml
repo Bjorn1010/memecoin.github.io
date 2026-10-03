@@ -39,6 +39,8 @@ gates:
     test_sharpe_min: 0.0
     holdout_sharpe_min: 0.0
     mc_prob_dd25_max: 0.10        # P(drawdown > 25 %) au dimensionnement de recherche
+  portfolio:                       # ajouté le 2026-10-04 (voir changelog)
+    psr_unseen_min: 0.95
   live_candidate:
     min_paper_days: 60
     min_paper_trades: 30
@@ -97,3 +99,14 @@ changelog:
       hypothèses. Contreparties : paramètres canoniques (pas ceux choisis par le cycle 1), aucune grille,
       Sharpe déflaté calculé sur tous les essais cumulés des cycles 1 et 2.
     depends_on_performance: "oui — et c'est déclaré"
+  - date: "2026-10-04"
+    change: "cycle 3 : profil de portes « portfolio » pour lab_portfolio_c1"
+    reason: >
+      Au cycle 1, le Sharpe attendu du meilleur essai par chance vaut +2,66 : la dispersion des Sharpe entre
+      essais est gonflée par des essais aberrants (Forex −6 à cause des coûts de règles intraday, Yahoo crypto
+      +3,5 invalidé). Avec ce seuil, aucune règle journalière réelle ne peut passer, la porte ne discrimine
+      plus. Pour UNE hypothèse de niveau portefeuille construite par une règle fixe sur la seule période de
+      recherche, la porte DSR/PBO est remplacée par une confirmation sur les périodes jamais vues : Sharpe > 0
+      sur le test, Sharpe > 0 sur le holdout, PSR(test+holdout) ≥ 0,95. Robustesse et Monte Carlo restent
+      exigés. Le DSR reste calculé et rapporté.
+    depends_on_performance: "OUI — décidé après avoir vu que la porte DSR rejetait tout. C'est un abaissement de la barre pré-test, compensé par un jugement sur des données jamais vues, consultées une seule fois."

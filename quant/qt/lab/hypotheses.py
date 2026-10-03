@@ -33,6 +33,10 @@ class Hypothesis:
     grid: tuple[dict, ...] = ()
     requires_volume: bool = False
     deferred_reason: str = ""
+    # "standard": every gate of the protocol. "portfolio": a combination built by a fixed
+    # rule from research-window results only, judged on the untouched test and holdout
+    # periods instead of the cross-trial deflated Sharpe (see the protocol changelog).
+    gate_profile: str = "standard"
 
     def configs(self) -> list[dict]:
         """Baseline first, then the declared grid (deduplicated)."""
@@ -239,6 +243,63 @@ HYPOTHESES: list[Hypothesis] = [
       "Marchés sans tendance pendant des années (2011-2013) ; corrélations qui montent vers 1 en crise.",
       {"members": tuple((s, c) for c in ("fx", "indices", "futures", "equities", "crypto", "metals", "commodities")
                         for s in ("tsmom", "sma_cross", "donchian"))}),
+    # ------------------------------------------------------------------ lab portfolio (cycle 3)
+    # Members = every (strategy, class, configuration) that cycle 1 left PROMISING, crypto
+    # excluded (invalidated data). The rule used only research-window data (walk-forward
+    # gate on ≤ 2019), so 2020-2022 and 2023→ have never been seen by any member. One
+    # configuration, one trial, no tuning — the list below is copied from
+    # reports/cycle_001/decisions.csv and frozen by this commit.
+    H("lab_portfolio_c1", "ensemble", None, "combo",
+      "Une combinaison à risque égal des 40 flux que la recherche du cycle 1 a laissés PROMISING a un rendement net "
+      "positif sur des périodes qu'aucun de ses membres n'a jamais vues (2020-2022 puis 2023→).",
+      "moyenne des 40 flux, chacun à 10 % de vol (échelle mensuelle)", "membres et paramètres figés par le cycle 1",
+      "jours à mois", "Sharpe > 0 sur le test ET sur le holdout ; PSR(test+holdout) ≥ 0,95",
+      "edges individuels faibles ; corrélations qui montent en crise",
+      "Des edges faibles et peu corrélés (corrélation moyenne 0,10 en walk-forward) s'additionnent ; c'est la seule "
+      "source de Sharpe élevé crédible pour des règles simples sur données journalières.",
+      "Si les membres étaient du bruit sélectionné, le portefeuille retombe à zéro hors de la période de recherche.",
+      {"members": (
+        ("sma_cross", "fx", {'fast': 50, 'slow': 100}),
+        ("sma_cross", "indices", {'fast': 100, 'slow': 300}),
+        ("ema_cross", "indices", {'fast': 50, 'slow': 150}),
+        ("rsi2", "indices", {'length': 3, 'threshold': 15}),
+        ("rsi2_trend", "indices", {'threshold': 15, 'trend': 200}),
+        ("bollinger_reversion", "indices", {'n': 10, 'k': 1.5}),
+        ("pullback", "indices", {'lookback': 10, 'trend': 200, 'max_hold': 10}),
+        ("mtf_momentum", "indices", {'long': 250, 'short': 10, 'hold': 10}),
+        ("rejection", "indices", {'wick': 0.66, 'lookback': 20, 'hold': 5}),
+        ("volume_divergence", "indices", {'lookback': 10, 'hold': 3}),
+        ("sma_cross", "futures", {'fast': 100, 'slow': 300}),
+        ("tsmom", "futures", {'lookback': 378}),
+        ("rsi2", "futures", {'length': 4, 'threshold': 5}),
+        ("rsi2_trend", "futures", {'threshold': 15, 'trend': 100}),
+        ("bollinger_reversion", "futures", {'n': 10, 'k': 2.0}),
+        ("pullback", "futures", {'lookback': 3, 'trend': 200, 'max_hold': 10}),
+        ("ibs", "futures", {'threshold': 0.3, 'hold': 3}),
+        ("mtf_momentum", "futures", {'long': 250, 'short': 3, 'hold': 10}),
+        ("squeeze_breakout", "futures", {'n': 20, 'quantile': 0.2, 'window': 126, 'hold': 10}),
+        ("volume_spike", "futures", {'k': 2.0, 'hold': 5}),
+        ("volume_divergence", "futures", {'lookback': 10, 'hold': 3}),
+        ("sma_cross", "equities", {'fast': 100, 'slow': 200}),
+        ("ema_cross", "equities", {'fast': 50, 'slow': 150}),
+        ("tsmom", "equities", {'lookback': 252}),
+        ("rsi2", "equities", {'length': 2, 'threshold': 10}),
+        ("rsi2_trend", "equities", {'threshold': 5, 'trend': 200}),
+        ("bollinger_reversion", "equities", {'n': 10, 'k': 1.5}),
+        ("pullback", "equities", {'lookback': 3, 'trend': 200, 'max_hold': 10}),
+        ("ibs", "equities", {'threshold': 0.1, 'hold': 3}),
+        ("mtf_momentum", "equities", {'long': 250, 'short': 3, 'hold': 10}),
+        ("liquidity_sweep", "equities", {'lookback': 10, 'hold': 5}),
+        ("ema_cross", "metals", {'fast': 50, 'slow': 150}),
+        ("bollinger_reversion", "metals", {'n': 10, 'k': 2.5}),
+        ("atr_breakout", "metals", {'k': 1.5, 'hold': 5}),
+        ("rejection", "metals", {'wick': 0.5, 'lookback': 20, 'hold': 5}),
+        ("volume_spike", "metals", {'k': 1.5, 'hold': 1}),
+        ("donchian", "commodities", {'entry': 55, 'exit': 20, 'stop_atr': 2.0}),
+        ("roc_accel", "commodities", {'n': 60, 'm': 10}),
+        ("xs_momentum", "commodities", {'lookback': 252, 'skip': 0}),
+        ("atr_breakout", "commodities", {'k': 2.0, 'hold': 5}),
+    )}, gate_profile="portfolio"),
     # ------------------------------------------------------------------ deferred
     H("opening_range_breakout", "breakout", None, "deferred",
       "La cassure du range des 30 premières minutes se prolonge dans la séance.", "", "", "", "", "", "", "",
