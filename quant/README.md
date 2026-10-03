@@ -23,6 +23,29 @@ python3 -m venv .venv && .venv/bin/pip install -e .
 
 ---
 
+## Laboratoire de recherche + moteur multi-prop-firms
+
+Architecture, protocole et critères : [`docs/lab/ARCHITECTURE.md`](docs/lab/ARCHITECTURE.md)
+(versionnés **avant** le premier résultat). Résultats : [`reports/`](reports/).
+
+```bash
+python scripts/research_cycle.py                 # un cycle complet, 7 classes d'actifs
+python scripts/research_cycle.py --classes fx    # une classe
+python scripts/research_cycle.py --dev           # développement : n'ouvre jamais test / holdout
+```
+
+| couche | module | rôle |
+|---|---|---|
+| recherche | `qt/lab/` | 24 stratégies retail en hypothèses falsifiables, simulateur de trades, walk-forward, robustesse, Monte Carlo, Reality Check / SPA, régimes, capacité, base d'expériences append-only |
+| prop firms | `qt/prop/` + `configs/prop_firms/*.yaml` | une firme = un fichier ; comptes isolés, traducteur de risque par compte, Monte Carlo de challenge, onboarding pas à pas |
+| exécution | `qt/brokers/`, `qt/oms/` | `BrokerInterface`, courtier simulé avec injection de pannes, ordres idempotents, réconciliation, kill switch |
+| monitoring | `qt/monitoring/` | détection de décroissance (PAUSE → INVESTIGATE → RESEARCH, jamais de ré-optimisation automatique) |
+
+Toujours aucun ordre réel : seul un courtier simulé existe, et aucune prop firm ne peut
+passer en capital réel sans fichier d'approbation humaine.
+
+---
+
 ## Le bot autonome
 
 Un livre multi-actifs de 15 ETF — Nasdaq, S&P, small caps, international, émergents,
