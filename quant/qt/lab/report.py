@@ -286,6 +286,16 @@ def summary(lab: Lab, extras: dict, *, cycle_id: int, protocol_hash: str, market
               f"{pct(d.get('prob_dd25'))} | {DECISION_FR[c.decision]} | {c.reasons[0] if c.reasons else ''} |\n")
     else:
         w("Aucune.\n")
+    inval = [c for c in lab.candidates if "decision_before_invalidation" in c.details]
+    if inval:
+        w("\n## Invalidations (vérification indépendante des données)\n\n")
+        w("| classe | stratégie | décision du protocole | décision finale | raison |\n|---|---|---|---|---|\n")
+        for c in inval:
+            w(f"| {c.market} | {c.hypothesis.name} | {DECISION_FR[c.details['decision_before_invalidation']]} | REJECTED | "
+              f"{c.reasons[0]} |\n")
+        w("\nCes stratégies ont passé (ou auraient pu passer) les portes statistiques sur des données fausses. "
+          "C'est la démonstration que les tests statistiques ne protègent pas d'un problème de données : seule une "
+          "vérification sur une source indépendante l'a révélé.\n")
     for key, title in (("ensemble", "Ensemble"), ("sizing", "Dimensionnement"), ("meta", "Machine learning / méta-labeling")):
         if key in extras:
             w(f"\n## {title}\n\n{extras[key]}\n")

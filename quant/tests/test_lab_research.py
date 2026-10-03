@@ -172,3 +172,12 @@ def test_market_config_is_complete():
         assert ac.symbols
     p = load_protocol()
     assert p["periods"]["research_end"] < p["periods"]["test_start"] <= p["periods"]["test_end"] < p["periods"]["holdout_start"]
+
+
+def test_binance_timestamps_mixed_units_in_one_range():
+    from qt.data.sources.binance_vision import _to_ms
+
+    ms_2024 = 1_735_689_599_999          # 2024-12-31 in milliseconds
+    us_2025 = 1_735_776_000_000_000      # 2025-01-02 in microseconds
+    out = _to_ms(pd.Series([ms_2024, us_2025]))
+    assert out.tolist() == [ms_2024, us_2025 // 1000]

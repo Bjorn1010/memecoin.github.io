@@ -71,6 +71,14 @@ class Candidate:
     details: dict = field(default_factory=dict)
 
 
+def _drop_rows(w: pd.DataFrame, rng: np.random.Generator, rate: float) -> pd.DataFrame:
+    """Signal noise for a weight book: a random share of rebalance days is missed and
+    yesterday's book is kept instead."""
+    keep = rng.random(len(w)) >= rate
+    mask = pd.DataFrame(np.repeat(keep[:, None], w.shape[1], axis=1), index=w.index, columns=w.columns)
+    return w.where(mask).ffill().fillna(0.0)
+
+
 def cfg_key(cfg: dict) -> str:
     return ",".join(f"{k}={v}" for k, v in sorted(cfg.items()))
 
@@ -82,8 +90,8 @@ class EmptyPeriod(RuntimeError):
 class Vault:
     """Holds full-history streams; test and holdout slices open only through the ledger."""
 
-    def __init__(self, db: ResearchDB, cycle_id: int, periods: dict) -> None:
-        self.db, self.cycle_id = db, cycle_id
+    def __init__(self, db: ResearchDB, cycle_id: int, periods: dict, resume: bool = False) -> None:
+        self.db, self.cycle_id, self.resume = db, cycle_id, resume
         self.research_end = pd.Timestamp(periods["research_end"], tz="UTC")
         self.test = (pd.Timestamp(periods["test_start"], tz="UTC"), pd.Timestamp(periods["test_end"], tz="UTC"))
         self.holdout_start = pd.Timestamp(periods["holdout_start"], tz="UTC")
@@ -102,6 +110,14 @@ class Vault:
         if trades is not None and len(trades):
             tr = trades[(trades["exit_ts"] >= lo) & (trades["exit_ts"] <= hi)]
         m = compute(sl, tr, ppy)
+        if self.resume and self.db.was_consulted(period=period, strategy=strategy, market=market):
+            row = self.db.conn.execute(
+                "SELECT cycle_id FROM holdout_ledger WHERE period=? AND strategy=? AND market=?",
+                (period, strategy, market)).fetchone()
+            if row and row[0] == self.cycle_id:
+                # Resuming the same cycle after a crash: the look already happened and is
+                # on the ledger; recomputing the identical number adds no information.
+                return sl, m
         self.db.consult(period=period, strategy=strategy, market=market, cycle_id=self.cycle_id, result=m)
         return sl, m
 
@@ -110,7 +126,7 @@ class Lab:
     def __init__(self, db: ResearchDB, cycle_id: int, protocol: dict, markets: dict[str, AssetClass], *,
                  classes: list[str] | None = None, hypotheses: list[str] | None = None,
                  data: dict[str, dict[str, pd.DataFrame]] | None = None, log: Callable[[str], None] = print,
-                 open_sealed: bool = True) -> None:
+                 open_sealed: bool = True, resume: bool = False) -> None:
         self.db, self.cycle_id, self.protocol = db, cycle_id, protocol
         self.hyps = [h for h in HY.HYPOTHESES if hypotheses is None or h.name in hypotheses]
         # Classes whose single strategies are screened, vs classes only loaded because a
@@ -127,7 +143,10 @@ class Lab:
             # Costs are charged inside each member; the combination adds none of its own.
             self.markets["multi"] = AssetClass("multi", (), CostProfile(0.0, 0.0, 0.0), 252, True)
             self.screen_classes.add("multi")
-        self.vault = Vault(db, cycle_id, protocol["periods"])
+        self.vault = Vault(db, cycle_id, protocol["periods"], resume=resume)
+        # A resumed cycle re-runs deterministic stages without recording them twice:
+        # double-counting trials would deflate every Sharpe for no reason.
+        self.resume = resume
         self.log = log
         self.data: dict[str, dict[str, pd.DataFrame]] = data or {}
         self.audits: dict[str, dict] = {}
@@ -138,6 +157,17 @@ class Lab:
         # researcher who has seen them is no longer blind, whatever the ledger says.
         self.open_sealed = open_sealed
         self.sizing = protocol["sizing_for_research"]
+
+    def _record(self, **kw) -> None:
+        if self.resume:
+            from .database import dumps
+
+            row = self.db.conn.execute(
+                "SELECT 1 FROM experiments WHERE cycle_id=? AND stage=? AND strategy=? AND market=? AND parameters=?",
+                (self.cycle_id, kw["stage"], kw["strategy"], kw["market"], dumps(kw["parameters"]))).fetchone()
+            if row:
+                return
+        self.db.record_experiment(**kw)
 
     # ------------------------------------------------------------------ A. data
     def load(self) -> None:
@@ -219,7 +249,7 @@ class Lab:
             vols = np.log(closes).diff().rolling(60, min_periods=30).std() * np.sqrt(ppy)
             w = ST.xs_momentum_weights(closes.ffill(limit=5), vols, **cfg)
             if noise > 0:
-                w = w.where(rng.random(len(w))[:, None] >= noise).ffill().fillna(0.0)
+                w = _drop_rows(w, rng, noise)
             res = simulate_weights(data, w, costs, periods_per_year=ppy, entry_delay=entry_delay)
             streams.append(res.returns)
             trade_frames.append(res.trades)
@@ -229,7 +259,7 @@ class Lab:
                     continue
                 w = ST.pair_weights(data[a], data[bsym], **cfg).rename(columns={"A": a, "B": bsym})
                 if noise > 0:
-                    w = w.where(rng.random(len(w))[:, None] >= noise).ffill().fillna(0.0)
+                    w = _drop_rows(w, rng, noise)
                 res = simulate_weights({a: data[a], bsym: data[bsym]}, w, costs, periods_per_year=ppy,
                                        entry_delay=entry_delay)
                 streams.append(res.returns.rename(f"{a}/{bsym}"))
@@ -346,7 +376,7 @@ class Lab:
                 if h.requires_volume and not ac.has_volume:
                     self.skipped.append({"strategy": h.name, "market": name, "status": "NOT_APPLICABLE",
                                          "reason": "exige du volume ; la classe n'en a pas"})
-                    self.db.record_experiment(cycle_id=self.cycle_id, stage="screen", strategy=h.name,
+                    self._record(cycle_id=self.cycle_id, stage="screen", strategy=h.name,
                                               family=h.family, market=name, parameters=h.baseline, metrics={},
                                               counts_as_trial=False, decision="NOT_APPLICABLE",
                                               reason="pas de volume")
@@ -364,7 +394,7 @@ class Lab:
                     rr = self.vault.research(run.returns)
                     tr = run.trades[run.trades["exit_ts"] <= self.vault.research_end] if len(run.trades) else run.trades
                     m = compute(rr, tr, ppy, run.exposure.loc[:self.vault.research_end])
-                    self.db.record_experiment(
+                    self._record(
                         cycle_id=self.cycle_id, stage="grid", strategy=h.name, family=h.family, market=name,
                         parameters=cfg, metrics=m, is_baseline=(i == 0), counts_as_trial=True,
                         train_period=f"{rr.index.min().date()}..{rr.index.max().date()}",
@@ -400,7 +430,7 @@ class Lab:
                     c.details["cost_x1_5_sharpe"] = s15
                     if not s15 > gates["promising"]["cost_x1_5_sharpe_min"]:
                         reasons.append(f"Sharpe avec coûts × 1,5 = {s15:+.2f} ≤ 0")
-                self.db.record_experiment(
+                self._record(
                     cycle_id=self.cycle_id, stage="walk_forward", strategy=h.name, family=h.family, market=name,
                     parameters=cand_cfg, metrics={k: v for k, v in wf.items() if k not in ("returns", "folds")},
                     counts_as_trial=False, validation_period="années glissantes ≤ " + str(self.vault.research_end.year),
@@ -452,7 +482,7 @@ class Lab:
 
             rob = run_robustness(c.candidate_cfg, runner, window, ppy, self.protocol["robustness"], seed=mc["seed"])
             for _, row in rob["table"].iterrows():
-                self.db.record_experiment(cycle_id=self.cycle_id, stage="robustness", strategy=h.name,
+                self._record(cycle_id=self.cycle_id, stage="robustness", strategy=h.name,
                                           family=h.family, market=c.market, parameters={"perturbation": row["name"]},
                                           metrics={"sharpe": row["sharpe"]}, counts_as_trial=False,
                                           decision="PASS" if row["passed"] else "FAIL")
@@ -522,7 +552,7 @@ class Lab:
                 c.reasons, c.decision = [f"{exc} : test impossible"], PROMISING
                 continue
             c.details["test"] = tm
-            self.db.record_experiment(cycle_id=self.cycle_id, stage="test", strategy=h.name, family=h.family,
+            self._record(cycle_id=self.cycle_id, stage="test", strategy=h.name, family=h.family,
                                       market=c.market, parameters=c.candidate_cfg, metrics=tm, counts_as_trial=False,
                                       test_period=f"{self.vault.test[0].date()}..{self.vault.test[1].date()}")
             c.stage = "test"
@@ -537,7 +567,7 @@ class Lab:
                 c.reasons, c.decision = [f"test passé ; {exc} : holdout impossible"], PROMISING
                 continue
             c.details["holdout"] = hm
-            self.db.record_experiment(cycle_id=self.cycle_id, stage="holdout", strategy=h.name, family=h.family,
+            self._record(cycle_id=self.cycle_id, stage="holdout", strategy=h.name, family=h.family,
                                       market=c.market, parameters=c.candidate_cfg, metrics=hm, counts_as_trial=False,
                                       test_period=f"{self.vault.holdout_start.date()}..")
             c.stage = "holdout"
@@ -549,7 +579,29 @@ class Lab:
                 c.decision = PAPER_TEST
 
     # ------------------------------------------------------------------ record
+    def apply_invalidations(self, path=None) -> None:
+        import yaml
+
+        from .markets import CONFIG_DIR
+
+        path = path or CONFIG_DIR / "invalidations.yaml"
+        if not path.exists():
+            return
+        for inv in yaml.safe_load(path.read_text()) or []:
+            if inv["cycle"] != self.cycle_id:
+                continue
+            targets = inv["strategies"]
+            for c in self.candidates:
+                name = c.hypothesis.name
+                match = targets == "*" or name == targets or (isinstance(targets, list) and name in targets)
+                if c.market == inv["market"] and match:
+                    if not (c.reasons and c.reasons[0].startswith("INVALIDÉ")):
+                        c.details["decision_before_invalidation"] = c.decision
+                        c.decision = REJECTED
+                        c.reasons = ["INVALIDÉ (données) : " + " ".join(inv["reason"].split())] + c.reasons
+
     def finalise(self) -> None:
+        self.apply_invalidations()
         for c in self.candidates:
             self.db.record_decision(cycle_id=self.cycle_id, strategy=c.hypothesis.name, market=c.market,
                                     stage_reached=c.stage, decision=c.decision,

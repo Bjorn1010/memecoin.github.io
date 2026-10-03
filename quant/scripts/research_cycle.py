@@ -47,21 +47,31 @@ def main() -> None:
     ap.add_argument("--db", default=str(ROOT / "reports" / "research.db"))
     ap.add_argument("--dev", action="store_true", help="ne jamais ouvrir les périodes test / holdout")
     ap.add_argument("--notes", default="")
+    ap.add_argument("--resume-cycle", type=int, default=None,
+                    help="reprendre un cycle interrompu sans recompter ses essais")
+    ap.add_argument("--markets", default=None, help="fichier markets.yaml (ex. la version d'un cycle passé)")
     args = ap.parse_args()
 
     t0 = time.time()
     protocol = load_protocol()
-    markets = load_markets()
+    markets = load_markets(Path(args.markets) if args.markets else None)
     db = ResearchDB(args.db)
-    p_hash, m_hash = file_hash(CONFIG_DIR / "research_protocol.yaml"), file_hash(CONFIG_DIR / "markets.yaml")
+    p_hash = file_hash(CONFIG_DIR / "research_protocol.yaml")
+    m_hash = file_hash(Path(args.markets) if args.markets else CONFIG_DIR / "markets.yaml")
     commit = git_commit()
-    cycle_id = db.start_cycle(p_hash, m_hash, commit, args.notes or ("dev" if args.dev else ""))
+    if args.resume_cycle:
+        cycle_id = args.resume_cycle
+        db.conn.execute("UPDATE cycles SET notes = notes || ? WHERE cycle_id = ?",
+                        (f" | repris au commit {commit}", cycle_id))
+        db.conn.commit()
+    else:
+        cycle_id = db.start_cycle(p_hash, m_hash, commit, args.notes or ("dev" if args.dev else ""))
     out_dir = ROOT / "reports" / f"cycle_{cycle_id:03d}{'_dev' if args.dev else ''}"
     (out_dir / "candidates").mkdir(parents=True, exist_ok=True)
 
     lab = Lab(db, cycle_id, protocol, markets, classes=args.classes.split(",") if args.classes else None,
               hypotheses=args.hypotheses.split(",") if args.hypotheses else None,
-              open_sealed=not args.dev, log=lambda m: print(m, flush=True))
+              open_sealed=not args.dev, resume=bool(args.resume_cycle), log=lambda m: print(m, flush=True))
     lab.run()
 
     extras: dict = {}

@@ -1,0 +1,12 @@
+# Résultats invalidés APRÈS coup par une vérification indépendante des DONNÉES (jamais
+# parce qu'un résultat déplaît). Chaque entrée dit quoi, pourquoi, et la preuve.
+# Le pipeline applique ces invalidations au moment de la décision : la stratégie
+# devient REJECTED avec la raison ci-dessous, et les essais restent comptés.
+- cycle: 1
+  market: crypto
+  strategies: "*"
+  reason: >
+    données Yahoo crypto invalidées : les hauts/bas journaliers de l'agrégat ne sont pas ceux d'une
+    plateforme négociable. vol_breakout affichait un Sharpe walk-forward de +3,70 et a passé le test et
+    le holdout ; sur Binance (barres journalières et rejeu horaire, scripts/verify_intraday_breakout.py)
+    la même règle donne −2,1 à +0,7. Classe refaite sur Binance au cycle 2.

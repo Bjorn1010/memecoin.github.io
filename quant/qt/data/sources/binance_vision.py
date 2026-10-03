@@ -136,13 +136,14 @@ def _timestamp_unit(series: pd.Series) -> str:
 
 
 def _to_ms(series: pd.Series) -> pd.Series:
-    unit = _timestamp_unit(series)
+    """Element by element. Deciding the unit from the first row was wrong for any range
+    spanning the 2025 switch: a 2017→2026 load read every 2025 microsecond stamp as
+    milliseconds, landed it in the year 57000, and the date filter then dropped it in
+    silence — a full history quietly ended on 2025-01-01."""
     v = pd.to_numeric(series, errors="coerce")
-    if unit == "us":
-        return (v // 1000).astype("int64")
-    if unit == "ns":
-        return (v // 1_000_000).astype("int64")
-    return v.astype("int64")
+    out = v.where(v <= 1e14, v // 1000)
+    out = out.where(v <= 1e17, v // 1_000_000)
+    return out.astype("int64")
 
 
 def _urls(market: Market, kind: str, symbol: str, interval: str | None, stamp: str, freq: str) -> str:

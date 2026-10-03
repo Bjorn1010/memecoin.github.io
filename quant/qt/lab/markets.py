@@ -201,7 +201,7 @@ def fetch_binance_daily(symbol: str, *, refresh: bool = False) -> pd.DataFrame:
     k = klines(symbol, "1d", start="2017-08-17")
     if k.empty:
         return pd.DataFrame(columns=["open", "high", "low", "close", "volume", "adj_close"])
-    k.index = (pd.to_datetime(k["ts"], unit="ms", utc=True) - pd.Timedelta(days=1)).normalize()
+    k.index = pd.DatetimeIndex((pd.to_datetime(k["ts"], unit="ms", utc=True) - pd.Timedelta(days=1)).dt.normalize())
     frame = k[["open", "high", "low", "close", "quote_volume"]].rename(columns={"quote_volume": "volume"})
     frame = frame.astype("float64")
     frame["volume"] = frame["volume"] / frame["close"]  # base units, like every other source
