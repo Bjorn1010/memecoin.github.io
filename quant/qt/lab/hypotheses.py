@@ -322,7 +322,7 @@ def by_name(name: str) -> Hypothesis:
 
 
 def member_classes(h: Hypothesis) -> set[str]:
-    return {c for _, c in h.baseline.get("members", ())}
+    return {m[1] for m in h.baseline.get("members", ())}
 
 
 def active() -> list[Hypothesis]:
