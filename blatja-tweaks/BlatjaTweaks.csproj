@@ -15,7 +15,6 @@
     <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
     <StartupObject>BlatjaTweaks.Program</StartupObject>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <InvariantGlobalization>true</InvariantGlobalization>
 
     <!-- Un seul .exe autonome : rien à installer sur le PC cible -->
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>

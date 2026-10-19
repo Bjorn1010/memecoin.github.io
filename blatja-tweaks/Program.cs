@@ -24,8 +24,12 @@ internal static class Program
         }
     }
 
+    private static bool _reporting;
+
     internal static void Report(Exception? ex)
     {
+        if (_reporting) return;
+        _reporting = true;
         string text = ex?.ToString() ?? "Erreur inconnue";
         try
         {
