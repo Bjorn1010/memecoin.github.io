@@ -3,60 +3,53 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-        <Color x:Key="AccentA">#7C5CFF</Color>
-        <Color x:Key="AccentB">#00D4FF</Color>
-        <SolidColorBrush x:Key="Card" Color="#12141F"/>
-        <SolidColorBrush x:Key="CardBorder" Color="#1F2338"/>
-        <SolidColorBrush x:Key="Text" Color="#E8EAF6"/>
-        <SolidColorBrush x:Key="Muted" Color="#8A90B2"/>
-        <SolidColorBrush x:Key="Good" Color="#3DDC97"/>
-        <SolidColorBrush x:Key="Warn" Color="#FFB547"/>
-        <LinearGradientBrush x:Key="AccentBrush" StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Color="{StaticResource AccentA}" Offset="0"/>
-            <GradientStop Color="{StaticResource AccentB}" Offset="1"/>
-        </LinearGradientBrush>
+        <!-- Palette : graphite + un seul accent -->
+        <SolidColorBrush x:Key="Bg" Color="#0C0D0F"/>
+        <SolidColorBrush x:Key="PanelBg" Color="#121316"/>
+        <SolidColorBrush x:Key="PanelHi" Color="#17181C"/>
+        <SolidColorBrush x:Key="Line" Color="#24262B"/>
+        <SolidColorBrush x:Key="LineHi" Color="#34373E"/>
+        <SolidColorBrush x:Key="Text" Color="#E7E8EB"/>
+        <SolidColorBrush x:Key="Muted" Color="#7E838D"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#C8F031"/>
+        <SolidColorBrush x:Key="OnAccent" Color="#0C0D0F"/>
+        <SolidColorBrush x:Key="Good" Color="#C8F031"/>
+        <SolidColorBrush x:Key="Warn" Color="#FF9640"/>
+        <FontFamily x:Key="Display">Bahnschrift, Segoe UI Semibold, Segoe UI</FontFamily>
+        <FontFamily x:Key="Mono">Cascadia Mono, Consolas</FontFamily>
 
         <Style TargetType="TextBlock">
             <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI"/>
-            <Setter Property="Foreground" Value="{StaticResource Text}"/>
         </Style>
 
-        <!-- Interrupteur animé -->
+        <!-- Interrupteur plat -->
         <Style x:Key="Switch" TargetType="CheckBox">
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="CheckBox">
-                        <Grid Width="46" Height="24" Background="Transparent">
-                            <Border x:Name="Track" CornerRadius="12" Background="#2A2E45"/>
-                            <Ellipse x:Name="Knob" Width="18" Height="18" Fill="#C9CEE8"
-                                     HorizontalAlignment="Left" Margin="3,0,0,0"/>
+                        <Grid Width="42" Height="22" Background="Transparent">
+                            <Border x:Name="Track" CornerRadius="4" Background="#23252A" BorderBrush="#34373E" BorderThickness="1"/>
+                            <Border x:Name="Knob" Width="14" Height="14" CornerRadius="2" Background="#7E838D"
+                                    HorizontalAlignment="Left" Margin="4,0,0,0"/>
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
                                 <Setter TargetName="Track" Property="Background" Value="{StaticResource AccentBrush}"/>
-                                <Setter TargetName="Track" Property="Effect">
-                                    <Setter.Value><DropShadowEffect Color="#00D4FF" BlurRadius="14" ShadowDepth="0" Opacity="0.55"/></Setter.Value>
-                                </Setter>
-                                <Setter TargetName="Knob" Property="Fill" Value="White"/>
+                                <Setter TargetName="Track" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                <Setter TargetName="Knob" Property="Background" Value="#0C0D0F"/>
                                 <Trigger.EnterActions>
                                     <BeginStoryboard>
                                         <Storyboard>
-                                            <ThicknessAnimation Storyboard.TargetName="Knob" Storyboard.TargetProperty="Margin"
-                                                                To="25,0,0,0" Duration="0:0:0.16">
-                                                <ThicknessAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></ThicknessAnimation.EasingFunction>
-                                            </ThicknessAnimation>
+                                            <ThicknessAnimation Storyboard.TargetName="Knob" Storyboard.TargetProperty="Margin" To="22,0,0,0" Duration="0:0:0.12"/>
                                         </Storyboard>
                                     </BeginStoryboard>
                                 </Trigger.EnterActions>
                                 <Trigger.ExitActions>
                                     <BeginStoryboard>
                                         <Storyboard>
-                                            <ThicknessAnimation Storyboard.TargetName="Knob" Storyboard.TargetProperty="Margin"
-                                                                To="3,0,0,0" Duration="0:0:0.16">
-                                                <ThicknessAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></ThicknessAnimation.EasingFunction>
-                                            </ThicknessAnimation>
+                                            <ThicknessAnimation Storyboard.TargetName="Knob" Storyboard.TargetProperty="Margin" To="4,0,0,0" Duration="0:0:0.12"/>
                                         </Storyboard>
                                     </BeginStoryboard>
                                 </Trigger.ExitActions>
@@ -69,24 +62,21 @@
 
         <!-- Boutons -->
         <Style x:Key="BtnPrimary" TargetType="Button">
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI"/>
+            <Setter Property="Foreground" Value="{StaticResource OnAccent}"/>
+            <Setter Property="FontFamily" Value="{StaticResource Display}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Padding" Value="20,11"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="22,11"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bd" CornerRadius="10" Background="{StaticResource AccentBrush}" Padding="{TemplateBinding Padding}">
-                            <Border.Effect>
-                                <DropShadowEffect Color="#7C5CFF" BlurRadius="22" ShadowDepth="0" Opacity="0.45"/>
-                            </Border.Effect>
+                        <Border x:Name="Bd" CornerRadius="6" Background="{StaticResource AccentBrush}" Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Opacity" Value="0.88"/></Trigger>
-                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="Bd" Property="Opacity" Value="0.72"/></Trigger>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#D8FF4A"/></Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="Bd" Property="Background" Value="#A9CC22"/></Trigger>
                             <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Bd" Property="Opacity" Value="0.35"/></Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -94,15 +84,19 @@
             </Setter>
         </Style>
         <Style x:Key="BtnGhost" TargetType="Button" BasedOn="{StaticResource BtnPrimary}">
+            <Setter Property="Foreground" Value="{StaticResource Text}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bd" CornerRadius="10" Background="#1A1D2E" BorderBrush="#2A2E45" BorderThickness="1"
+                        <Border x:Name="Bd" CornerRadius="6" Background="Transparent" BorderBrush="#34373E" BorderThickness="1"
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#242841"/></Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#1A1C20"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#4A4E57"/>
+                            </Trigger>
                             <Trigger Property="IsPressed" Value="True"><Setter TargetName="Bd" Property="Opacity" Value="0.7"/></Trigger>
                             <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Bd" Property="Opacity" Value="0.35"/></Trigger>
                         </ControlTemplate.Triggers>
@@ -112,42 +106,54 @@
         </Style>
         <Style x:Key="BtnChrome" TargetType="Button" BasedOn="{StaticResource BtnGhost}">
             <Setter Property="Padding" Value="0"/>
-            <Setter Property="Width" Value="34"/>
-            <Setter Property="Height" Value="30"/>
-            <Setter Property="Margin" Value="6,0,0,0"/>
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Margin" Value="4,0,0,0"/>
             <Setter Property="Foreground" Value="{StaticResource Muted}"/>
+            <Setter Property="FontSize" Value="12"/>
         </Style>
-
+        <!-- Ligne cliquable (catégories du tableau de bord) -->
+        <Style x:Key="BtnRow" TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource Text}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="Transparent" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="2,14">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#14161A"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
         <!-- Navigation latérale -->
         <Style x:Key="NavItem" TargetType="RadioButton">
-            <Setter Property="Foreground" Value="#9AA0C2"/>
-            <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI"/>
-            <Setter Property="FontSize" Value="13.5"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#8A8F99"/>
+            <Setter Property="FontFamily" Value="{StaticResource Display}"/>
+            <Setter Property="FontSize" Value="14"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Margin" Value="0,0,0,4"/>
+            <Setter Property="Margin" Value="0,0,0,2"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="RadioButton">
                         <Grid>
-                            <Border x:Name="Bd" CornerRadius="11" Background="Transparent" Padding="14,11">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{TemplateBinding Tag}" FontFamily="Segoe UI Emoji, Segoe UI Symbol" FontSize="16" Width="26"
-                                               Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center"/>
-                                    <ContentPresenter VerticalAlignment="Center"/>
-                                </StackPanel>
+                            <Border x:Name="Bd" CornerRadius="6" Background="Transparent" Padding="14,10">
+                                <ContentPresenter VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}"/>
                             </Border>
-                            <Border x:Name="Bar" Width="3" Height="20" CornerRadius="2" HorizontalAlignment="Left" Margin="-1,0,0,0"
-                                    Background="{StaticResource AccentBrush}" Visibility="Collapsed"/>
+                            <Border x:Name="Bar" Width="3" Height="18" HorizontalAlignment="Left" Background="{StaticResource AccentBrush}" Visibility="Collapsed"/>
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#141729"/>
+                                <Setter TargetName="Bd" Property="Background" Value="#14161A"/>
                                 <Setter Property="Foreground" Value="White"/>
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#1A1D3A"/>
+                                <Setter TargetName="Bd" Property="Background" Value="#181A1F"/>
                                 <Setter TargetName="Bar" Property="Visibility" Value="Visible"/>
                                 <Setter Property="Foreground" Value="White"/>
                             </Trigger>
@@ -159,7 +165,7 @@
 
         <!-- Barre de défilement fine -->
         <Style TargetType="ScrollBar">
-            <Setter Property="Width" Value="8"/>
+            <Setter Property="Width" Value="6"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -170,7 +176,7 @@
                                     <Thumb>
                                         <Thumb.Template>
                                             <ControlTemplate TargetType="Thumb">
-                                                <Border CornerRadius="4" Background="#2F3452" Margin="1,0"/>
+                                                <Border CornerRadius="3" Background="#30333A"/>
                                             </ControlTemplate>
                                         </Thumb.Template>
                                     </Thumb>

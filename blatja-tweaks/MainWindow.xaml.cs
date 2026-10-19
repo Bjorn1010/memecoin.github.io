@@ -86,7 +86,7 @@ public partial class MainWindow : Window
         var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
         var dur = TimeSpan.FromMilliseconds(380);
         BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, dur) { EasingFunction = ease });
-        var sc = new DoubleAnimation(0.97, 1, dur) { EasingFunction = ease };
+        var sc = new DoubleAnimation(0.985, 1, dur) { EasingFunction = ease };
         RootScale.BeginAnimation(ScaleTransform.ScaleXProperty, sc);
         RootScale.BeginAnimation(ScaleTransform.ScaleYProperty, sc);
     }
@@ -107,11 +107,11 @@ public partial class MainWindow : Window
 
         (PageTitle.Text, PageSub.Text) = key switch
         {
-            "dash" => ("Tableau de bord", "Vue d'ensemble de ton PC et des optimisations"),
+            "dash" => ("Tableau de bord", "État de ton PC et des optimisations"),
             "SYSTÈME" => ("Système", "Alimentation, planification, minuteur, effets visuels"),
             "ENTRÉES & RÉSEAU" => ("Entrées & réseau", "Souris et latence réseau"),
             "FORTNITE" => ("Fortnite", _fnExe ?? "Fortnite non détecté : lance-le une fois via Epic Games Launcher"),
-            "gpu" => ("Carte graphique", "Surveillance et boost de la puissance"),
+            "gpu" => ("Carte graphique", "Puissance et fréquences"),
             _ => ("Outils", "Maintenance"),
         };
 
@@ -212,7 +212,7 @@ public partial class MainWindow : Window
         TileClock.Text = _gpu.MaxClock is int mc ? $"{mc} MHz" : "—";
         TileTemp.Text = DashTemp.Text = _gpu.Temp is int tp ? $"{tp} °C" : "—";
         if (_gpu.Temp is int t2)
-            TileTemp.Foreground = DashTemp.Foreground = Res(t2 < 70 ? "Good" : t2 < 83 ? "Warn" : "Text");
+            TileTemp.Foreground = DashTemp.Foreground = Res(t2 < 83 ? "Text" : "Warn");
         if (_gpu.PowerLimit is double cur && _gpu.PowerMax is double max && max > 0)
         {
             BarPower.Value = cur / max * 100;
@@ -234,8 +234,8 @@ public partial class MainWindow : Window
         Dispatcher.Invoke(() =>
         {
             _fnExe = exe;
-            FnStatus.Text = exe is null ? "Non détecté" : "Installé ✔";
-            FnStatus.Foreground = Res(exe is null ? "Warn" : "Good");
+            FnStatus.Text = exe is null ? "non détecté" : "installé";
+            FnStatus.Foreground = Res(exe is null ? "Warn" : "Text");
             FnPath.Text = exe ?? "Installe Fortnite via Epic Games Launcher pour activer les réglages Fortnite.";
             if (NavFn.IsChecked == true) ShowPage("FORTNITE");
         });
@@ -245,11 +245,16 @@ public partial class MainWindow : Window
     private void UpdateCount()
     {
         int n = _tweaks.Count(t => t.Applied);
-        ActiveCount.Text = $"{n} / {_tweaks.Count} actifs";
+        ActiveCount.Text = $"{n} / {_tweaks.Count}";
         HeroCount.Text = n.ToString();
-        HeroCountLabel.Text = $"réglage{(n > 1 ? "s" : "")} actif{(n > 1 ? "s" : "")} sur {_tweaks.Count}";
+        HeroCountLabel.Text = $"sur {_tweaks.Count} actifs";
+        HeroTitle.Text = n == 0 ? "Aucun réglage appliqué" : n == _tweaks.Count ? "Configuration complète" : $"{n} réglage{(n > 1 ? "s" : "")} appliqué{(n > 1 ? "s" : "")}";
         ActiveBar.Value = _tweaks.Count == 0 ? 0 : n * 100.0 / _tweaks.Count;
-        DotActive.Fill = Res(n > 0 ? "Good" : "Muted");
+        foreach (var (cat, box) in new[] { ("SYSTÈME", CntSystem), ("ENTRÉES & RÉSEAU", CntInput), ("FORTNITE", CntFn) })
+        {
+            int tot = _tweaks.Count(t => t.Category == cat), on = _tweaks.Count(t => t.Category == cat && t.Applied);
+            box.Text = $"{on} / {tot}";
+        }
     }
 
     private void SetBusy(bool busy)
