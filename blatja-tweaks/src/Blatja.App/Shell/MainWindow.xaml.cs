@@ -37,6 +37,8 @@ public partial class MainWindow : Window
 
         TopBar.MouseLeftButtonDown += (_, e) => { if (e.ButtonState == MouseButtonState.Pressed && e.ClickCount == 1) DragMove(); };
         Brand.MouseLeftButtonDown += (_, e) => { if (e.ButtonState == MouseButtonState.Pressed) DragMove(); };
+        Brand.MouseEnter += (_, _) => { var a = new DoubleAnimation(1.12, TimeSpan.FromMilliseconds(260)) { EasingFunction = new BackEase { Amplitude = 0.9 } }; LogoScale.BeginAnimation(ScaleTransform.ScaleXProperty, a); LogoScale.BeginAnimation(ScaleTransform.ScaleYProperty, a); };
+        Brand.MouseLeave += (_, _) => { var a = new DoubleAnimation(1, TimeSpan.FromMilliseconds(220)); LogoScale.BeginAnimation(ScaleTransform.ScaleXProperty, a); LogoScale.BeginAnimation(ScaleTransform.ScaleYProperty, a); };
         BtnMin.Click += (_, _) => WindowState = WindowState.Minimized;
         BtnClose.Click += (_, _) => Close();
         BtnSettings.Click += (_, _) => NavSettings.IsChecked = true;
@@ -115,6 +117,8 @@ public partial class MainWindow : Window
         view.Opacity = 0;
         view.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(160)));
         view.OnShow();
+        if (view is not (DashboardView or OpsView))
+            view.Dispatcher.InvokeAsync(() => Anim.RevealContent(view), DispatcherPriority.Loaded);
     }
 
     private void OnMetrics()
@@ -195,7 +199,7 @@ public partial class MainWindow : Window
         ToastText.Text = message;
         ToastDot.Fill = (Brush)FindResource(kind switch { Kind.Danger => "Danger", Kind.Warning => "Warning", Kind.Info => "Text2", _ => "Success" });
         Toast.BeginAnimation(OpacityProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(160)));
-        ToastSlide.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(200)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
+        ToastSlide.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(18, 0, TimeSpan.FromMilliseconds(380)) { EasingFunction = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.9 } });
         _toastTimer.Stop(); _toastTimer.Start();
     }
 
@@ -241,6 +245,8 @@ public partial class MainWindow : Window
         DialogCard.Child = content;
         DialogLayer.Opacity = 0; DialogLayer.Visibility = Visibility.Visible;
         DialogLayer.BeginAnimation(OpacityProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(140)));
+        var zoom = new DoubleAnimation(0.94, 1, TimeSpan.FromMilliseconds(260)) { EasingFunction = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.6 } };
+        DialogScale.BeginAnimation(ScaleTransform.ScaleXProperty, zoom); DialogScale.BeginAnimation(ScaleTransform.ScaleYProperty, zoom);
         row.Children.OfType<Button>().LastOrDefault()?.Focus();
         return tcs.Task;
     }

@@ -39,6 +39,7 @@ public partial class DashboardView : PageBase
     public override void OnShow()
     {
         OnMetrics();
+        Anim.Reveal(Cards.Children.Cast<UIElement>().Prepend((UIElement)DashRoot.Children[0]).Concat(DashRoot.Children.Cast<UIElement>().Skip(2)), 55);
         _procTimer.Start();
         _ = SampleProcessesAsync();
         RefreshRecent();
@@ -51,14 +52,14 @@ public partial class DashboardView : PageBase
     public override void OnMetrics()
     {
         var m = Svc.Metrics;
-        if (m.Cpu.Last is { } cpu) CardCpu.SetValue($"{cpu:0} %", m.CpuName, cpu); else CardCpu.SetUnavailable("La mesure du processeur n'est pas encore disponible.");
-        if (m.Ram.Last is { } ram) CardRam.SetValue($"{ram:0} %", $"{m.RamUsedGb:0.0} Go utilisés sur {m.RamTotalGb:0.#} Go · {m.RamTotalGb - m.RamUsedGb:0.0} Go disponibles", ram);
+        if (m.Cpu.Last is { } cpu) CardCpu.SetNumber(cpu, " %", m.CpuName, cpu); else CardCpu.SetUnavailable("La mesure du processeur n'est pas encore disponible.");
+        if (m.Ram.Last is { } ram) CardRam.SetNumber(ram, " %", $"{m.RamUsedGb:0.0} Go utilisés sur {m.RamTotalGb:0.#} Go · {m.RamTotalGb - m.RamUsedGb:0.0} Go disponibles", ram);
         else CardRam.SetUnavailable("Mesure de la mémoire indisponible.");
 
         if (m.GpuNow is { } g)
         {
-            CardGpu.SetValue($"{g.Usage:0} %", $"{m.GpuName ?? "GPU"} · {g.MemUsedMb / 1024:0.0} / {g.MemTotalMb / 1024:0.#} Go de VRAM", g.Usage);
-            if (!double.IsNaN(g.Temp)) CardTemp.SetValue($"{g.Temp:0} °C", "GPU · CPU : indisponible (Windows ne l'expose pas sans pilote tiers)", Math.Min(100, g.Temp));
+            CardGpu.SetNumber(g.Usage, " %", $"{m.GpuName ?? "GPU"} · {g.MemUsedMb / 1024:0.0} / {g.MemTotalMb / 1024:0.#} Go de VRAM", g.Usage);
+            if (!double.IsNaN(g.Temp)) CardTemp.SetNumber(g.Temp, " °C", "GPU · CPU : indisponible (Windows ne l'expose pas sans pilote tiers)", Math.Min(100, g.Temp));
             else CardTemp.SetUnavailable("Le pilote ne transmet pas la température.");
         }
         else
@@ -68,14 +69,14 @@ public partial class DashboardView : PageBase
         }
 
         if (m.DiskTotalGb is { } t && m.DiskUsedGb is { } u && t > 0)
-            CardDisk.SetValue($"{t - u:0} Go libres", $"{u:0} Go utilisés sur {t:0} Go", u / t * 100);
+            CardDisk.SetNumber(t - u, " Go libres", $"{u:0} Go utilisés sur {t:0} Go", u / t * 100);
         else CardDisk.SetUnavailable("Taille du disque système illisible.");
 
         if (!m.NetworkUp) CardNet.SetUnavailable("Aucune connexion réseau active détectée.");
         else
         {
             string speed = m.NetworkLinkMbps is { } l ? $"liaison {l:0} Mb/s" : "débit de liaison inconnu";
-            CardNet.SetValue(m.NetDown.Last is { } d ? $"{d:0.0} Mb/s" : "Connecté", $"{m.NetworkName} · {speed}");
+            if (m.NetDown.Last is { } d) CardNet.SetNumber(d, " Mb/s", $"{m.NetworkName} · {speed}", null, 1); else CardNet.SetValue("Connecté", $"{m.NetworkName} · {speed}");
         }
 
         UpdateChart();

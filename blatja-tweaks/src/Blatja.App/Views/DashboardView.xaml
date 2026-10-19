@@ -4,7 +4,7 @@
             xmlns:s="clr-namespace:Blatja.App.Shell"
             xmlns:c="clr-namespace:Blatja.App.Controls">
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="28,22,18,24">
-        <StackPanel>
+        <StackPanel x:Name="DashRoot">
             <Grid Margin="0,0,0,18">
                 <StackPanel>
                     <TextBlock x:Name="Welcome" Text="Dashboard" Style="{StaticResource Txt.H1}"/>

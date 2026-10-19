@@ -26,7 +26,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Resource Include="Assets\icon.png" />
+    <Resource Include="Assets\*.png" />
     <Resource Include="Fonts\*.ttf" />
     <ProjectReference Include="..\Blatja.Core\Blatja.Core.csproj" />
   </ItemGroup>

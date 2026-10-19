@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using Blatja.App.Controls;
 using Blatja.App.Services;
 using Blatja.App.Shell;
 using Blatja.Core;
@@ -37,7 +38,15 @@ public partial class OpsView : PageBase
         RefreshSummary();
     }
 
-    public override void OnShow() { OnStore(); _extra?.OnShow(); }
+    public override void OnShow()
+    {
+        OnStore(); _extra?.OnShow();
+        Dispatcher.InvokeAsync(() =>
+        {
+            var cards = Anim.Descendants<ContentPresenter>(List).Where(cp => cp.DataContext is OpVm).Take(14).Cast<UIElement>();
+            Anim.Reveal(cards.Prepend(Extra).Prepend((UIElement)Title.Parent), 38, 10, 300);
+        }, System.Windows.Threading.DispatcherPriority.Loaded);
+    }
     public override void OnHide() => _extra?.OnHide();
     public override void OnMetrics() => _extra?.OnMetrics();
 

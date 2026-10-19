@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using Blatja.App.Controls;
 using Blatja.App.Services;
 using Blatja.Core;
 
@@ -149,7 +150,7 @@ public static class OperationFlow
 
         w.RunTitle.Text = title; w.RunSubtitle.Text = "Ne ferme pas Blatja pendant l'opération.";
         w.RunSteps.ItemsSource = steps; w.RunBar.Value = 0; w.RunResult.Visibility = Visibility.Collapsed;
-        w.RunSpinner.Visibility = Visibility.Visible;
+        w.RunSpinner.Visibility = Visibility.Visible; w.RunDone.Visibility = Visibility.Collapsed;
         w.RunCancel.Visibility = Visibility.Visible; w.RunCancel.IsEnabled = true;
         w.RunJournal.Visibility = Visibility.Collapsed; w.RunClose.Visibility = Visibility.Collapsed;
         w.RunLayer.Opacity = 0; w.RunLayer.Visibility = Visibility.Visible;
@@ -161,7 +162,7 @@ public static class OperationFlow
         w.RunCancel.Click += OnCancel;
 
         int total = items.Count + 2;
-        void Progress(int done, string label) { w.RunBar.Value = done * 100.0 / total; }
+        void Progress(int done, string label) { Anim.Smooth(w.RunBar, done * 100.0 / total, 300); }
 
         // mesure avant
         steps[0].Set("…", "Mesure du processeur, de la mémoire et du réseau (quelques secondes)", "Accent");
@@ -199,10 +200,11 @@ public static class OperationFlow
         steps[^1].Set("…", "Mesure après modification", "Accent");
         try { after = await SnapshotService.TakeAsync(includePing: before?.Ping is not null); steps[^1].Set("✓", "Mesure instantanée enregistrée", "Success"); }
         catch (Exception ex) { Log.Write("Mesure après : " + ex.Message); steps[^1].Set("–", "Mesure indisponible", "Text3"); }
-        w.RunBar.Value = 100;
+        Anim.Smooth(w.RunBar, 100, 350);
 
         // rapport
         w.RunSpinner.Visibility = Visibility.Collapsed; w.RunCancel.Visibility = Visibility.Collapsed; w.RunCancel.Click -= OnCancel;
+        PlayResultIcon(w, report.Failed == 0);
         w.RunTitle.Text = report.Failed == 0 ? "Terminé" : "Terminé avec des erreurs";
         w.RunSubtitle.Text = $"{report.Steps.Count} opération(s) traitée(s) en {(report.FinishedAt - report.StartedAt)?.TotalSeconds:0} s.";
         w.RunBadges.Children.Clear();
@@ -242,6 +244,22 @@ public static class OperationFlow
 
         Log.Write($"Exécution terminée : {report.Succeeded} ok, {report.Failed} échec(s), {report.Skipped} ignorée(s)");
         return report;
+    }
+
+    /// <summary>Icône de résultat : le cercle « pop » avec rebond, puis une onde se propage (réussite) ou la croix apparaît (erreurs).</summary>
+    private static void PlayResultIcon(MainWindow w, bool ok)
+    {
+        string color = ok ? "Success" : "Danger";
+        w.RunDoneBg.Fill = (Brush)Application.Current.FindResource(ok ? "SuccessSoft" : "DangerSoft");
+        w.RunDoneBg.Stroke = w.RunPulse.Stroke = w.RunDoneIcon.Fill = (Brush)Application.Current.FindResource(color);
+        w.RunDoneIcon.Data = (Geometry)Application.Current.FindResource(ok ? "IconCheck" : "IconWarning");
+        w.RunDone.Visibility = Visibility.Visible;
+        var pop = new DoubleAnimation(0.2, 1, TimeSpan.FromMilliseconds(460)) { EasingFunction = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 1.3 } };
+        w.RunDoneScale.BeginAnimation(ScaleTransform.ScaleXProperty, pop); w.RunDoneScale.BeginAnimation(ScaleTransform.ScaleYProperty, pop);
+        if (!ok) return;
+        var grow = new DoubleAnimation(1, 2.1, TimeSpan.FromMilliseconds(700)) { BeginTime = TimeSpan.FromMilliseconds(220), EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
+        w.RunPulseScale.BeginAnimation(ScaleTransform.ScaleXProperty, grow); w.RunPulseScale.BeginAnimation(ScaleTransform.ScaleYProperty, grow);
+        w.RunPulse.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0.7, 0, TimeSpan.FromMilliseconds(700)) { BeginTime = TimeSpan.FromMilliseconds(220) });
     }
 
     private static void AddBadge(MainWindow w, string text, string style)
