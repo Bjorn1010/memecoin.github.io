@@ -8,7 +8,7 @@ public partial class App : Application
     {
         DispatcherUnhandledException += (_, e) =>
         {
-            MessageBox.Show(e.Exception.Message, "Blatja Tweaks", MessageBoxButton.OK, MessageBoxImage.Warning);
+            Program.Report(e.Exception);
             e.Handled = true;
         };
     }
