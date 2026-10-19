@@ -1,8 +1,9 @@
-using System.Collections.ObjectModel;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
 
 namespace BlatjaTweaks;
 
@@ -12,36 +13,114 @@ public partial class MainWindow : Window
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BlatjaTweaks", "state.json");
 
     private readonly List<Tweak> _tweaks = Tweaks.Build();
+    private readonly System.ComponentModel.ICollectionView _viewV;
     private GpuInfo _gpu = new("", "", null, null, null, null, null, null, null);
     private bool _busy;
+    private string? _fnExe;
 
     public MainWindow()
     {
         InitializeComponent();
 
+        var area = SystemParameters.WorkArea;
+        Height = Math.Min(Height, area.Height - 24);
+        Width = Math.Min(Width, area.Width - 24);
+        Opacity = 0;
+        Loaded += (_, _) => PlayIntro();
+
         Header.MouseLeftButtonDown += (_, e) => { if (e.ButtonState == MouseButtonState.Pressed) DragMove(); };
+        Brand.MouseLeftButtonDown += (_, e) => { if (e.ButtonState == MouseButtonState.Pressed) DragMove(); };
         BtnMin.Click += (_, _) => WindowState = WindowState.Minimized;
         BtnClose.Click += (_, _) => Close();
 
         LoadState();
-        var view = CollectionViewSource.GetDefaultView(_tweaks);
-        view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(Tweak.Category)));
-        TweakList.ItemsSource = view;
+        _viewV = CollectionViewSource.GetDefaultView(_tweaks);
+        TweakList.ItemsSource = _viewV;
+        foreach (var t in _tweaks)
+            t.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(Tweak.Applied)) Dispatcher.Invoke(UpdateCount); };
+        UpdateCount();
 
-        BtnAll.Click += (_, _) => _tweaks.ForEach(t => t.IsOn = true);
-        BtnNone.Click += (_, _) => _tweaks.ForEach(t => t.IsOn = false);
+        // navigation
+        NavDash.Checked += (_, _) => ShowPage("dash");
+        NavSystem.Checked += (_, _) => ShowPage("SYSTÈME");
+        NavInput.Checked += (_, _) => ShowPage("ENTRÉES & RÉSEAU");
+        NavFn.Checked += (_, _) => ShowPage("FORTNITE");
+        NavGpu.Checked += (_, _) => ShowPage("gpu");
+        NavTools.Checked += (_, _) => ShowPage("tools");
+        BtnOpenSystem.Click += (_, _) => NavSystem.IsChecked = true;
+        BtnGoSystem.Click += (_, _) => NavSystem.IsChecked = true;
+        BtnOpenInput.Click += (_, _) => NavInput.IsChecked = true;
+        BtnOpenFn.Click += (_, _) => NavFn.IsChecked = true;
+
+        BtnAll.Click += (_, _) => Visible().ForEach(t => t.IsOn = true);
+        BtnNone.Click += (_, _) => Visible().ForEach(t => t.IsOn = false);
+        BtnQuick.Click += async (_, _) => { _tweaks.ForEach(t => t.IsOn = true); await ApplyAsync(restoreAll: false); };
         BtnApply.Click += async (_, _) => await ApplyAsync(restoreAll: false);
         BtnRestore.Click += async (_, _) => await ApplyAsync(restoreAll: true);
         BtnClean.Click += async (_, _) => await RunAsync("Nettoyage", () => $"{Tweaks.CleanTemp()} Mo libérés");
         BtnGpuBoost.Click += async (_, _) => { await RunAsync("GPU", () => Gpu.Boost(_gpu)); await RefreshGpuAsync(); };
         BtnGpuReset.Click += async (_, _) => { await RunAsync("GPU", () => Gpu.Reset(_gpu)); await RefreshGpuAsync(); };
 
+        ShowPage("dash");
+        // page de départ optionnelle (utile pour les captures d'écran de développement)
+        switch (Environment.GetEnvironmentVariable("BLATJA_PAGE"))
+        {
+            case "system": NavSystem.IsChecked = true; break;
+            case "input": NavInput.IsChecked = true; break;
+            case "fn": NavFn.IsChecked = true; break;
+            case "gpu": NavGpu.IsChecked = true; break;
+            case "tools": NavTools.IsChecked = true; break;
+        }
         Loaded += async (_, _) =>
         {
             Log("Blatja Tweaks prêt. Chaque réglage est réversible.");
             await RefreshGpuAsync();
             await Task.Run(DetectFortnite);
         };
+    }
+
+    private List<Tweak> Visible() => _viewV.Cast<Tweak>().ToList();
+
+    private void PlayIntro()
+    {
+        var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+        var dur = TimeSpan.FromMilliseconds(380);
+        BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, dur) { EasingFunction = ease });
+        var sc = new DoubleAnimation(0.97, 1, dur) { EasingFunction = ease };
+        RootScale.BeginAnimation(ScaleTransform.ScaleXProperty, sc);
+        RootScale.BeginAnimation(ScaleTransform.ScaleYProperty, sc);
+    }
+
+    // ───────────── Navigation ─────────────
+    private void ShowPage(string key)
+    {
+        if (PageDash is null) return;
+        bool isTweaks = key is "SYSTÈME" or "ENTRÉES & RÉSEAU" or "FORTNITE";
+
+        PageDash.Visibility = key == "dash" ? Visibility.Visible : Visibility.Collapsed;
+        PageTweaks.Visibility = isTweaks ? Visibility.Visible : Visibility.Collapsed;
+        PageGpu.Visibility = key == "gpu" ? Visibility.Visible : Visibility.Collapsed;
+        PageTools.Visibility = key == "tools" ? Visibility.Visible : Visibility.Collapsed;
+        TweakTools.Visibility = isTweaks ? Visibility.Visible : Visibility.Collapsed;
+        ActionBar.Visibility = key == "tools" || key == "gpu" ? Visibility.Collapsed : Visibility.Visible;
+        BtnApply.Visibility = isTweaks ? Visibility.Visible : Visibility.Collapsed;
+
+        (PageTitle.Text, PageSub.Text) = key switch
+        {
+            "dash" => ("Tableau de bord", "Vue d'ensemble de ton PC et des optimisations"),
+            "SYSTÈME" => ("Système", "Alimentation, planification, minuteur, effets visuels"),
+            "ENTRÉES & RÉSEAU" => ("Entrées & réseau", "Souris et latence réseau"),
+            "FORTNITE" => ("Fortnite", _fnExe ?? "Fortnite non détecté : lance-le une fois via Epic Games Launcher"),
+            "gpu" => ("Carte graphique", "Surveillance et boost de la puissance"),
+            _ => ("Outils", "Maintenance"),
+        };
+
+        if (isTweaks)
+        {
+            _viewV.Filter = o => ((Tweak)o).Category == key;
+            _viewV.Refresh();
+            PageTweaks.ScrollToTop();
+        }
     }
 
     // ───────────── État persistant ─────────────
@@ -68,6 +147,7 @@ public partial class MainWindow : Window
     // ───────────── Actions ─────────────
     private async Task ApplyAsync(bool restoreAll)
     {
+        if (_busy) return;
         if (restoreAll) _tweaks.ForEach(t => t.IsOn = false);
         var todo = _tweaks.Where(t => t.IsOn != t.Applied).ToList();
         if (todo.Count == 0) { Log("Rien à faire : les réglages sont déjà à jour."); return; }
@@ -91,7 +171,8 @@ public partial class MainWindow : Window
                     Dispatcher.Invoke(() => t.IsOn = t.Applied);
                     LogUi($"✘ {t.Name} → {ex.Message}");
                 }
-                Dispatcher.Invoke(() => Progress.Value = (i + 1) * 100.0 / todo.Count);
+                int done = i + 1;
+                Dispatcher.Invoke(() => { Progress.Value = done * 100.0 / todo.Count; ProgressLabel.Text = $"{done} / {todo.Count} réglages traités"; });
             }
             SaveState();
         });
@@ -120,21 +201,29 @@ public partial class MainWindow : Window
     }
 
     // ───────────── Détection ─────────────
+    private Brush Res(string key) => (Brush)FindResource(key);
+
     private async Task RefreshGpuAsync()
     {
         _gpu = await Task.Run(Gpu.Query);
-        GpuName.Text = _gpu.Name;
-        var d = new List<string>();
-        if (_gpu.Driver is not null) d.Add($"Pilote {_gpu.Driver}");
-        if (_gpu.PowerLimit is double pl) d.Add($"Puissance {pl:0} W (max {_gpu.PowerMax:0} W)");
-        if (_gpu.MaxClock is int mc) d.Add($"Boost max {mc} MHz");
-        if (_gpu.Temp is int tp) d.Add($"{tp} °C");
-        GpuDetails.Text = string.Join("\n", d);
+        GpuName.Text = DashGpu.Text = _gpu.Name;
+        GpuDriver.Text = _gpu.Driver is null ? "" : $"Pilote {_gpu.Driver}";
+        TilePower.Text = DashPower.Text = _gpu.PowerLimit is double pl ? $"{pl:0} W" : "—";
+        TileClock.Text = _gpu.MaxClock is int mc ? $"{mc} MHz" : "—";
+        TileTemp.Text = DashTemp.Text = _gpu.Temp is int tp ? $"{tp} °C" : "—";
+        if (_gpu.Temp is int t2)
+            TileTemp.Foreground = DashTemp.Foreground = Res(t2 < 70 ? "Good" : t2 < 83 ? "Warn" : "Text");
+        if (_gpu.PowerLimit is double cur && _gpu.PowerMax is double max && max > 0)
+        {
+            BarPower.Value = cur / max * 100;
+            BarPowerLabel.Text = $"{cur:0} / {max:0} W";
+        }
+        else { BarPower.Value = 0; BarPowerLabel.Text = ""; }
 
         bool nv = _gpu.SmiPath is not null;
         BtnGpuBoost.IsEnabled = BtnGpuReset.IsEnabled = nv;
         GpuStatus.Text = nv ? "" :
-            _gpu.Vendor == "AMD" ? "AMD : l'overclock se règle dans AMD Adrenalin (Performances → Réglages). Les réglages système ci-contre restent actifs." :
+            _gpu.Vendor == "AMD" ? "AMD : l'overclock se règle dans AMD Adrenalin (Performances → Réglages). Les réglages système restent actifs." :
             _gpu.Vendor == "NVIDIA" ? "Installe le pilote NVIDIA officiel pour activer le boost GPU." :
             "Boost GPU disponible uniquement pour les cartes NVIDIA.";
     }
@@ -144,18 +233,31 @@ public partial class MainWindow : Window
         string? exe = Fortnite.FindExe();
         Dispatcher.Invoke(() =>
         {
+            _fnExe = exe;
             FnStatus.Text = exe is null ? "Non détecté" : "Installé ✔";
-            FnStatus.Foreground = exe is null ? (System.Windows.Media.Brush)FindResource("Warn") : (System.Windows.Media.Brush)FindResource("Good");
-            FnPath.Text = exe ?? "Installe-le via Epic Games Launcher pour activer les réglages Fortnite.";
+            FnStatus.Foreground = Res(exe is null ? "Warn" : "Good");
+            FnPath.Text = exe ?? "Installe Fortnite via Epic Games Launcher pour activer les réglages Fortnite.";
+            if (NavFn.IsChecked == true) ShowPage("FORTNITE");
         });
     }
 
     // ───────────── Utilitaires UI ─────────────
+    private void UpdateCount()
+    {
+        int n = _tweaks.Count(t => t.Applied);
+        ActiveCount.Text = $"{n} / {_tweaks.Count} actifs";
+        HeroCount.Text = n.ToString();
+        HeroCountLabel.Text = $"réglage{(n > 1 ? "s" : "")} actif{(n > 1 ? "s" : "")} sur {_tweaks.Count}";
+        ActiveBar.Value = _tweaks.Count == 0 ? 0 : n * 100.0 / _tweaks.Count;
+        DotActive.Fill = Res(n > 0 ? "Good" : "Muted");
+    }
+
     private void SetBusy(bool busy)
     {
         _busy = busy;
-        BtnApply.IsEnabled = BtnRestore.IsEnabled = BtnClean.IsEnabled = !busy;
-        if (!busy) Progress.Value = 0;
+        BtnApply.IsEnabled = BtnRestore.IsEnabled = BtnClean.IsEnabled = BtnQuick.IsEnabled = !busy;
+        if (!busy) { Progress.Value = 0; ProgressLabel.Text = "Prêt"; }
+        else ProgressLabel.Text = "En cours…";
     }
 
     private void Log(string msg)

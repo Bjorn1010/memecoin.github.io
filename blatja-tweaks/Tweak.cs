@@ -9,6 +9,13 @@ public sealed class Tweak : INotifyPropertyChanged
     public required string Description { get; init; }
     public required string Category { get; init; }
     public bool NeedsReboot { get; init; }
+
+    public string Icon => Id switch
+    {
+        "power" => "⚡", "gamemode" => "🎮", "gamedvr" => "⏺", "hags" => "🧠", "timer" => "⏱",
+        "prio" => "📈", "mmcss" => "🎯", "visual" => "✨", "mouse" => "🖱", "nagle" => "🌐",
+        "fnprio" => "🔥", "fngpu" => "🖥", "fnini" => "🎨", _ => "•",
+    };
     public required Action Apply { get; init; }
     public required Action Revert { get; init; }
 

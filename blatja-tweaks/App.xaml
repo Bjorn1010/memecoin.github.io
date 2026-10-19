@@ -36,6 +36,9 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
                                 <Setter TargetName="Track" Property="Background" Value="{StaticResource AccentBrush}"/>
+                                <Setter TargetName="Track" Property="Effect">
+                                    <Setter.Value><DropShadowEffect Color="#00D4FF" BlurRadius="14" ShadowDepth="0" Opacity="0.55"/></Setter.Value>
+                                </Setter>
                                 <Setter TargetName="Knob" Property="Fill" Value="White"/>
                                 <Trigger.EnterActions>
                                     <BeginStoryboard>
@@ -76,6 +79,9 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Bd" CornerRadius="10" Background="{StaticResource AccentBrush}" Padding="{TemplateBinding Padding}">
+                            <Border.Effect>
+                                <DropShadowEffect Color="#7C5CFF" BlurRadius="22" ShadowDepth="0" Opacity="0.45"/>
+                            </Border.Effect>
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -110,6 +116,45 @@
             <Setter Property="Height" Value="30"/>
             <Setter Property="Margin" Value="6,0,0,0"/>
             <Setter Property="Foreground" Value="{StaticResource Muted}"/>
+        </Style>
+
+
+        <!-- Navigation latérale -->
+        <Style x:Key="NavItem" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="#9AA0C2"/>
+            <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI"/>
+            <Setter Property="FontSize" Value="13.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Grid>
+                            <Border x:Name="Bd" CornerRadius="11" Background="Transparent" Padding="14,11">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{TemplateBinding Tag}" FontFamily="Segoe UI Emoji, Segoe UI Symbol" FontSize="16" Width="26"
+                                               Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center"/>
+                                    <ContentPresenter VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <Border x:Name="Bar" Width="3" Height="20" CornerRadius="2" HorizontalAlignment="Left" Margin="-1,0,0,0"
+                                    Background="{StaticResource AccentBrush}" Visibility="Collapsed"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#141729"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#1A1D3A"/>
+                                <Setter TargetName="Bar" Property="Visibility" Value="Visible"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <!-- Barre de défilement fine -->
