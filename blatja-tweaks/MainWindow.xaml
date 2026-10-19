@@ -1,14 +1,21 @@
 <Window x:Class="BlatjaTweaks.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Blatja Tweaks" Width="1160" Height="780" MinWidth="980" MinHeight="580"
-        WindowStartupLocation="CenterScreen" WindowStyle="None" AllowsTransparency="True"
-        Background="Transparent" ResizeMode="CanResizeWithGrip" UseLayoutRounding="True" TextOptions.TextFormattingMode="Display"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        Title="Blatja Tweaks" Width="1180" Height="800" MinWidth="1000" MinHeight="600"
+        WindowStartupLocation="CenterScreen" WindowStyle="None" ResizeMode="CanResize"
+        Background="#0C0D0F" UseLayoutRounding="True" TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType" RenderOptions.BitmapScalingMode="HighQuality"
         Icon="pack://application:,,,/Assets/icon.png">
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="0" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False"/>
+    </shell:WindowChrome.WindowChrome>
+
     <Window.Resources>
         <Style x:Key="Overline" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{StaticResource Display}"/>
-            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="13"/>
             <Setter Property="Foreground" Value="{StaticResource Muted}"/>
         </Style>
         <Style x:Key="Panel" TargetType="Border">
@@ -20,9 +27,14 @@
         </Style>
         <Style x:Key="Num" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{StaticResource Mono}"/>
-            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontSize" Value="15"/>
             <Setter Property="Foreground" Value="{StaticResource Text}"/>
             <Setter Property="HorizontalAlignment" Value="Right"/>
+        </Style>
+        <Style x:Key="Row" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource Body}"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="Foreground" Value="{StaticResource Muted}"/>
         </Style>
         <Style x:Key="Bar" TargetType="ProgressBar">
             <Setter Property="Height" Value="4"/>
@@ -49,7 +61,7 @@
             <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="18,15"/>
+            <Setter Property="Padding" Value="20,16"/>
             <Setter Property="Margin" Value="0,0,0,8"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
@@ -63,15 +75,27 @@
         </Style>
 
         <DataTemplate x:Key="TweakTemplate">
-            <Border Style="{StaticResource TweakCard}">
+            <Border Style="{StaticResource TweakCard}" Opacity="0">
+                <Border.RenderTransform><TranslateTransform x:Name="Slide" Y="10"/></Border.RenderTransform>
+                <Border.Triggers>
+                    <EventTrigger RoutedEvent="FrameworkElement.Loaded">
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.28"/>
+                                <DoubleAnimation Storyboard.TargetName="Slide" Storyboard.TargetProperty="Y" To="0" Duration="0:0:0.3">
+                                    <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </EventTrigger>
+                </Border.Triggers>
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <!-- Repère d'état -->
-                    <Border Width="3" Margin="-18,-15,16,-15" CornerRadius="8,0,0,8" Background="Transparent">
+                    <Border Width="3" Margin="-20,-16,17,-16" CornerRadius="8,0,0,8">
                         <Border.Style>
                             <Style TargetType="Border">
                                 <Setter Property="Background" Value="Transparent"/>
@@ -85,8 +109,8 @@
                     </Border>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding Name}" FontFamily="{StaticResource Display}" FontSize="15"/>
-                            <Border CornerRadius="3" Padding="6,1" Margin="12,2,0,0" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1">
+                            <TextBlock Text="{Binding Name}" FontFamily="{StaticResource Display}" FontWeight="SemiBold" FontSize="19"/>
+                            <Border CornerRadius="3" Padding="6,0" Margin="12,3,0,0" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1">
                                 <Border.Style>
                                     <Style TargetType="Border">
                                         <Setter Property="Visibility" Value="Collapsed"/>
@@ -95,9 +119,9 @@
                                         </Style.Triggers>
                                     </Style>
                                 </Border.Style>
-                                <TextBlock Text="ACTIF" FontFamily="{StaticResource Mono}" FontSize="9" Foreground="{StaticResource AccentBrush}"/>
+                                <TextBlock Text="ACTIF" FontFamily="{StaticResource Mono}" FontSize="10" Foreground="{StaticResource AccentBrush}"/>
                             </Border>
-                            <Border CornerRadius="3" Padding="6,1" Margin="6,2,0,0" BorderBrush="{StaticResource Warn}" BorderThickness="1">
+                            <Border CornerRadius="3" Padding="6,0" Margin="6,3,0,0" BorderBrush="{StaticResource Warn}" BorderThickness="1">
                                 <Border.Style>
                                     <Style TargetType="Border">
                                         <Setter Property="Visibility" Value="Collapsed"/>
@@ -106,10 +130,10 @@
                                         </Style.Triggers>
                                     </Style>
                                 </Border.Style>
-                                <TextBlock Text="REDÉMARRAGE" FontFamily="{StaticResource Mono}" FontSize="9" Foreground="{StaticResource Warn}"/>
+                                <TextBlock Text="REDÉMARRAGE" FontFamily="{StaticResource Mono}" FontSize="10" Foreground="{StaticResource Warn}"/>
                             </Border>
                         </StackPanel>
-                        <TextBlock Text="{Binding Description}" FontSize="12.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,5,20,0" LineHeight="18"/>
+                        <TextBlock Text="{Binding Description}" FontSize="14" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,24,0" LineHeight="19"/>
                     </StackPanel>
                     <CheckBox Grid.Column="2" Style="{StaticResource Switch}" IsChecked="{Binding IsOn, Mode=TwoWay}"/>
                 </Grid>
@@ -117,57 +141,53 @@
         </DataTemplate>
     </Window.Resources>
 
-    <Border x:Name="Root" Margin="14" CornerRadius="12" BorderBrush="#2A2C32" BorderThickness="1" Background="{StaticResource Bg}" TextElement.Foreground="{StaticResource Text}" RenderTransformOrigin="0.5,0.5">
-        <Border.RenderTransform><ScaleTransform x:Name="RootScale" ScaleX="0.985" ScaleY="0.985"/></Border.RenderTransform>
-        <Border.Effect><DropShadowEffect BlurRadius="28" ShadowDepth="0" Opacity="0.7" Color="Black"/></Border.Effect>
-
+    <Border x:Name="Root" BorderBrush="#2A2C32" BorderThickness="1" Background="{StaticResource Bg}" TextElement.Foreground="{StaticResource Text}" Opacity="0">
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="232"/>
+                <ColumnDefinition Width="244"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
             <!-- ─────── Barre latérale ─────── -->
-            <Border Grid.Column="0" Background="#0A0B0D" BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0" CornerRadius="12,0,0,12">
-                <Grid Margin="14,22,14,18">
+            <Border Grid.Column="0" Background="#0A0B0D" BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0">
+                <Grid Margin="14,24,14,20">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <StackPanel x:Name="Brand" Orientation="Horizontal" Background="Transparent" Margin="8,0,0,30">
-                        <Polygon Points="14,0 2,15 9,15 6,28 20,10 12,10" Fill="{StaticResource AccentBrush}" Width="22" Height="28" Stretch="Fill"/>
-                        <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="BLATJA" FontFamily="{StaticResource Display}" FontSize="21" FontWeight="Bold"/>
-                            <TextBlock Text="TWEAKS" FontFamily="{StaticResource Mono}" FontSize="10" Foreground="{StaticResource AccentBrush}" Margin="1,-1,0,0"/>
+                    <StackPanel x:Name="Brand" Orientation="Horizontal" Background="Transparent" Margin="10,0,0,32">
+                        <Polygon Points="14,0 2,15 9,15 6,28 20,10 12,10" Fill="{StaticResource AccentBrush}" Width="24" Height="32" Stretch="Fill"/>
+                        <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="BLATJA" FontFamily="{StaticResource Display}" FontSize="28" FontWeight="Bold" LineHeight="26" LineStackingStrategy="BlockLineHeight"/>
+                            <TextBlock Text="TWEAKS" FontFamily="{StaticResource Mono}" FontSize="12" Foreground="{StaticResource AccentBrush}" Margin="1,0,0,0"/>
                         </StackPanel>
                     </StackPanel>
 
                     <StackPanel Grid.Row="1">
                         <RadioButton x:Name="NavDash" Style="{StaticResource NavItem}" GroupName="Nav" Content="Tableau de bord" IsChecked="True"/>
-                        <TextBlock Text="RÉGLAGES" Style="{StaticResource Overline}" Margin="14,22,0,8"/>
+                        <TextBlock Text="RÉGLAGES" Style="{StaticResource Overline}" Margin="16,24,0,8"/>
                         <RadioButton x:Name="NavSystem" Style="{StaticResource NavItem}" GroupName="Nav" Content="Système"/>
                         <RadioButton x:Name="NavInput" Style="{StaticResource NavItem}" GroupName="Nav" Content="Entrées &amp; réseau"/>
                         <RadioButton x:Name="NavFn" Style="{StaticResource NavItem}" GroupName="Nav" Content="Fortnite"/>
-                        <TextBlock Text="MATÉRIEL" Style="{StaticResource Overline}" Margin="14,22,0,8"/>
+                        <TextBlock Text="MATÉRIEL" Style="{StaticResource Overline}" Margin="16,24,0,8"/>
                         <RadioButton x:Name="NavGpu" Style="{StaticResource NavItem}" GroupName="Nav" Content="Carte graphique"/>
                         <RadioButton x:Name="NavTools" Style="{StaticResource NavItem}" GroupName="Nav" Content="Outils"/>
                     </StackPanel>
 
-                    <StackPanel Grid.Row="2" Margin="8,0,8,0">
+                    <StackPanel Grid.Row="2" Margin="10,0,10,0">
                         <Grid>
-                            <TextBlock Text="ACTIFS" Style="{StaticResource Overline}"/>
-                            <TextBlock x:Name="ActiveCount" Text="0 / 0" Style="{StaticResource Num}"/>
+                            <TextBlock Text="RÉGLAGES ACTIFS" Style="{StaticResource Overline}"/>
+                            <TextBlock x:Name="ActiveCount" Text="0 / 0" Style="{StaticResource Num}" FontSize="14"/>
                         </Grid>
-                        <ProgressBar x:Name="ActiveBar" Style="{StaticResource Bar}" Margin="0,9,0,0"/>
-                        <Ellipse x:Name="DotActive" Width="0" Height="0"/>
+                        <ProgressBar x:Name="ActiveBar" Style="{StaticResource Bar}" Margin="0,10,0,0"/>
                     </StackPanel>
                 </Grid>
             </Border>
 
             <!-- ─────── Contenu ─────── -->
-            <Grid Grid.Column="1" Margin="32,22,32,22">
+            <Grid Grid.Column="1" Margin="34,24,34,22">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
@@ -177,24 +197,26 @@
 
                 <Grid x:Name="Header" Background="Transparent" Margin="0,0,0,20">
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock x:Name="PageTitle" Text="Tableau de bord" FontFamily="{StaticResource Display}" FontSize="28"/>
-                        <TextBlock x:Name="PageSub" Text="" FontSize="12.5" Foreground="{StaticResource Muted}" Margin="0,3,0,0"/>
+                        <TextBlock x:Name="PageTitle" Text="Tableau de bord" FontFamily="{StaticResource Display}" FontWeight="Bold" FontSize="38" LineHeight="38" LineStackingStrategy="BlockLineHeight"/>
+                        <TextBlock x:Name="PageSub" Text="" FontSize="15" Foreground="{StaticResource Muted}" Margin="0,4,0,0"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
                         <StackPanel x:Name="TweakTools" Orientation="Horizontal" Visibility="Collapsed" Margin="0,0,14,0">
-                            <Button x:Name="BtnAll" Style="{StaticResource BtnGhost}" Content="Tout activer" Padding="13,0" FontSize="12" Height="28"/>
-                            <Button x:Name="BtnNone" Style="{StaticResource BtnGhost}" Content="Tout désactiver" Padding="13,0" FontSize="12" Margin="6,0,0,0" Height="28"/>
+                            <Button x:Name="BtnAll" Style="{StaticResource BtnGhost}" Content="Tout activer" Padding="14,0" FontSize="15" Height="30"/>
+                            <Button x:Name="BtnNone" Style="{StaticResource BtnGhost}" Content="Tout désactiver" Padding="14,0" FontSize="15" Margin="6,0,0,0" Height="30"/>
                         </StackPanel>
                         <Button x:Name="BtnMin" Style="{StaticResource BtnChrome}" Content="—"/>
                         <Button x:Name="BtnClose" Style="{StaticResource BtnChrome}" Content="✕"/>
                     </StackPanel>
                 </Grid>
 
-                <Grid Grid.Row="1">
+                <Grid x:Name="PageHost" Grid.Row="1" RenderTransformOrigin="0.5,0.5">
+                    <Grid.RenderTransform><TranslateTransform x:Name="PageSlide" Y="0"/></Grid.RenderTransform>
+
                     <!-- Tableau de bord -->
                     <ScrollViewer x:Name="PageDash" VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
                         <StackPanel>
-                            <Border Style="{StaticResource Panel}" Padding="26,24">
+                            <Border Style="{StaticResource Panel}" Padding="30,26">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -202,77 +224,81 @@
                                     </Grid.ColumnDefinitions>
                                     <StackPanel VerticalAlignment="Center">
                                         <TextBlock Text="CONFIGURATION RECOMMANDÉE" Style="{StaticResource Overline}" Foreground="{StaticResource AccentBrush}"/>
-                                        <TextBlock x:Name="HeroTitle" Text="Aucun réglage appliqué" FontFamily="{StaticResource Display}" FontSize="26" Margin="0,8,0,0"/>
-                                        <TextBlock Text="Active les 13 réglages d'un coup. Un point de restauration est créé avant, et chaque réglage s'annule individuellement."
-                                                   FontSize="13" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,30,0" LineHeight="20"/>
-                                        <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
-                                            <Button x:Name="BtnQuick" Style="{StaticResource BtnPrimary}" Content="Appliquer la configuration" Padding="24,12"/>
-                                            <Button x:Name="BtnGoSystem" Style="{StaticResource BtnGhost}" Content="Choisir moi-même" Padding="20,12" Margin="10,0,0,0"/>
+                                        <TextBlock x:Name="HeroTitle" Text="Aucun réglage appliqué" FontFamily="{StaticResource Display}" FontWeight="Bold" FontSize="34" Margin="0,4,0,0"/>
+                                        <TextBlock x:Name="HeroText" Text="" FontSize="15" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,30,0" LineHeight="21"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,22,0,0">
+                                            <Button x:Name="BtnQuick" Style="{StaticResource BtnPrimary}" Content="Appliquer la configuration" Padding="26,10"/>
+                                            <Button x:Name="BtnGoSystem" Style="{StaticResource BtnGhost}" Content="Choisir moi-même" Padding="22,10" Margin="10,0,0,0"/>
                                         </StackPanel>
                                     </StackPanel>
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,6,0">
-                                        <TextBlock x:Name="HeroCount" Text="0" FontFamily="{StaticResource Display}" FontSize="72" FontWeight="Bold" HorizontalAlignment="Right" Foreground="{StaticResource AccentBrush}"/>
-                                        <TextBlock x:Name="HeroCountLabel" Text="sur 13 actifs" FontFamily="{StaticResource Mono}" FontSize="11" Foreground="{StaticResource Muted}" HorizontalAlignment="Right"/>
-                                    </StackPanel>
+                                    <Grid Grid.Column="1" Width="150" Height="150" Margin="10,0,4,0" VerticalAlignment="Center">
+                                        <Ellipse Stroke="#1F2126" StrokeThickness="10"/>
+                                        <Ellipse x:Name="Ring" Stroke="{StaticResource AccentBrush}" StrokeThickness="10" StrokeDashCap="Round"
+                                                 RenderTransformOrigin="0.5,0.5">
+                                            <Ellipse.RenderTransform><RotateTransform Angle="-90"/></Ellipse.RenderTransform>
+                                        </Ellipse>
+                                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                            <TextBlock x:Name="HeroCount" Text="0%" FontFamily="{StaticResource Display}" FontSize="44" FontWeight="Bold" HorizontalAlignment="Center" LineHeight="42" LineStackingStrategy="BlockLineHeight"/>
+                                            <TextBlock Text="OPTIMISÉ" FontFamily="{StaticResource Mono}" FontSize="11" Foreground="{StaticResource Muted}" HorizontalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Grid>
                                 </Grid>
                             </Border>
 
-                            <!-- Fiche technique -->
-                            <Border Style="{StaticResource Panel}" Margin="0,14,0,0" Padding="22,10">
+                            <Border Style="{StaticResource Panel}" Margin="0,14,0,0" Padding="24,10">
                                 <StackPanel>
-                                    <Grid Margin="0,10,0,0"><TextBlock Text="CONFIGURATION DÉTECTÉE" Style="{StaticResource Overline}"/></Grid>
+                                    <TextBlock Text="CONFIGURATION DÉTECTÉE" Style="{StaticResource Overline}" Margin="0,10,0,0"/>
                                     <Grid Margin="0,12,0,0">
-                                        <TextBlock Text="Carte graphique" Foreground="{StaticResource Muted}" FontSize="13"/>
+                                        <TextBlock Text="Carte graphique" Style="{StaticResource Row}"/>
                                         <TextBlock x:Name="DashGpu" Text="—" Style="{StaticResource Num}"/>
                                     </Grid>
                                     <Border Height="1" Background="{StaticResource Line}" Margin="0,11,0,11"/>
                                     <Grid>
-                                        <TextBlock Text="Limite de puissance" Foreground="{StaticResource Muted}" FontSize="13"/>
+                                        <TextBlock Text="Limite de puissance" Style="{StaticResource Row}"/>
                                         <TextBlock x:Name="DashPower" Text="—" Style="{StaticResource Num}"/>
                                     </Grid>
                                     <Border Height="1" Background="{StaticResource Line}" Margin="0,11,0,11"/>
                                     <Grid>
-                                        <TextBlock Text="Température GPU" Foreground="{StaticResource Muted}" FontSize="13"/>
+                                        <TextBlock Text="Température GPU" Style="{StaticResource Row}"/>
                                         <TextBlock x:Name="DashTemp" Text="—" Style="{StaticResource Num}"/>
                                     </Grid>
                                     <Border Height="1" Background="{StaticResource Line}" Margin="0,11,0,11"/>
                                     <Grid Margin="0,0,0,10">
-                                        <TextBlock Text="Fortnite" Foreground="{StaticResource Muted}" FontSize="13"/>
+                                        <TextBlock Text="Fortnite" Style="{StaticResource Row}"/>
                                         <TextBlock x:Name="FnStatus" Text="…" Style="{StaticResource Num}"/>
                                     </Grid>
                                 </StackPanel>
                             </Border>
 
-                            <!-- Catégories -->
-                            <TextBlock Text="CATÉGORIES" Style="{StaticResource Overline}" Margin="2,22,0,4"/>
+                            <TextBlock Text="CATÉGORIES" Style="{StaticResource Overline}" Margin="2,24,0,4"/>
                             <Button x:Name="BtnOpenSystem" Style="{StaticResource BtnRow}">
                                 <Grid>
                                     <StackPanel>
-                                        <TextBlock Text="Système" FontFamily="{StaticResource Display}" FontSize="16"/>
-                                        <TextBlock Text="Alimentation, Mode Jeu, planification GPU, minuteur, priorités CPU" FontSize="12" Foreground="{StaticResource Muted}" Margin="0,3,0,0"/>
+                                        <TextBlock Text="Système" FontFamily="{StaticResource Display}" FontWeight="SemiBold" FontSize="22"/>
+                                        <TextBlock Text="Alimentation, planification GPU, minuteur, tâches de fond, disque" FontSize="14" Foreground="{StaticResource Muted}" Margin="0,1,0,0"/>
                                     </StackPanel>
-                                    <TextBlock x:Name="CntSystem" Text="" Style="{StaticResource Num}" VerticalAlignment="Center" Foreground="{StaticResource Muted}"/>
+                                    <TextBlock x:Name="CntSystem" Style="{StaticResource Num}" VerticalAlignment="Center" Foreground="{StaticResource Muted}"/>
                                 </Grid>
                             </Button>
                             <Button x:Name="BtnOpenInput" Style="{StaticResource BtnRow}">
                                 <Grid>
                                     <StackPanel>
-                                        <TextBlock Text="Entrées &amp; réseau" FontFamily="{StaticResource Display}" FontSize="16"/>
-                                        <TextBlock Text="Souris sans accélération, latence réseau" FontSize="12" Foreground="{StaticResource Muted}" Margin="0,3,0,0"/>
+                                        <TextBlock Text="Entrées &amp; réseau" FontFamily="{StaticResource Display}" FontWeight="SemiBold" FontSize="22"/>
+                                        <TextBlock Text="Souris sans accélération, latence réseau" FontSize="14" Foreground="{StaticResource Muted}" Margin="0,1,0,0"/>
                                     </StackPanel>
-                                    <TextBlock x:Name="CntInput" Text="" Style="{StaticResource Num}" VerticalAlignment="Center" Foreground="{StaticResource Muted}"/>
+                                    <TextBlock x:Name="CntInput" Style="{StaticResource Num}" VerticalAlignment="Center" Foreground="{StaticResource Muted}"/>
                                 </Grid>
                             </Button>
                             <Button x:Name="BtnOpenFn" Style="{StaticResource BtnRow}">
                                 <Grid>
                                     <StackPanel>
-                                        <TextBlock Text="Fortnite" FontFamily="{StaticResource Display}" FontSize="16"/>
-                                        <TextBlock Text="Priorité CPU, GPU dédié, plein écran exclusif, graphismes" FontSize="12" Foreground="{StaticResource Muted}" Margin="0,3,0,0"/>
+                                        <TextBlock Text="Fortnite" FontFamily="{StaticResource Display}" FontWeight="SemiBold" FontSize="22"/>
+                                        <TextBlock Text="Priorité CPU, GPU dédié, plein écran exclusif, graphismes" FontSize="14" Foreground="{StaticResource Muted}" Margin="0,1,0,0"/>
                                     </StackPanel>
-                                    <TextBlock x:Name="CntFn" Text="" Style="{StaticResource Num}" VerticalAlignment="Center" Foreground="{StaticResource Muted}"/>
+                                    <TextBlock x:Name="CntFn" Style="{StaticResource Num}" VerticalAlignment="Center" Foreground="{StaticResource Muted}"/>
                                 </Grid>
                             </Button>
-                            <TextBlock x:Name="FnPath" Text="" FontFamily="{StaticResource Mono}" FontSize="10.5" Foreground="{StaticResource Muted}" Margin="2,14,0,0" TextWrapping="Wrap"/>
+                            <TextBlock x:Name="FnPath" FontFamily="{StaticResource Mono}" FontSize="12" Foreground="{StaticResource Muted}" Margin="2,14,0,0" TextWrapping="Wrap"/>
                         </StackPanel>
                     </ScrollViewer>
 
@@ -284,31 +310,31 @@
                     <!-- GPU -->
                     <ScrollViewer x:Name="PageGpu" VerticalScrollBarVisibility="Auto" Padding="0,0,10,0" Visibility="Collapsed">
                         <StackPanel>
-                            <Border Style="{StaticResource Panel}" Padding="24">
+                            <Border Style="{StaticResource Panel}" Padding="26">
                                 <StackPanel>
-                                    <TextBlock x:Name="GpuName" Text="Détection…" FontFamily="{StaticResource Display}" FontSize="24" TextWrapping="Wrap"/>
-                                    <TextBlock x:Name="GpuDriver" Text="" FontFamily="{StaticResource Mono}" FontSize="11.5" Foreground="{StaticResource Muted}" Margin="0,4,0,0"/>
+                                    <TextBlock x:Name="GpuName" Text="Détection…" FontFamily="{StaticResource Display}" FontWeight="Bold" FontSize="32" TextWrapping="Wrap"/>
+                                    <TextBlock x:Name="GpuDriver" FontFamily="{StaticResource Mono}" FontSize="13" Foreground="{StaticResource Muted}" Margin="0,2,0,0"/>
 
                                     <Border Height="1" Background="{StaticResource Line}" Margin="0,20,0,16"/>
-                                    <Grid><TextBlock Text="Puissance" Foreground="{StaticResource Muted}" FontSize="13"/><TextBlock x:Name="TilePower" Text="—" Style="{StaticResource Num}"/></Grid>
+                                    <Grid><TextBlock Text="Puissance" Style="{StaticResource Row}"/><TextBlock x:Name="TilePower" Text="—" Style="{StaticResource Num}"/></Grid>
                                     <Border Height="1" Background="{StaticResource Line}" Margin="0,11,0,11"/>
-                                    <Grid><TextBlock Text="Fréquence boost max" Foreground="{StaticResource Muted}" FontSize="13"/><TextBlock x:Name="TileClock" Text="—" Style="{StaticResource Num}"/></Grid>
+                                    <Grid><TextBlock Text="Fréquence boost max" Style="{StaticResource Row}"/><TextBlock x:Name="TileClock" Text="—" Style="{StaticResource Num}"/></Grid>
                                     <Border Height="1" Background="{StaticResource Line}" Margin="0,11,0,11"/>
-                                    <Grid><TextBlock Text="Température" Foreground="{StaticResource Muted}" FontSize="13"/><TextBlock x:Name="TileTemp" Text="—" Style="{StaticResource Num}"/></Grid>
+                                    <Grid><TextBlock Text="Température" Style="{StaticResource Row}"/><TextBlock x:Name="TileTemp" Text="—" Style="{StaticResource Num}"/></Grid>
 
-                                    <Grid Margin="0,22,0,0">
+                                    <Grid Margin="0,24,0,0">
                                         <TextBlock Text="LIMITE DE PUISSANCE" Style="{StaticResource Overline}"/>
-                                        <TextBlock x:Name="BarPowerLabel" Text="" Style="{StaticResource Num}" FontSize="12"/>
+                                        <TextBlock x:Name="BarPowerLabel" Style="{StaticResource Num}" FontSize="13"/>
                                     </Grid>
-                                    <ProgressBar x:Name="BarPower" Style="{StaticResource Bar}" Margin="0,9,0,0"/>
+                                    <ProgressBar x:Name="BarPower" Style="{StaticResource Bar}" Margin="0,10,0,0"/>
 
-                                    <TextBlock x:Name="GpuStatus" Text="" FontSize="12.5" Foreground="{StaticResource Warn}" Margin="0,16,0,0" TextWrapping="Wrap"/>
+                                    <TextBlock x:Name="GpuStatus" FontSize="15" Foreground="{StaticResource Warn}" Margin="0,16,0,0" TextWrapping="Wrap"/>
                                     <StackPanel Orientation="Horizontal" Margin="0,22,0,0">
-                                        <Button x:Name="BtnGpuBoost" Style="{StaticResource BtnPrimary}" Content="Booster le GPU" Padding="24,12"/>
-                                        <Button x:Name="BtnGpuReset" Style="{StaticResource BtnGhost}" Content="Réglages d'origine" Padding="20,12" Margin="10,0,0,0"/>
+                                        <Button x:Name="BtnGpuBoost" Style="{StaticResource BtnPrimary}" Content="Booster le GPU" Padding="26,10"/>
+                                        <Button x:Name="BtnGpuReset" Style="{StaticResource BtnGhost}" Content="Réglages d'origine" Padding="22,10" Margin="10,0,0,0"/>
                                     </StackPanel>
                                     <TextBlock Text="Règle la limite de puissance au maximum et verrouille la fréquence minimale à 90 % du boost max (NVIDIA uniquement). Ce n'est pas un overclock avec tension : pour ça, utilise MSI Afterburner."
-                                               FontSize="11.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,18,0,0" LineHeight="17"/>
+                                               FontSize="14" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,20,0,0" LineHeight="19"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
@@ -321,20 +347,30 @@
                                 <Grid>
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                     <StackPanel VerticalAlignment="Center">
-                                        <TextBlock Text="Nettoyer les fichiers temporaires" FontFamily="{StaticResource Display}" FontSize="16"/>
-                                        <TextBlock Text="Vide les dossiers Temp de l'utilisateur et de Windows." FontSize="12.5" Foreground="{StaticResource Muted}" Margin="0,4,0,0"/>
+                                        <TextBlock Text="Nettoyer les fichiers temporaires" FontFamily="{StaticResource Display}" FontWeight="SemiBold" FontSize="22"/>
+                                        <TextBlock Text="Vide les dossiers Temp de l'utilisateur et de Windows." FontSize="14" Foreground="{StaticResource Muted}"/>
                                     </StackPanel>
-                                    <Button x:Name="BtnClean" Grid.Column="1" Style="{StaticResource BtnGhost}" Content="Nettoyer" Padding="22,10"/>
+                                    <Button x:Name="BtnClean" Grid.Column="1" Style="{StaticResource BtnGhost}" Content="Nettoyer" Padding="24,8"/>
                                 </Grid>
                             </Border>
                             <Border Style="{StaticResource Panel}" Margin="0,10,0,0">
                                 <Grid>
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                     <StackPanel VerticalAlignment="Center">
-                                        <TextBlock Text="Tout restaurer" FontFamily="{StaticResource Display}" FontSize="16"/>
-                                        <TextBlock Text="Annule tous les réglages appliqués et remet Windows dans son état d'origine." FontSize="12.5" Foreground="{StaticResource Muted}" Margin="0,4,0,0"/>
+                                        <TextBlock Text="Activation de Windows" FontFamily="{StaticResource Display}" FontWeight="SemiBold" FontSize="22"/>
+                                        <TextBlock Text="Ouvre la page officielle d'activation (clé de produit ou licence numérique)." FontSize="14" Foreground="{StaticResource Muted}"/>
                                     </StackPanel>
-                                    <Button x:Name="BtnRestore" Grid.Column="1" Style="{StaticResource BtnGhost}" Content="Restaurer" Padding="22,10"/>
+                                    <Button x:Name="BtnActivation" Grid.Column="1" Style="{StaticResource BtnGhost}" Content="Ouvrir" Padding="24,8"/>
+                                </Grid>
+                            </Border>
+                            <Border Style="{StaticResource Panel}" Margin="0,10,0,0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="Tout restaurer" FontFamily="{StaticResource Display}" FontWeight="SemiBold" FontSize="22"/>
+                                        <TextBlock Text="Annule tous les réglages appliqués et remet Windows dans son état d'origine." FontSize="14" Foreground="{StaticResource Muted}"/>
+                                    </StackPanel>
+                                    <Button x:Name="BtnRestore" Grid.Column="1" Style="{StaticResource BtnGhost}" Content="Restaurer" Padding="24,8"/>
                                 </Grid>
                             </Border>
                         </StackPanel>
@@ -348,17 +384,35 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel VerticalAlignment="Center" Margin="0,0,28,0">
-                        <TextBlock x:Name="ProgressLabel" Text="Prêt" FontFamily="{StaticResource Mono}" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,0,0,7"/>
+                        <TextBlock x:Name="ProgressLabel" Text="Prêt" FontFamily="{StaticResource Mono}" FontSize="12" Foreground="{StaticResource Muted}" Margin="0,0,0,7"/>
                         <ProgressBar x:Name="Progress" Style="{StaticResource Bar}"/>
                     </StackPanel>
-                    <Button x:Name="BtnApply" Grid.Column="1" Style="{StaticResource BtnPrimary}" Content="Appliquer les réglages" Padding="30,12"/>
+                    <Button x:Name="BtnApply" Grid.Column="1" Style="{StaticResource BtnPrimary}" Content="Appliquer les réglages" Padding="32,10"/>
                 </Grid>
 
                 <!-- Journal -->
-                <Border Grid.Row="3" Background="#08090A" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Height="78">
+                <Border Grid.Row="3" Background="#08090A" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6" Height="84">
                     <TextBox x:Name="LogBox" IsReadOnly="True" Background="Transparent" BorderThickness="0" Foreground="#80858F"
-                             FontFamily="{StaticResource Mono}" FontSize="11" Padding="12,8" TextWrapping="Wrap"
+                             FontFamily="{StaticResource Mono}" FontSize="13" Padding="12,8" TextWrapping="Wrap"
                              VerticalScrollBarVisibility="Auto"/>
+                </Border>
+            </Grid>
+
+            <!-- ─────── Point de restauration obligatoire ─────── -->
+            <Grid x:Name="Gate" Grid.ColumnSpan="2" Background="#F2090A0C" Panel.ZIndex="50">
+                <Border Style="{StaticResource Panel}" Width="560" Padding="34,30" VerticalAlignment="Center" HorizontalAlignment="Center" Background="#121316">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Polygon Points="14,0 2,15 9,15 6,28 20,10 12,10" Fill="{StaticResource AccentBrush}" Width="20" Height="27" Stretch="Fill"/>
+                            <TextBlock Text="ÉTAPE 1 SUR 1" Style="{StaticResource Overline}" Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                        </StackPanel>
+                        <TextBlock Text="Point de restauration" FontFamily="{StaticResource Display}" FontWeight="Bold" FontSize="40" Margin="0,10,0,0" LineHeight="40" LineStackingStrategy="BlockLineHeight"/>
+                        <TextBlock x:Name="GateText" FontSize="16" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,10,0,0" LineHeight="22"
+                                   Text="Avant de modifier Windows, Blatja Tweaks crée un point de restauration. Si quoi que ce soit ne te plaît, tu pourras revenir exactement à l'état d'avant."/>
+                        <TextBlock x:Name="GateStatus" FontFamily="{StaticResource Mono}" FontSize="13" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,16,0,0"/>
+                        <Button x:Name="GateBtn" Style="{StaticResource BtnPrimary}" Content="Créer le point de restauration" Padding="26,11" HorizontalAlignment="Left" Margin="0,22,0,0"/>
+                        <Button x:Name="GateSkip" Style="{StaticResource BtnGhost}" Content="Continuer sans point de restauration (déconseillé)" Padding="16,6" FontSize="14" HorizontalAlignment="Left" Margin="0,12,0,0" Visibility="Collapsed"/>
+                    </StackPanel>
                 </Border>
             </Grid>
         </Grid>

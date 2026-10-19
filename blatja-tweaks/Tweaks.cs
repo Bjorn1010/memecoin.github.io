@@ -26,6 +26,13 @@ internal static class Tweaks
         SystemParametersInfo(0x0004 /*SPI_SETMOUSE*/, 0, new[] { t1, t2, speed }, 3);
     }
 
+    private static void Service(string name, string start)
+    {
+        var r = Sh.Run("sc", $"config {name} start= {start}");
+        // 1060 = service absent (fréquent sur Tiny11) : rien à faire
+        if (r.Code != 0 && r.Code != 1060) throw new InvalidOperationException($"sc : {r.Output.Split('\n')[0].Trim()}");
+    }
+
     private static string RequireFortniteExe() =>
         Fortnite.FindExe() ?? throw new FileNotFoundException("Fortnite introuvable (Epic Games Launcher).");
 
@@ -35,11 +42,18 @@ internal static class Tweaks
         new()
         {
             Id = "power", Category = "SYSTÈME", Name = "Plan d'alimentation « Performances ultimes »",
-            Description = "Empêche le processeur de baisser sa fréquence pendant le jeu.",
+            Description = "Processeur toujours à pleine fréquence, tous les cœurs actifs, économie d'énergie PCIe coupée.",
             Apply = () =>
             {
                 var r = Sh.Run("powercfg", $"-duplicatescheme {UltimateScheme} {BlatjaScheme}");
                 string guid = r.Code == 0 ? BlatjaScheme : HighPerfScheme;
+                if (r.Code == 0)
+                {
+                    // réglages appliqués uniquement à notre copie du plan, jamais aux plans d'origine
+                    Sh.Run("powercfg", $"-setacvalueindex {BlatjaScheme} SUB_PROCESSOR PROCTHROTTLEMIN 100");
+                    Sh.Run("powercfg", $"-setacvalueindex {BlatjaScheme} SUB_PROCESSOR CPMINCORES 100");
+                    Sh.Run("powercfg", $"-setacvalueindex {BlatjaScheme} SUB_PCIEXPRESS ASPM 0");
+                }
                 var s = Sh.Run("powercfg", $"-setactive {guid}");
                 if (s.Code != 0) throw new InvalidOperationException("powercfg : " + s.Output);
             },
@@ -140,6 +154,80 @@ internal static class Tweaks
                 Reg.Set(@"HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects", "VisualFXSetting", 0);
                 Reg.Set(@"HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize", "EnableTransparency", 1);
                 Reg.Set(@"HKCU\Control Panel\Desktop\WindowMetrics", "MinAnimate", "1", RegistryValueKind.String);
+            },
+        },
+
+
+        new()
+        {
+            Id = "throttle", Category = "SYSTÈME", Name = "Pas de bridage d'énergie du processeur",
+            Description = "Désactive le Power Throttling : Windows ne ralentit plus le jeu pour économiser du courant.",
+            Apply = () => Reg.Set(@"HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling", "PowerThrottlingOff", 1),
+            Revert = () => Reg.Del(@"HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling", "PowerThrottlingOff"),
+        },
+        new()
+        {
+            Id = "fse", Category = "SYSTÈME", Name = "Plein écran exclusif pour tous les jeux",
+            Description = "Évite la couche de composition Windows : moins de latence d'affichage, plus d'images.",
+            Apply = () =>
+            {
+                const string k = @"HKCU\System\GameConfigStore";
+                Reg.Set(k, "GameDVR_FSEBehaviorMode", 2);
+                Reg.Set(k, "GameDVR_HonorUserFSEBehaviorMode", 1);
+                Reg.Set(k, "GameDVR_DXGIHonorFSEWindowsCompatible", 1);
+                Reg.Set(k, "GameDVR_EFSEFeatureFlags", 0);
+            },
+            Revert = () =>
+            {
+                const string k = @"HKCU\System\GameConfigStore";
+                Reg.Del(k, "GameDVR_FSEBehaviorMode");
+                Reg.Del(k, "GameDVR_HonorUserFSEBehaviorMode");
+                Reg.Del(k, "GameDVR_DXGIHonorFSEWindowsCompatible");
+                Reg.Del(k, "GameDVR_EFSEFeatureFlags");
+            },
+        },
+        new()
+        {
+            Id = "bg", Category = "SYSTÈME", Name = "Moins de tâches en arrière-plan",
+            Description = "Bloque les applications de fond et le partage de mises à jour (upload) qui chargent CPU et réseau.",
+            Apply = () =>
+            {
+                Reg.Set(@"HKLM\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy", "LetAppsRunInBackground", 2);
+                Reg.Set(@"HKLM\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization", "DODownloadMode", 0);
+            },
+            Revert = () =>
+            {
+                Reg.Del(@"HKLM\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy", "LetAppsRunInBackground");
+                Reg.Del(@"HKLM\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization", "DODownloadMode");
+            },
+        },
+        new()
+        {
+            Id = "telemetry", Category = "SYSTÈME", Name = "Télémétrie Windows désactivée",
+            Description = "Arrête le service de collecte de données (DiagTrack) qui consomme disque et CPU en tâche de fond.",
+            Apply = () => { Service("DiagTrack", "disabled"); Sh.Run("sc", "stop DiagTrack"); },
+            Revert = () => { Service("DiagTrack", "auto"); Sh.Run("sc", "start DiagTrack"); },
+        },
+        new()
+        {
+            Id = "ntfs", Category = "SYSTÈME", Name = "Disque : moins d'écritures inutiles",
+            Description = "Coupe l'horodatage du dernier accès aux fichiers : moins d'activité disque pendant les chargements.",
+            Apply = () => Sh.Run("fsutil", "behavior set disablelastaccess 1"),
+            Revert = () => Sh.Run("fsutil", "behavior set disablelastaccess 2"),
+        },
+        new()
+        {
+            Id = "vbs", Category = "SYSTÈME", Name = "Isolation de noyau (VBS) désactivée", NeedsReboot = true, Recommended = false,
+            Description = "Peut rendre quelques % de FPS sur certains processeurs, mais réduit la sécurité. Non inclus dans la configuration recommandée.",
+            Apply = () =>
+            {
+                Reg.Set(@"HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity", "Enabled", 0);
+                Reg.Set(@"HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard", "EnableVirtualizationBasedSecurity", 0);
+            },
+            Revert = () =>
+            {
+                Reg.Del(@"HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity", "Enabled");
+                Reg.Del(@"HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard", "EnableVirtualizationBasedSecurity");
             },
         },
 

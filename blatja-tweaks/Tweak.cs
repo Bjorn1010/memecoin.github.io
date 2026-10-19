@@ -9,6 +9,8 @@ public sealed class Tweak : INotifyPropertyChanged
     public required string Description { get; init; }
     public required string Category { get; init; }
     public bool NeedsReboot { get; init; }
+    /// <summary>Inclus dans « Appliquer la configuration » ; faux pour les réglages qui touchent à la sécurité.</summary>
+    public bool Recommended { get; init; } = true;
 
     public string Icon => Id switch
     {

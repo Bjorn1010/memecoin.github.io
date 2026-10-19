@@ -12,6 +12,13 @@ Un point de restauration est créé avant chaque application ; **Tout restaurer*
 - **Fortnite** : priorité CPU haute, GPU haute performance + plein écran exclusif, graphismes FPS (sauvegarde `.blatja.bak`)
 - **GPU NVIDIA** : limite de puissance au max + fréquence minimale verrouillée à 90 % du boost (via `nvidia-smi`)
 
+## Sécurité
+Au démarrage, l'application impose la création d'un point de restauration Windows avant toute modification.
+Le réglage « Isolation de noyau (VBS) » réduit la sécurité : il n'est pas inclus dans la configuration recommandée.
+
+## Polices
+Rajdhani, Barlow, Share Tech Mono (licence SIL OFL), embarquées dans l'exe.
+
 ## Limites
 - Le gain réel dépend de la machine ; aucun logiciel ne garantit +300 FPS.
 - Ce n'est pas un overclock avec offsets (tension/fréquence) : pour ça, MSI Afterburner. AMD : Adrenalin.

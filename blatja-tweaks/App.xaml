@@ -15,11 +15,13 @@
         <SolidColorBrush x:Key="OnAccent" Color="#0C0D0F"/>
         <SolidColorBrush x:Key="Good" Color="#C8F031"/>
         <SolidColorBrush x:Key="Warn" Color="#FF9640"/>
-        <FontFamily x:Key="Display">Bahnschrift, Segoe UI Semibold, Segoe UI</FontFamily>
-        <FontFamily x:Key="Mono">Cascadia Mono, Consolas</FontFamily>
+        <FontFamily x:Key="Display">pack://application:,,,/Fonts/#Rajdhani</FontFamily>
+        <FontFamily x:Key="Body">pack://application:,,,/Fonts/#Barlow</FontFamily>
+        <FontFamily x:Key="Mono">pack://application:,,,/Fonts/#Share Tech Mono</FontFamily>
 
         <Style TargetType="TextBlock">
-            <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI"/>
+            <Setter Property="FontFamily" Value="{StaticResource Body}"/>
+            <Setter Property="FontSize" Value="14"/>
         </Style>
 
         <!-- Interrupteur plat -->
@@ -42,14 +44,14 @@
                                 <Trigger.EnterActions>
                                     <BeginStoryboard>
                                         <Storyboard>
-                                            <ThicknessAnimation Storyboard.TargetName="Knob" Storyboard.TargetProperty="Margin" To="22,0,0,0" Duration="0:0:0.12"/>
+                                            <ThicknessAnimation Storyboard.TargetName="Knob" Storyboard.TargetProperty="Margin" To="22,0,0,0" Duration="0:0:0.18"><ThicknessAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></ThicknessAnimation.EasingFunction></ThicknessAnimation>
                                         </Storyboard>
                                     </BeginStoryboard>
                                 </Trigger.EnterActions>
                                 <Trigger.ExitActions>
                                     <BeginStoryboard>
                                         <Storyboard>
-                                            <ThicknessAnimation Storyboard.TargetName="Knob" Storyboard.TargetProperty="Margin" To="4,0,0,0" Duration="0:0:0.12"/>
+                                            <ThicknessAnimation Storyboard.TargetName="Knob" Storyboard.TargetProperty="Margin" To="4,0,0,0" Duration="0:0:0.18"><ThicknessAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></ThicknessAnimation.EasingFunction></ThicknessAnimation>
                                         </Storyboard>
                                     </BeginStoryboard>
                                 </Trigger.ExitActions>
@@ -64,19 +66,37 @@
         <Style x:Key="BtnPrimary" TargetType="Button">
             <Setter Property="Foreground" Value="{StaticResource OnAccent}"/>
             <Setter Property="FontFamily" Value="{StaticResource Display}"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Padding" Value="22,11"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="17"/>
+            <Setter Property="Padding" Value="22,9"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bd" CornerRadius="6" Background="{StaticResource AccentBrush}" Padding="{TemplateBinding Padding}">
+                        <Border x:Name="Bd" CornerRadius="6" Padding="{TemplateBinding Padding}" RenderTransformOrigin="0.5,0.5">
+                            <Border.Background><SolidColorBrush x:Name="Fill" Color="#C8F031"/></Border.Background>
+                            <Border.RenderTransform><ScaleTransform x:Name="Sc" ScaleX="1" ScaleY="1"/></Border.RenderTransform>
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#D8FF4A"/></Trigger>
-                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="Bd" Property="Background" Value="#A9CC22"/></Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Trigger.EnterActions><BeginStoryboard><Storyboard>
+                                    <ColorAnimation Storyboard.TargetName="Fill" Storyboard.TargetProperty="Color" To="#DCFF55" Duration="0:0:0.14"/>
+                                </Storyboard></BeginStoryboard></Trigger.EnterActions>
+                                <Trigger.ExitActions><BeginStoryboard><Storyboard>
+                                    <ColorAnimation Storyboard.TargetName="Fill" Storyboard.TargetProperty="Color" To="#C8F031" Duration="0:0:0.2"/>
+                                </Storyboard></BeginStoryboard></Trigger.ExitActions>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Trigger.EnterActions><BeginStoryboard><Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName="Sc" Storyboard.TargetProperty="ScaleX" To="0.97" Duration="0:0:0.07"/>
+                                    <DoubleAnimation Storyboard.TargetName="Sc" Storyboard.TargetProperty="ScaleY" To="0.97" Duration="0:0:0.07"/>
+                                </Storyboard></BeginStoryboard></Trigger.EnterActions>
+                                <Trigger.ExitActions><BeginStoryboard><Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName="Sc" Storyboard.TargetProperty="ScaleX" To="1" Duration="0:0:0.12"/>
+                                    <DoubleAnimation Storyboard.TargetName="Sc" Storyboard.TargetProperty="ScaleY" To="1" Duration="0:0:0.12"/>
+                                </Storyboard></BeginStoryboard></Trigger.ExitActions>
+                            </Trigger>
                             <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Bd" Property="Opacity" Value="0.35"/></Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -85,17 +105,25 @@
         </Style>
         <Style x:Key="BtnGhost" TargetType="Button" BasedOn="{StaticResource BtnPrimary}">
             <Setter Property="Foreground" Value="{StaticResource Text}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bd" CornerRadius="6" Background="Transparent" BorderBrush="#34373E" BorderThickness="1"
-                                Padding="{TemplateBinding Padding}">
+                        <Border x:Name="Bd" CornerRadius="6" BorderThickness="1" Padding="{TemplateBinding Padding}">
+                            <Border.Background><SolidColorBrush x:Name="Fill" Color="#00000000"/></Border.Background>
+                            <Border.BorderBrush><SolidColorBrush x:Name="Edge" Color="#34373E"/></Border.BorderBrush>
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#1A1C20"/>
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="#4A4E57"/>
+                                <Trigger.EnterActions><BeginStoryboard><Storyboard>
+                                    <ColorAnimation Storyboard.TargetName="Fill" Storyboard.TargetProperty="Color" To="#1C1E23" Duration="0:0:0.14"/>
+                                    <ColorAnimation Storyboard.TargetName="Edge" Storyboard.TargetProperty="Color" To="#5A5F6B" Duration="0:0:0.14"/>
+                                </Storyboard></BeginStoryboard></Trigger.EnterActions>
+                                <Trigger.ExitActions><BeginStoryboard><Storyboard>
+                                    <ColorAnimation Storyboard.TargetName="Fill" Storyboard.TargetProperty="Color" To="#00000000" Duration="0:0:0.2"/>
+                                    <ColorAnimation Storyboard.TargetName="Edge" Storyboard.TargetProperty="Color" To="#34373E" Duration="0:0:0.2"/>
+                                </Storyboard></BeginStoryboard></Trigger.ExitActions>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True"><Setter TargetName="Bd" Property="Opacity" Value="0.7"/></Trigger>
                             <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Bd" Property="Opacity" Value="0.35"/></Trigger>
@@ -110,7 +138,7 @@
             <Setter Property="Height" Value="28"/>
             <Setter Property="Margin" Value="4,0,0,0"/>
             <Setter Property="Foreground" Value="{StaticResource Muted}"/>
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontSize" Value="13"/>
         </Style>
         <!-- Ligne cliquable (catégories du tableau de bord) -->
         <Style x:Key="BtnRow" TargetType="Button">
@@ -135,26 +163,39 @@
         <Style x:Key="NavItem" TargetType="RadioButton">
             <Setter Property="Foreground" Value="#8A8F99"/>
             <Setter Property="FontFamily" Value="{StaticResource Display}"/>
-            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="18"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Margin" Value="0,0,0,2"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="RadioButton">
                         <Grid>
-                            <Border x:Name="Bd" CornerRadius="6" Background="Transparent" Padding="14,10">
+                            <Border x:Name="Bd" CornerRadius="6" Padding="16,8">
+                                <Border.Background><SolidColorBrush x:Name="Fill" Color="#00000000"/></Border.Background>
                                 <ContentPresenter VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}"/>
                             </Border>
-                            <Border x:Name="Bar" Width="3" Height="18" HorizontalAlignment="Left" Background="{StaticResource AccentBrush}" Visibility="Collapsed"/>
+                            <Border x:Name="Bar" Width="3" Height="20" HorizontalAlignment="Left" Background="{StaticResource AccentBrush}" Opacity="0"/>
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#14161A"/>
+                                <Trigger.EnterActions><BeginStoryboard><Storyboard>
+                                    <ColorAnimation Storyboard.TargetName="Fill" Storyboard.TargetProperty="Color" To="#15171B" Duration="0:0:0.12"/>
+                                </Storyboard></BeginStoryboard></Trigger.EnterActions>
+                                <Trigger.ExitActions><BeginStoryboard><Storyboard>
+                                    <ColorAnimation Storyboard.TargetName="Fill" Storyboard.TargetProperty="Color" To="#00000000" Duration="0:0:0.18"/>
+                                </Storyboard></BeginStoryboard></Trigger.ExitActions>
                                 <Setter Property="Foreground" Value="White"/>
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#181A1F"/>
-                                <Setter TargetName="Bar" Property="Visibility" Value="Visible"/>
+                                <Trigger.EnterActions><BeginStoryboard><Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName="Bar" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.2"/>
+                                    <ColorAnimation Storyboard.TargetName="Fill" Storyboard.TargetProperty="Color" To="#1A1C21" Duration="0:0:0.2"/>
+                                </Storyboard></BeginStoryboard></Trigger.EnterActions>
+                                <Trigger.ExitActions><BeginStoryboard><Storyboard>
+                                    <DoubleAnimation Storyboard.TargetName="Bar" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.15"/>
+                                    <ColorAnimation Storyboard.TargetName="Fill" Storyboard.TargetProperty="Color" To="#00000000" Duration="0:0:0.2"/>
+                                </Storyboard></BeginStoryboard></Trigger.ExitActions>
                                 <Setter Property="Foreground" Value="White"/>
                             </Trigger>
                         </ControlTemplate.Triggers>

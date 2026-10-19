@@ -58,6 +58,7 @@ internal static class Fortnite
         ("sg.FoliageQuality", "0"), ("sg.ResolutionQuality", "100.000000"),
         ("bUseVSync", "False"), ("bMotionBlur", "False"),
         ("FrameRateLimit", "0.000000"), ("MenuFrameRateLimit", "0.000000"),
+        ("FullscreenMode", "0"), ("LastConfirmedFullscreenMode", "0"), ("PreferredFullscreenMode", "0"),
     };
 
     public static void ApplyLowSettings()
