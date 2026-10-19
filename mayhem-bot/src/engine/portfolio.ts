@@ -8,6 +8,13 @@ export interface PoolReserves {
   tokenReservesUi: number;
 }
 
+export interface PortfolioState {
+  solBalance: number;
+  realizedPnlSol: number;
+  totalFeesSol: number;
+  positions: Position[];
+}
+
 /**
  * A fully virtual (paper) trading account for one strategy. No wallet, no real funds —
  * but every fill goes through the same cost model a real Padre trade would: the platform's
@@ -33,6 +40,31 @@ export class PaperPortfolio {
     return this.positions.size < maxConcurrentPositions;
   }
 
+  /** Everything needed to resume this portfolio after a restart. `trades` is deliberately
+   * left out: it's an in-memory convenience log, and the trades table is the real record. */
+  serialize(): PortfolioState {
+    return {
+      solBalance: this.solBalance,
+      realizedPnlSol: this.realizedPnlSol,
+      totalFeesSol: this.totalFeesSol,
+      positions: [...this.positions.values()],
+    };
+  }
+
+  /** Rehydrates a portfolio saved by serialize(). Anything missing or non-finite falls back
+   * to the fresh-start value, so a truncated or older state row degrades to "start over"
+   * rather than resuming with NaN balances that would corrupt every later trade. */
+  restore(state: PortfolioState) {
+    if (Number.isFinite(state.solBalance)) this.solBalance = state.solBalance;
+    if (Number.isFinite(state.realizedPnlSol)) this.realizedPnlSol = state.realizedPnlSol;
+    if (Number.isFinite(state.totalFeesSol)) this.totalFeesSol = state.totalFeesSol;
+    this.positions.clear();
+    for (const pos of state.positions ?? []) {
+      if (!pos?.mint || !Number.isFinite(pos.tokenAmount) || !(pos.avgEntryPriceSol > 0)) continue;
+      this.positions.set(pos.mint, pos);
+    }
+  }
+
   buy(opts: {
     mint: string;
     priceSol: number; // fallback spot price, used only when pool reserves aren't known
@@ -55,7 +87,11 @@ export class PaperPortfolio {
     const fill = opts.poolReserves
       ? simulateBuy(notionalAfterFee, opts.poolReserves.solReservesUi, opts.poolReserves.tokenReservesUi)
       : { avgPriceSol: opts.priceSol, slippagePct: 0 };
-    if (fill.avgPriceSol <= 0) return null;
+    // `<= 0` alone misses NaN (a 0/0 spot price from zeroed reserves, say) — every
+    // comparison against NaN is false in JS, so a NaN fill would otherwise slip through
+    // and corrupt tokenAmount/avgEntryPriceSol for the rest of this position's life.
+    // Unlike an exit, skipping a bad entry is always safe, so just reject it here.
+    if (!(fill.avgPriceSol > 0)) return null;
 
     const tokenAmount = notionalAfterFee / fill.avgPriceSol;
     const totalCost = spend; // fee is already baked into what left the wallet
@@ -119,10 +155,20 @@ export class PaperPortfolio {
     const fraction = opts.fraction ?? 1;
     const tokenAmount = pos.tokenAmount * fraction;
 
-    const fill = opts.poolReserves
+    let fill = opts.poolReserves
       ? simulateSell(tokenAmount, opts.poolReserves.solReservesUi, opts.poolReserves.tokenReservesUi)
       : { avgPriceSol: opts.priceSol, slippagePct: 0 };
-    if (fill.avgPriceSol <= 0) return null;
+    // An exit signal (stop-loss/take-profit/trailing-stop) must always execute somehow — a
+    // reserves-based fill that comes out non-positive or NaN (stale/inconsistent reserves,
+    // a 0/0 spot price, reserves reported far smaller than the position being closed) is a
+    // bad SIMULATION, not a reason to silently drop the exit and leave the position open
+    // forever. Fall back to the flat spot price with no modeled slippage instead. Note
+    // `fill.avgPriceSol <= 0` alone would miss NaN, since every `<=`/`>=` comparison
+    // against NaN is false in JS.
+    if (!(fill.avgPriceSol > 0) && opts.priceSol > 0) {
+      fill = { avgPriceSol: opts.priceSol, slippagePct: 0 };
+    }
+    if (!(fill.avgPriceSol > 0)) return null;
 
     const grossProceeds = tokenAmount * fill.avgPriceSol;
     const feeSol = grossProceeds * PLATFORM_FEE_PCT;
@@ -130,7 +176,10 @@ export class PaperPortfolio {
     const costBasis = pos.avgEntryPriceSol * tokenAmount;
     const pnl = netProceeds - costBasis - opts.priorityFeeSol;
 
-    this.solBalance += netProceeds - opts.priorityFeeSol;
+    // On a large enough dust position, netProceeds can be smaller than the flat priority
+    // fee (a real wallet would still just pay the fee out of whatever's left) — clamp so
+    // the paper balance never goes negative and the equity/PnL display stays sane.
+    this.solBalance = Math.max(0, this.solBalance + netProceeds - opts.priorityFeeSol);
     this.realizedPnlSol += pnl;
     this.totalFeesSol += feeSol + opts.priorityFeeSol;
 
