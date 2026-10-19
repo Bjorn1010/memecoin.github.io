@@ -1,0 +1,39 @@
+<s:PageBase x:Class="Blatja.App.Views.ProcessPanel"
+            xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+            xmlns:s="clr-namespace:Blatja.App.Shell"
+            xmlns:c="clr-namespace:Blatja.App.Controls">
+    <Border Style="{StaticResource Card}">
+        <StackPanel>
+            <Grid>
+                <StackPanel>
+                    <TextBlock Text="Applications les plus gourmandes" Style="{StaticResource Txt.H2}"/>
+                    <TextBlock Text="Regroupées par application. Lecture seule : Blatja ne ferme ni ne modifie aucun processus." Style="{StaticResource Txt.Caption}" Margin="0,2,0,0"/>
+                </StackPanel>
+                <Button x:Name="BtnTaskMgr" Content="Gestionnaire des tâches" Style="{StaticResource Btn.Secondary}" HorizontalAlignment="Right" VerticalAlignment="Top"/>
+            </Grid>
+            <Grid Margin="0,14,0,0">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="110"/><ColumnDefinition Width="90"/></Grid.ColumnDefinitions>
+                <TextBlock Text="APPLICATION" Style="{StaticResource Txt.Overline}"/>
+                <TextBlock Grid.Column="1" Text="MÉMOIRE" Style="{StaticResource Txt.Overline}" HorizontalAlignment="Right"/>
+                <TextBlock Grid.Column="2" Text="CPU" Style="{StaticResource Txt.Overline}" HorizontalAlignment="Right"/>
+            </Grid>
+            <Border Style="{StaticResource Divider}" Margin="0,8,0,0"/>
+            <ItemsControl x:Name="Rows">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource Row}" Padding="0,9">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="110"/><ColumnDefinition Width="90"/></Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Name}" Style="{StaticResource Txt.Body}" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Grid.Column="1" Text="{Binding Memory}" Style="{StaticResource Txt.Mono}" HorizontalAlignment="Right"/>
+                                <TextBlock Grid.Column="2" Text="{Binding Cpu}" Style="{StaticResource Txt.Mono}" HorizontalAlignment="Right" Foreground="{StaticResource Text2}"/>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock x:Name="Empty" Text="Lecture des processus…" Style="{StaticResource Txt.Caption}" Margin="0,10,0,0"/>
+        </StackPanel>
+    </Border>
+</s:PageBase>

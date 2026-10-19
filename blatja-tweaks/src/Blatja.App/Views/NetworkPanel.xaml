@@ -1,0 +1,34 @@
+<s:PageBase x:Class="Blatja.App.Views.NetworkPanel"
+            xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+            xmlns:s="clr-namespace:Blatja.App.Shell"
+            xmlns:c="clr-namespace:Blatja.App.Controls">
+    <Border Style="{StaticResource Card}">
+        <StackPanel>
+            <Grid>
+                <StackPanel Margin="0,0,360,0">
+                    <TextBlock Text="Mesure de latence" Style="{StaticResource Txt.H2}"/>
+                    <TextBlock x:Name="Method" Style="{StaticResource Txt.Caption}" Margin="0,2,0,0"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                    <Border Style="{StaticResource SegmentHost}" Margin="0,0,10,0">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="T1" Style="{StaticResource Segment}" GroupName="T" Content="Cloudflare" IsChecked="True"/>
+                            <RadioButton x:Name="T2" Style="{StaticResource Segment}" GroupName="T" Content="Google"/>
+                        </StackPanel>
+                    </Border>
+                    <c:Spinner x:Name="Spin" Margin="0,0,10,0" Visibility="Collapsed"/>
+                    <Button x:Name="BtnPing" Content="Mesurer" Style="{StaticResource Btn.Primary}" c:Ui.Icon="{StaticResource IconPlay}"/>
+                </StackPanel>
+            </Grid>
+            <UniformGrid Columns="5" Margin="0,16,0,0">
+                <StackPanel><TextBlock Text="MOYENNE" Style="{StaticResource Txt.Overline}"/><TextBlock x:Name="Avg" Text="—" Style="{StaticResource Txt.Value}" Margin="0,4,0,0"/></StackPanel>
+                <StackPanel><TextBlock Text="MINIMUM" Style="{StaticResource Txt.Overline}"/><TextBlock x:Name="Min" Text="—" Style="{StaticResource Txt.Value}" Margin="0,4,0,0"/></StackPanel>
+                <StackPanel><TextBlock Text="MAXIMUM" Style="{StaticResource Txt.Overline}"/><TextBlock x:Name="Max" Text="—" Style="{StaticResource Txt.Value}" Margin="0,4,0,0"/></StackPanel>
+                <StackPanel><TextBlock Text="GIGUE" Style="{StaticResource Txt.Overline}"/><TextBlock x:Name="Jit" Text="—" Style="{StaticResource Txt.Value}" Margin="0,4,0,0"/></StackPanel>
+                <StackPanel><TextBlock Text="PERTE" Style="{StaticResource Txt.Overline}"/><TextBlock x:Name="Loss" Text="—" Style="{StaticResource Txt.Value}" Margin="0,4,0,0"/></StackPanel>
+            </UniformGrid>
+            <TextBlock x:Name="Verdict" Style="{StaticResource Txt.Caption}" Margin="0,12,0,0"/>
+        </StackPanel>
+    </Border>
+</s:PageBase>

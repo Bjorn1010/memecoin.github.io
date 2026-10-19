@@ -1,0 +1,76 @@
+<s:PageBase x:Class="Blatja.App.Views.HistoryView"
+            xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+            xmlns:s="clr-namespace:Blatja.App.Shell"
+            xmlns:c="clr-namespace:Blatja.App.Controls">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="28,22,18,24">
+        <StackPanel>
+            <Grid Margin="0,0,0,18">
+                <StackPanel>
+                    <TextBlock Text="Historique des modifications" Style="{StaticResource Txt.H1}"/>
+                    <TextBlock Text="Tout ce que Blatja a modifié, refusé ou n'a pas pu faire, et les valeurs d'origine sauvegardées." Style="{StaticResource Txt.Caption}" FontSize="13" Margin="0,3,0,0"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button x:Name="BtnExport" Content="Exporter le journal" Style="{StaticResource Btn.Secondary}" Margin="0,0,8,0"/>
+                    <Button x:Name="BtnFolder" Content="Ouvrir le dossier" Style="{StaticResource Btn.Secondary}"/>
+                </StackPanel>
+            </Grid>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <Grid>
+                        <TextBlock Text="Journal" Style="{StaticResource Txt.H2}"/>
+                        <Border Style="{StaticResource SegmentHost}" HorizontalAlignment="Right">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton x:Name="FAll" Style="{StaticResource Segment}" GroupName="F" Content="Tout" IsChecked="True"/>
+                                <RadioButton x:Name="FBad" Style="{StaticResource Segment}" GroupName="F" Content="Échecs et refus"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                    <ItemsControl x:Name="Journal" Margin="0,10,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource Row}" Padding="0,10">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="120"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Time, StringFormat='{}{0:dd/MM/yy HH:mm}'}" Style="{StaticResource Txt.Mono}" Foreground="{StaticResource Text3}" VerticalAlignment="Top"/>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Style="{StaticResource Txt.Body}" FontWeight="Medium"><Run Text="{Binding ActionText, Mode=OneWay}"/><Run Text=" · "/><Run Text="{Binding OpName, Mode=OneWay}"/></TextBlock>
+                                            <TextBlock Text="{Binding Message}" Style="{StaticResource Txt.Caption}"/>
+                                        </StackPanel>
+                                        <Border Grid.Column="2" Style="{Binding BadgeStyle}" VerticalAlignment="Top"><TextBlock Text="{Binding OutcomeText}"/></Border>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock x:Name="JournalEmpty" Text="Aucun événement enregistré pour l'instant." Style="{StaticResource Txt.Caption}" Margin="0,8,0,0" Visibility="Collapsed"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+                <StackPanel>
+                    <TextBlock Text="Sauvegardes des valeurs d'origine" Style="{StaticResource Txt.H2}"/>
+                    <TextBlock Text="Capturées avant chaque modification. Elles permettent de restaurer exactement l'état précédent. Une sauvegarde dont l'optimisation n'est plus active correspond à une opération interrompue ou déjà annulée." Style="{StaticResource Txt.Caption}" Margin="0,2,0,8"/>
+                    <ItemsControl x:Name="Backups">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource Row}" Padding="0,10">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Name}" Style="{StaticResource Txt.Body}" FontWeight="Medium"/>
+                                            <TextBlock Text="{Binding Info}" Style="{StaticResource Txt.Caption}"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Content="{Binding ButtonText}" Style="{StaticResource Btn.Secondary}" Padding="14,5" Click="Backup_Click" Tag="{Binding}"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock x:Name="BackupsEmpty" Text="Aucune sauvegarde : aucune optimisation n'est actuellement appliquée par Blatja." Style="{StaticResource Txt.Caption}" Margin="0,8,0,0" Visibility="Collapsed"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</s:PageBase>

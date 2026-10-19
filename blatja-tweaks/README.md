@@ -1,31 +1,43 @@
 # Blatja Tweaks
 
-Optimiseur Windows 11 / Tiny11 pour Fortnite. Un seul `.exe` autonome (aucune installation, .NET inclus), interface sombre WPF.
+Outil d'optimisation Windows 10/11 (testé sur Tiny11) : monitoring réel, analyse, optimisations documentées et réversibles, gaming.
+Un seul `.exe` autonome (aucune installation, .NET inclus).
 
-## Utilisation
-Double-clic sur `Blatja Tweaks.exe` (demande les droits administrateur), active les interrupteurs voulus, puis **Appliquer les réglages**.
-Un point de restauration est créé avant chaque application ; **Tout restaurer** remet Windows comme avant.
+## Principes
+
+- **Données réelles ou « Indisponible »** : aucune valeur n'est inventée. Température CPU et usage GPU non-NVIDIA ne sont pas exposés par Windows → affichés comme indisponibles.
+- **État réel** : chaque optimisation lit Windows (registre, services, `powercfg`, `fsutil`) pour savoir si elle est appliquée.
+- **Chaque modification est sauvegardée, vérifiée et journalisée.** Si la vérification échoue, elle est annulée.
+- **Aucun gain garanti** : le rapport avant/après donne des mesures instantanées avec leurs limites, jamais un « +X FPS ».
+- **Sécurité préservée** : Defender, pare-feu, Windows Update, SmartScreen, isolation de noyau et services critiques sont refusés par construction.
 
 ## Pages
-Accueil (jauges CPU/GPU/RAM, graphique en direct, mode jeu, disque) · Restauration · Corrections ·
-Réglages : Général, Débloat, Réseau & souris, Avancé, Services, Profils de jeu, Optimiseur d'apps · Carte graphique · BIOS.
 
-## Ce que ça fait
-- **Système** : plan Performances ultimes, Mode Jeu, Game DVR off, HAGS, minuteur système, priorité CPU, MMCSS jeux, effets visuels allégés
-- **Entrées/réseau** : accélération souris off, Nagle off
-- **Fortnite** : priorité CPU haute, GPU haute performance + plein écran exclusif, graphismes FPS (sauvegarde `.blatja.bak`)
-- **GPU NVIDIA** : limite de puissance au max + fréquence minimale verrouillée à 90 % du boost (via `nvidia-smi`)
+Dashboard · Monitoring (1/5/15 min, infobulles) · Analyse et optimisation (scan → diagnostic → plan → exécution → rapport) ·
+Gaming (jeux détectés, profils, latence) · CPU · GPU · RAM et processus · Réseau et latence · Stockage et démarrage · Windows Debloat ·
+Utilitaires · Historique · Points de restauration · Paramètres.
 
-## Sécurité
-Au démarrage, l'application impose la création d'un point de restauration Windows avant toute modification.
-Le réglage « Isolation de noyau (VBS) » réduit la sécurité : il n'est pas inclus dans la configuration recommandée.
+## Structure
 
-## Polices
-Poppins, Rajdhani, Share Tech Mono (licence SIL OFL), embarquées dans l'exe.
+```
+src/Blatja.Core   moteur, opérations, sécurité, jeux, diagnostic (net8.0, sans dépendance Windows)
+src/Blatja.App    interface WPF, adaptateurs Windows, mesures
+tests/Blatja.Tests tests (xUnit)
+```
 
-## Limites
-- Le gain réel dépend de la machine ; aucun logiciel ne garantit +300 FPS.
-- Ce n'est pas un overclock avec offsets (tension/fréquence) : pour ça, MSI Afterburner. AMD : Adrenalin.
+## Développer
 
-## Compiler
-`dotnet publish BlatjaTweaks.csproj -c Release -o out` (ou workflow GitHub Actions « Blatja Tweaks (.exe) »).
+```
+dotnet test tests/Blatja.Tests
+dotnet publish src/Blatja.App -c Release -o out      # produit « Blatja Tweaks.exe »
+```
+
+Variables utiles en développement : `BLATJA_PAGE=<page>` (ouvre une page), `BLATJA_READONLY=1` (simule l'absence de droits administrateur).
+
+## Limites connues
+
+- Les modifications système n'ont pas été exécutées sur un vrai Windows par l'auteur de cette refonte : le moteur est testé avec des doublures, et l'interface a été vérifiée sous Wine.
+- Mesures GPU, température et boost : cartes NVIDIA avec `nvidia-smi` uniquement.
+- Le boost GPU n'est pas un overclock avec tension (MSI Afterburner pour cela) et disparaît au redémarrage.
+
+Polices : Poppins et Share Tech Mono (SIL Open Font License).

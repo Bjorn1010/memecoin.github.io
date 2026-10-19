@@ -1,19 +1,31 @@
-name: Blatja Tweaks (.exe)
+name: Blatja Tweaks
 
 on:
   workflow_dispatch:
   push:
-    paths: ["blatja-tweaks/**"]
+    paths: ["blatja-tweaks/**", ".github/workflows/blatja-tweaks.yml"]
 
 jobs:
+  test:
+    name: Tests (moteur d'optimisation)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: dotnet test blatja-tweaks/tests/Blatja.Tests -c Release
+
   build:
+    name: Build Windows (.exe)
+    needs: test
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-      - run: dotnet publish blatja-tweaks/BlatjaTweaks.csproj -c Release -o out
+      - run: dotnet publish blatja-tweaks/src/Blatja.App/Blatja.App.csproj -c Release -o out
       - uses: actions/upload-artifact@v4
         with:
           name: Blatja-Tweaks

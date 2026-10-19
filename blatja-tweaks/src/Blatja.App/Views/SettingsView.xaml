@@ -1,0 +1,61 @@
+<s:PageBase x:Class="Blatja.App.Views.SettingsView"
+            xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+            xmlns:s="clr-namespace:Blatja.App.Shell"
+            xmlns:c="clr-namespace:Blatja.App.Controls">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="28,22,18,24">
+        <StackPanel MaxWidth="820" HorizontalAlignment="Left">
+            <TextBlock Text="Paramètres" Style="{StaticResource Txt.H1}"/>
+            <TextBlock Text="Réglages de Blatja lui-même." Style="{StaticResource Txt.Caption}" FontSize="13" Margin="0,3,0,18"/>
+
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Général" Style="{StaticResource Txt.H2}"/>
+                    <Grid Margin="0,14,0,0">
+                        <StackPanel Margin="0,0,200,0">
+                            <TextBlock Text="Fréquence d'actualisation" Style="{StaticResource Txt.Body}" FontWeight="Medium"/>
+                            <TextBlock Text="Une fréquence plus faible réduit l'utilisation du processeur par Blatja. L'historique conserve toujours 15 minutes." Style="{StaticResource Txt.Caption}" Margin="0,2,0,0"/>
+                        </StackPanel>
+                        <Border Style="{StaticResource SegmentHost}" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton x:Name="R1" Style="{StaticResource Segment}" GroupName="R" Content="1 s"/>
+                                <RadioButton x:Name="R2" Style="{StaticResource Segment}" GroupName="R" Content="2 s"/>
+                                <RadioButton x:Name="R5" Style="{StaticResource Segment}" GroupName="R" Content="5 s"/>
+                                <RadioButton x:Name="R10" Style="{StaticResource Segment}" GroupName="R" Content="10 s"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                    <Border Style="{StaticResource Divider}" Margin="0,16,0,16"/>
+                    <Grid>
+                        <StackPanel Margin="0,0,200,0">
+                            <TextBlock Text="Droits d'accès" Style="{StaticResource Txt.Body}" FontWeight="Medium"/>
+                            <TextBlock x:Name="AdminText" Style="{StaticResource Txt.Caption}" Margin="0,2,0,0"/>
+                        </StackPanel>
+                        <Button x:Name="BtnElevate" Content="Relancer en administrateur" Style="{StaticResource Btn.Secondary}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Données" Style="{StaticResource Txt.H2}"/>
+                    <TextBlock x:Name="Paths" Style="{StaticResource Txt.Mono}" FontSize="12" Foreground="{StaticResource Text2}" Margin="0,10,0,0" TextWrapping="Wrap" LineHeight="18"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                        <Button x:Name="BtnFolder" Content="Ouvrir le dossier" Style="{StaticResource Btn.Secondary}" Margin="0,0,8,0"/>
+                        <Button x:Name="BtnLogs" Content="Ouvrir les journaux techniques" Style="{StaticResource Btn.Secondary}" Margin="0,0,8,0"/>
+                        <Button x:Name="BtnClear" Content="Effacer l'historique" Style="{StaticResource Btn.Secondary}"/>
+                    </StackPanel>
+                    <TextBlock Text="Effacer l'historique supprime le journal des modifications. Les sauvegardes des valeurs d'origine sont conservées." Style="{StaticResource Txt.Caption}" Margin="0,10,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="À propos" Style="{StaticResource Txt.H2}"/>
+                    <TextBlock x:Name="About" Style="{StaticResource Txt.Body}" Foreground="{StaticResource Text2}" Margin="0,10,0,0" LineHeight="22"/>
+                    <TextBlock Style="{StaticResource Txt.Caption}" Margin="0,10,0,0" Text="Polices : Poppins et Share Tech Mono, sous licence SIL Open Font License. Blatja ne modifie jamais Windows Defender, le pare-feu, Windows Update ni aucun composant de sécurité."/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</s:PageBase>

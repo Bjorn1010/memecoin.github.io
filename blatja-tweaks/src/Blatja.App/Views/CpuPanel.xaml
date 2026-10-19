@@ -1,0 +1,14 @@
+<s:PageBase x:Class="Blatja.App.Views.CpuPanel"
+            xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+            xmlns:s="clr-namespace:Blatja.App.Shell"
+            xmlns:c="clr-namespace:Blatja.App.Controls">
+    <Border Style="{StaticResource Card}">
+        <Grid>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <StackPanel><TextBlock Text="PROCESSEUR" Style="{StaticResource Txt.Overline}"/><TextBlock x:Name="CpuName" Style="{StaticResource Txt.H2}" Margin="0,6,0,0" TextWrapping="Wrap"/></StackPanel>
+            <StackPanel Grid.Column="1"><TextBlock Text="CŒURS LOGIQUES" Style="{StaticResource Txt.Overline}"/><TextBlock x:Name="Cores" Style="{StaticResource Txt.Value}" Margin="0,4,0,0"/></StackPanel>
+            <StackPanel Grid.Column="2"><TextBlock Text="CHARGE ACTUELLE" Style="{StaticResource Txt.Overline}"/><TextBlock x:Name="Load" Style="{StaticResource Txt.Value}" Margin="0,4,0,0"/></StackPanel>
+        </Grid>
+    </Border>
+</s:PageBase>

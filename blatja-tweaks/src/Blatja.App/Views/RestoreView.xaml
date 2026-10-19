@@ -1,0 +1,64 @@
+<s:PageBase x:Class="Blatja.App.Views.RestoreView"
+            xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+            xmlns:s="clr-namespace:Blatja.App.Shell"
+            xmlns:c="clr-namespace:Blatja.App.Controls">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="28,22,18,24">
+        <StackPanel>
+            <TextBlock Text="Points de restauration" Style="{StaticResource Txt.H1}"/>
+            <TextBlock Text="Un point de restauration Windows permet de revenir à l'état du système au moment de sa création." Style="{StaticResource Txt.Caption}" FontSize="13" Margin="0,3,0,18"/>
+
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="380"/></Grid.ColumnDefinitions>
+                <Border Style="{StaticResource Card}" Padding="24">
+                    <StackPanel>
+                        <TextBlock Text="Créer un point de restauration" Style="{StaticResource Txt.H2}"/>
+                        <TextBlock Text="Nom" Style="{StaticResource Txt.Caption}" Margin="0,16,0,6"/>
+                        <TextBox x:Name="RpName" Style="{StaticResource Field}" Text="Avant optimisation" MaxLength="60" AutomationProperties.Name="Nom du point de restauration"/>
+                        <TextBlock Text="Description (facultative)" Style="{StaticResource Txt.Caption}" Margin="0,12,0,6"/>
+                        <TextBox x:Name="RpDesc" Style="{StaticResource Field}" Text="" Height="72" AcceptsReturn="True" TextWrapping="Wrap" VerticalContentAlignment="Top" MaxLength="200"/>
+                        <TextBlock Text="Couleur de repère" Style="{StaticResource Txt.Caption}" Margin="0,12,0,8"/>
+                        <StackPanel Orientation="Horizontal" x:Name="Swatches"/>
+                        <Grid Margin="0,18,0,0">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center"><c:Spinner x:Name="Spin" Margin="0,0,10,0" Visibility="Collapsed"/><TextBlock x:Name="Status" Style="{StaticResource Txt.Caption}" VerticalAlignment="Center"/></StackPanel>
+                            <Button x:Name="BtnCreate" Content="Créer le point" Style="{StaticResource Btn.Primary}" HorizontalAlignment="Right"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="2" Style="{StaticResource Card}" Padding="24" VerticalAlignment="Top">
+                    <StackPanel>
+                        <TextBlock Text="Sécurité des modifications" Style="{StaticResource Txt.H2}"/>
+                        <TextBlock Style="{StaticResource Txt.Caption}" Margin="0,8,0,0" LineHeight="19"
+                                   Text="Avant la première modification, Blatja propose de créer un point de restauration. En plus, chaque optimisation sauvegarde ses valeurs d'origine et peut être restaurée individuellement."/>
+                        <Button x:Name="BtnOpenRestore" Content="Ouvrir la restauration Windows" Style="{StaticResource Btn.Secondary}" Margin="0,16,0,0"/>
+                        <Button x:Name="BtnRevertAll" Content="Annuler toutes les optimisations Blatja" Style="{StaticResource Btn.Secondary}" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <TextBlock Text="Points créés par Blatja" Style="{StaticResource Txt.H2}" Margin="2,24,0,12"/>
+            <TextBlock x:Name="Empty" Text="Aucun point créé par Blatja pour l'instant." Style="{StaticResource Txt.Caption}" Margin="2,0,0,0"/>
+            <ItemsControl x:Name="Catalog">
+                <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource Card}" Padding="0" Margin="0,0,12,12">
+                            <StackPanel>
+                                <Border Height="6" Background="{Binding Color}" CornerRadius="10,10,0,0"/>
+                                <StackPanel Margin="18,14,18,16">
+                                    <TextBlock Text="{Binding Name}" Style="{StaticResource Txt.H3}" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{Binding Description}" Style="{StaticResource Txt.Caption}" Margin="0,4,0,0" MinHeight="34" TextTrimming="CharacterEllipsis"/>
+                                    <Grid Margin="0,12,0,0">
+                                        <TextBlock Text="{Binding When, StringFormat='{}{0:dd/MM/yy · HH:mm}'}" Style="{StaticResource Txt.Mono}" Foreground="{StaticResource Text3}" VerticalAlignment="Center"/>
+                                        <Button Content="Restaurer…" Style="{StaticResource Btn.Secondary}" Padding="14,5" HorizontalAlignment="Right" Click="Restore_Click"/>
+                                    </Grid>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</s:PageBase>

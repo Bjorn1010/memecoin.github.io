@@ -1,0 +1,61 @@
+<s:PageBase x:Class="Blatja.App.Views.MonitoringView"
+            xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+            xmlns:s="clr-namespace:Blatja.App.Shell"
+            xmlns:c="clr-namespace:Blatja.App.Controls">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="28,22,18,24">
+        <StackPanel>
+            <Grid Margin="0,0,0,18">
+                <StackPanel>
+                    <TextBlock Text="Monitoring" Style="{StaticResource Txt.H1}"/>
+                    <TextBlock x:Name="Sub" Style="{StaticResource Txt.Caption}" FontSize="13" Margin="0,3,0,0"/>
+                </StackPanel>
+                <Border Style="{StaticResource SegmentHost}" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton x:Name="Per1" Style="{StaticResource Segment}" GroupName="P" Content="1 min" IsChecked="True"/>
+                        <RadioButton x:Name="Per5" Style="{StaticResource Segment}" GroupName="P" Content="5 min"/>
+                        <RadioButton x:Name="Per15" Style="{StaticResource Segment}" GroupName="P" Content="15 min"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <UniformGrid Columns="2">
+                <Border Style="{StaticResource Card}" Margin="0,0,8,16">
+                    <StackPanel>
+                        <Grid><TextBlock Text="Processeur" Style="{StaticResource Txt.H3}"/><TextBlock x:Name="VCpu" Style="{StaticResource Txt.Mono}" HorizontalAlignment="Right"/></Grid>
+                        <TextBlock x:Name="NCpu" Style="{StaticResource Txt.Caption}" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                        <c:LiveChart x:Name="ChCpu" Height="190" Margin="0,10,0,0"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource Card}" Margin="8,0,0,16">
+                    <StackPanel>
+                        <Grid><TextBlock Text="Mémoire" Style="{StaticResource Txt.H3}"/><TextBlock x:Name="VRam" Style="{StaticResource Txt.Mono}" HorizontalAlignment="Right"/></Grid>
+                        <TextBlock x:Name="NRam" Style="{StaticResource Txt.Caption}" Margin="0,2,0,0"/>
+                        <c:LiveChart x:Name="ChRam" Height="190" Margin="0,10,0,0"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource Card}" Margin="0,0,8,16">
+                    <StackPanel>
+                        <Grid><TextBlock Text="Carte graphique" Style="{StaticResource Txt.H3}"/><TextBlock x:Name="VGpu" Style="{StaticResource Txt.Mono}" HorizontalAlignment="Right"/></Grid>
+                        <TextBlock x:Name="NGpu" Style="{StaticResource Txt.Caption}" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                        <c:LiveChart x:Name="ChGpu" Height="190" Margin="0,10,0,0"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource Card}" Margin="8,0,0,16">
+                    <StackPanel>
+                        <Grid><TextBlock Text="Température GPU" Style="{StaticResource Txt.H3}"/><TextBlock x:Name="VTemp" Style="{StaticResource Txt.Mono}" HorizontalAlignment="Right"/></Grid>
+                        <TextBlock x:Name="NTemp" Style="{StaticResource Txt.Caption}" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                        <c:LiveChart x:Name="ChTemp" Height="190" Margin="0,10,0,0"/>
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <Grid><TextBlock Text="Réseau (reçu)" Style="{StaticResource Txt.H3}"/><TextBlock x:Name="VNet" Style="{StaticResource Txt.Mono}" HorizontalAlignment="Right"/></Grid>
+                    <TextBlock x:Name="NNet" Style="{StaticResource Txt.Caption}" Margin="0,2,0,0"/>
+                    <c:LiveChart x:Name="ChNet" Height="190" Margin="0,10,0,0"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</s:PageBase>
