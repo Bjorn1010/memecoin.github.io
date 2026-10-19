@@ -12,7 +12,7 @@ internal static class Gpu
 {
     private const string ClassKey = @"HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}";
 
-    private static string? FindSmi()
+    internal static string? FindSmi()
     {
         foreach (var p in new[]
         {

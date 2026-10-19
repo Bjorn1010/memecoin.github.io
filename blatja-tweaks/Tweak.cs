@@ -12,12 +12,7 @@ public sealed class Tweak : INotifyPropertyChanged
     /// <summary>Inclus dans « Appliquer la configuration » ; faux pour les réglages qui touchent à la sécurité.</summary>
     public bool Recommended { get; init; } = true;
 
-    public string Icon => Id switch
-    {
-        "power" => "⚡", "gamemode" => "🎮", "gamedvr" => "⏺", "hags" => "🧠", "timer" => "⏱",
-        "prio" => "📈", "mmcss" => "🎯", "visual" => "✨", "mouse" => "🖱", "nagle" => "🌐",
-        "fnprio" => "🔥", "fngpu" => "🖥", "fnini" => "🎨", _ => "•",
-    };
+    public string IconPath => Icons.ForTweak(Id);
     public required Action Apply { get; init; }
     public required Action Revert { get; init; }
 

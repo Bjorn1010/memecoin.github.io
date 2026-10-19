@@ -6,6 +6,10 @@ Optimiseur Windows 11 / Tiny11 pour Fortnite. Un seul `.exe` autonome (aucune in
 Double-clic sur `Blatja Tweaks.exe` (demande les droits administrateur), active les interrupteurs voulus, puis **Appliquer les réglages**.
 Un point de restauration est créé avant chaque application ; **Tout restaurer** remet Windows comme avant.
 
+## Pages
+Accueil (jauges CPU/GPU/RAM, graphique en direct, mode jeu, disque) · Restauration · Corrections ·
+Réglages : Général, Débloat, Réseau & souris, Avancé, Services, Profils de jeu, Optimiseur d'apps · Carte graphique · BIOS.
+
 ## Ce que ça fait
 - **Système** : plan Performances ultimes, Mode Jeu, Game DVR off, HAGS, minuteur système, priorité CPU, MMCSS jeux, effets visuels allégés
 - **Entrées/réseau** : accélération souris off, Nagle off
@@ -17,7 +21,7 @@ Au démarrage, l'application impose la création d'un point de restauration Wind
 Le réglage « Isolation de noyau (VBS) » réduit la sécurité : il n'est pas inclus dans la configuration recommandée.
 
 ## Polices
-Rajdhani, Barlow, Share Tech Mono (licence SIL OFL), embarquées dans l'exe.
+Poppins, Rajdhani, Share Tech Mono (licence SIL OFL), embarquées dans l'exe.
 
 ## Limites
 - Le gain réel dépend de la machine ; aucun logiciel ne garantit +300 FPS.
